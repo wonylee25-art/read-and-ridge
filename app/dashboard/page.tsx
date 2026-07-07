@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+
 import { createClient } from '@/lib/supabase/server'
 import { BookOpen, Mountain, CheckCircle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
