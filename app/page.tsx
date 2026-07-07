@@ -11,7 +11,7 @@ export default async function Home() {
 
   try {
     // Supabase 호출이 지연될 경우 앱 로딩이 멈추므로 타임아웃을 둡니다.
-    const res: any = await Promise.race([
+    const res = await Promise.race([
       supabase.auth.getUser(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('auth timeout')), 2000)),
     ])
