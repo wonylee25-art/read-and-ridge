@@ -31,15 +31,19 @@
 
 ## 색상 테마 (KDC 기반)
 
-| 테마 | fill | edge | snow | KDC |
-|------|------|------|------|-----|
-| mystery | #b8ccd8 | #607080 | #f0f4f8 | 0,1,2 (총류/철학/종교) |
-| earth | #c8a870 | #805830 | #f0e8d0 | 3,7,9 (사회/예술/역사) |
-| nature | #70c888 | #386848 | #e8f8ec | 4,5 (과학/기술) |
-| fantasy | #c890d0 | #885098 | #f8eaf8 | 6,8 (어학/문학) |
-| default | #88b888 | #487048 | #eaf4ea | kdc 없음 |
+> 고채도 게임 팔레트 (2026.06.29 Canvas 재구현 기준). 코드: `KDC_THEME` in `WorldMap.tsx`.
 
-kdc가 없으면 index % 4로 테마를 순환 배정.
+| 테마 | fill | edge | snow | base | KDC |
+|------|------|------|------|------|-----|
+| mystery | #5b8dd9 | #2c4d8a | #e8f0ff | #1e3560 | 0,1,2 (총류/철학/종교) |
+| earth | #c97b2e | #7a4010 | #fff0cc | #5a2e08 | 3,7,9 (사회/예술/역사) |
+| nature | #2db86a | #166b3a | #d4ffea | #0d4022 | 4,5 (과학/기술) |
+| fantasy | #9b59d0 | #5a1f8a | #f0e0ff | #3b1060 | 6,8 (어학/문학) |
+| default | #3aac6e | #1a6640 | #d6f5e6 | #0e4228 | kdc 없음 |
+
+kdc가 없으면 `index % 4`로 테마 순환 배정 (`INDEX_THEMES`: nature→earth→fantasy→mystery).
+
+> ⚠️ mystery는 design-style.md가 "밝은 회백색"으로 의도했으나 코드는 청색 계열(#5b8dd9). 정합 여부는 `docs/verification.md` 참고.
 
 ---
 
@@ -48,8 +52,8 @@ kdc가 없으면 index % 4로 테마를 순환 배정.
 | 시간 | 상단 | 하단 | 별 |
 |------|------|------|-----|
 | 0–5시 | #060b22 | #0d1540 | ✓ |
-| 6–15시 | #2980b9 | #87ceeb | - |
-| 16–18시 | #d04010 | #f08050 | - |
+| 6–15시 | #1a6bbf | #6ec6f0 | - |
+| 16–18시 | #c03010 | #f07040 | - |
 | 19–23시 | #0e1248 | #141840 | ✓ |
 
 하늘은 CSS `linear-gradient` + `transition: background 4s ease`로 부드럽게 전환. 1분마다 시간 갱신.

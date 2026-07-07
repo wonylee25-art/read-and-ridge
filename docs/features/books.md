@@ -49,7 +49,7 @@ app/dashboard/books/page.tsx   (Server Component)
 
 - `dynamic(() => import('./BarcodeScanner'), { ssr: false })`로 임포트 (카메라 API는 서버에서 실행 불가)
 - `useEffect`에서 `BrowserMultiFormatReader.decodeFromVideoDevice()` 시작
-- 컴포넌트 언마운트 시 `reader.reset()`으로 카메라 스트림 정리
+- 컴포넌트 언마운트 시 `decodeFromVideoDevice`가 반환한 `IScannerControls.stop()`으로 카메라 스트림 정리 (구버전 `reader.reset()`은 @zxing/browser v0.2에서 제거됨)
 - UI: 전체화면 모달, 스캔 가이드 박스, 스캔라인 애니메이션 (`@keyframes scanline`)
 - 에러 처리: 카메라 권한 거부 시 에러 메시지 표시
 
@@ -91,8 +91,16 @@ const paused    = books?.filter((b) => b.status === 'paused')    ?? []
 
 ---
 
+## 구현 완료 (2026.06.29)
+
+- ✅ `status` 변경 — BookCard 드롭다운으로 reading/paused/completed 전환
+- ✅ 완독 자동 처리 — `current_page >= total_pages`이면 자동 `completed`
+- ✅ 책 메모 — BookCard memo 입력/저장
+
 ## 현재 미구현 / 개선 포인트
 
-- `status` 변경 기능 없음 → BookCard에서 드롭다운으로 변경하는 Server Action 필요
-- `kdc` 필드가 DB에는 있지만 AddBookForm에서 입력받지 않음 → 카카오 API 응답에 KDC 없음, 수동 입력 또는 별도 연동 필요
-- 완독 시 자동 status 변경 없음 → `current_page === total_pages`일 때 자동 `completed` 처리 고려
+- `kdc` 필드가 DB에는 있지만 AddBookForm에서 입력받지 않음 → 카카오 API 응답에 KDC 없음. **국립중앙도서관 API 연동(Phase 3)**이 KDC 채색의 전제.
+- **중복 ISBN 방어 미구현** — overview의 핵심 가치(중복 구매 방지)인데 재등록 차단 로직 없음. Shake + 말풍선 필요.
+- **총 쪽수 누락 시 300쪽 기본값 미적용** — 현재 누락 도서는 진행률 0% 고정. 등록 파이프라인 보완 필요.
+
+> 상세 검증은 `docs/verification.md` 참고.

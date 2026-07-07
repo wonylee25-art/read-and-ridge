@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 카카오 도서 API 응답 문서 형태 (필요한 필드만)
+interface KakaoBookDoc {
+  title?: string
+  authors?: string[]
+  publisher?: string
+  isbn?: string
+  thumbnail?: string
+  datetime?: string
+}
+
+// Open Library 저자 객체 형태
+interface OpenLibraryAuthor {
+  name?: string
+}
+
 // 카카오 도서 API — ISBN 또는 제목으로 검색
 async function fetchKakao(query: string, size = 10, target?: string) {
   const key = process.env.KAKAO_API_KEY
@@ -15,7 +30,7 @@ async function fetchKakao(query: string, size = 10, target?: string) {
   if (!res.ok) return []
 
   const data = await res.json()
-  return (data.documents ?? []).map((d: any) => ({
+  return (data.documents ?? []).map((d: KakaoBookDoc) => ({
     title: d.title,
     authors: d.authors?.join(', ') ?? '',
     publisher: d.publisher ?? '',
@@ -68,7 +83,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         book: {
           title:       ol.title ?? '',
-          authors:     ol.authors?.map((a: any) => a.name).join(', ') ?? '',
+          authors:     ol.authors?.map((a: OpenLibraryAuthor) => a.name).join(', ') ?? '',
           publisher:   ol.publishers?.[0]?.name ?? '',
           total_pages: ol.number_of_pages ?? null,
           isbn,

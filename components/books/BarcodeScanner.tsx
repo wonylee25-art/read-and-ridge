@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
+import type { IScannerControls } from '@zxing/browser'
 
 type Props = {
   onDetected: (isbn: string) => void
@@ -10,7 +11,7 @@ type Props = {
 
 export default function BarcodeScanner({ onDetected, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const readerRef = useRef<any>(null)
+  const controlsRef = useRef<IScannerControls | null>(null)
   const onDetectedRef = useRef(onDetected)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,10 +27,9 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
       try {
         const { BrowserMultiFormatReader } = await import('@zxing/browser')
         const reader = new BrowserMultiFormatReader()
-        readerRef.current = reader
         setScanning(true)
 
-        await reader.decodeFromVideoDevice(
+        const controls = await reader.decodeFromVideoDevice(
           undefined,
           videoRef.current!,
           (result) => {
@@ -43,6 +43,7 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
             }
           }
         )
+        controlsRef.current = controls
       } catch {
         setError('카메라 접근 권한이 필요해요.')
         setScanning(false)
@@ -53,7 +54,7 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
 
     return () => {
       stopped = true
-      readerRef.current?.reset?.()
+      controlsRef.current?.stop()
     }
   }, [])
 

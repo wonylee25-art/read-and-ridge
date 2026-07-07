@@ -11,17 +11,6 @@ const MINI_STEPS = 7     // 고정 7행 (중간 크기)
 const CHAR_ROWS = ['.XXX.', 'XXXXX', 'XX.XX', '.X.X.', '.X.X.']
 const CPX = 2            // 캐릭터 픽셀 크기
 
-// 능선 X좌표 (row별): 왼쪽 edge 픽셀의 col 인덱스
-// row 0 = 정상(mid), row N-1 = 기슭(0 ~ 2*N-2)
-function getRidgeX(row: number, steps: number, mid: number): number[] {
-  const xs: number[] = []
-  for (let col = mid - row; col <= mid + row; col++) {
-    const isEdge = col === mid - row || col === mid + row
-    if (isEdge || row === 0) xs.push(col)
-  }
-  return xs
-}
-
 function MiniMountain({ pct, bounceFrame }: { pct: number; bounceFrame: number }) {
   const steps = MINI_STEPS
   const mid = steps - 1
