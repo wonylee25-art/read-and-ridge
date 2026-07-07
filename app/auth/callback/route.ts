@@ -14,6 +14,14 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+    // 실패 원인을 Vercel Function 로그에 남겨서 다음에 바로 원인을 볼 수 있게 함
+    console.error('[auth/callback] exchangeCodeForSession failed:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+    })
+  } else {
+    console.error('[auth/callback] no code param in callback URL')
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
