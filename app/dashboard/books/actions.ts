@@ -90,19 +90,24 @@ export async function addBook(formData: FormData) {
 export async function updateProgress(bookId: string, currentPage: number) {
   const supabase = await createClient()
 
-  // 총 페이지 수 조회해서 완독 여부 판단
+  // 총 페이지 수 + 기존 상태 조회 — status까지 같이 봐야 "이번 저장으로 막 완독됐는지"
+  // (justCompleted)와 "원래 이미 완독 상태였는지"를 구분할 수 있음. 이 구분이 있어야
+  // 세레모니(완등 축하 연출)를 실제 완독 순간에만 1번 띄우고, 이미 완독한 책을
+  // 재저장할 때는 안 띄울 수 있음.
   const { data: book } = await supabase
     .from('books')
-    .select('total_pages')
+    .select('total_pages, status')
     .eq('id', bookId)
     .single()
 
   const updates: Record<string, unknown> = { current_page: currentPage }
+  let justCompleted = false
 
   if (book?.total_pages && currentPage >= book.total_pages) {
     updates.status = 'completed'
     updates.current_page = book.total_pages // 초과 입력 방지
     updates.completed_at = new Date().toISOString()
+    justCompleted = book.status !== 'completed'
   }
 
   const { error } = await supabase.from('books').update(updates).eq('id', bookId)
@@ -110,6 +115,8 @@ export async function updateProgress(bookId: string, currentPage: number) {
   revalidatePath('/dashboard/books')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/hikes')
+
+  return { justCompleted }
 }
 
 export async function saveMemo(bookId: string, memo: string) {

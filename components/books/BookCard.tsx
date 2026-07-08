@@ -5,6 +5,7 @@ import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, update
 import { Trash2, CheckCircle, StickyNote, Home, Pencil } from 'lucide-react'
 import { formatAuthor } from '@/lib/formatAuthor'
 import DeleteConfirmModal from '@/components/books/DeleteConfirmModal'
+import CelebrationOverlay from '@/components/worldmap/CelebrationOverlay'
 
 type Book = {
   id: string
@@ -35,6 +36,9 @@ export default function BookCard({ book }: { book: Book }) {
   const [status, setStatus] = useState(book.status)
   const [isUpdating, setIsUpdating] = useState(false)
   const [justCompleted, setJustCompleted] = useState(false)
+  // 세레모니 오버레이 트리거 — 페이지 업데이트로 자동 완독되거나, 상태 드롭다운으로
+  // 직접 "완독"을 골랐을 때(둘 다 이전 상태가 완독이 아니었을 때만)만 true
+  const [celebrating, setCelebrating] = useState(false)
   const [memoOpen, setMemoOpen] = useState(false)
   const [memo, setMemo] = useState(book.memo ?? '')
   const [memoSaving, setMemoSaving] = useState(false)
@@ -73,12 +77,14 @@ export default function BookCard({ book }: { book: Book }) {
   async function handleUpdateProgress() {
     if (!book.total_pages) return
     setIsUpdating(true)
-    await updateProgress(book.id, page)
+    const result = await updateProgress(book.id, page)
 
-    // 완독 자동 전환 감지
-    if (page >= book.total_pages) {
+    // 완독 자동 전환 감지 — 서버가 판단한 justCompleted를 그대로 신뢰 (클라이언트에서
+    // page >= total_pages만 보고 판단하면, 이미 완독된 책을 재저장할 때도 다시 뜸)
+    if (result?.justCompleted) {
       setStatus('completed')
       setJustCompleted(true)
+      setCelebrating(true)
       setTimeout(() => setJustCompleted(false), 3000)
     }
     setIsUpdating(false)
@@ -122,17 +128,27 @@ export default function BookCard({ book }: { book: Book }) {
   }
 
   async function handleStatusChange(newStatus: string) {
+    const wasCompleted = status === 'completed'
     setStatus(newStatus)
     if (newStatus === 'completed' && book.total_pages) {
       setPage(book.total_pages)
     }
     await changeStatus(book.id, newStatus)
+    // 드롭다운으로 직접 "완독"을 골랐을 때도(자동 전환이 아니라 수동이어도) 축하 연출
+    if (newStatus === 'completed' && !wasCompleted) {
+      setJustCompleted(true)
+      setCelebrating(true)
+      setTimeout(() => setJustCompleted(false), 3000)
+    }
   }
 
   return (
     <div className={`bg-white border rounded-2xl p-5 shadow-sm transition-all mb-4 break-inside-avoid ${
       justCompleted ? 'border-green-300 shadow-green-100' : 'border-gray-100 hover:shadow-md'
     }`}>
+      {celebrating && (
+        <CelebrationOverlay title={book.title} onDone={() => setCelebrating(false)} />
+      )}
 
       {/* 완독 축하 메시지 */}
       {justCompleted && (

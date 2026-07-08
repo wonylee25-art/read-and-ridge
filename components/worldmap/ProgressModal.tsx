@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { updateProgress } from '@/app/dashboard/books/actions'
 import type { WorldMapBook } from './WorldMap'
+import CelebrationOverlay from './CelebrationOverlay'
 
 // ─── 모달 ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,9 @@ export default function ProgressModal({ book, onClose, onSaved }: Props) {
   const [page, setPage] = useState(book.current_page)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  // 이번 저장으로 "막" 완독됐을 때만 true — 세레모니 오버레이를 띄우는 트리거.
+  // 이미 완독된 책을 재저장하거나 완독 없이 진행률만 바꿀 땐 절대 뜨지 않음.
+  const [celebrating, setCelebrating] = useState(false)
   const gaugeRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
 
@@ -74,16 +78,32 @@ export default function ProgressModal({ book, onClose, onSaved }: Props) {
   async function handleSave() {
     setSaving(true)
     try {
-      await updateProgress(book.id, displayPage)
+      const result = await updateProgress(book.id, displayPage)
       setSaved(true)
-      onSaved()
-      setTimeout(() => setSaved(false), 2000)
+      if (result?.justCompleted) {
+        // 완등 세레모니를 먼저 보여주고, 오버레이가 끝나면(handleCelebrationDone)
+        // 그때 onSaved/onClose를 호출 — 축하 연출 도중에 모달이 먼저 닫히는 걸 방지
+        setCelebrating(true)
+      } else {
+        onSaved()
+        setTimeout(() => setSaved(false), 2000)
+      }
     } finally {
       setSaving(false)
     }
   }
 
+  function handleCelebrationDone() {
+    setCelebrating(false)
+    onSaved()
+    onClose()
+  }
+
   const title = book.title.length > 28 ? book.title.slice(0, 27) + '…' : book.title
+
+  if (celebrating) {
+    return <CelebrationOverlay title={book.title} onDone={handleCelebrationDone} />
+  }
 
   return (
     <div
