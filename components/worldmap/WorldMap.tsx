@@ -378,6 +378,114 @@ function drawFlag(ctx: CanvasRenderingContext2D, peakCenterX: number, peakTopY: 
   ctx.fillRect(Math.round(peakCenterX + 1), Math.round(peakTopY - poleH), 9, 6)
 }
 
+// ─── 완등 세레모니 (산 정상 위 인라인 이펙트) ──────────────────────────────────
+// 풀스크린 팝업 대신, 방금 완독된 책의 산 정상 위에서 직접 폭죽이 터지고
+// 캐릭터가 양팔을 들고 춤추는 걸 보여준다. books prop이 갱신되며 어떤 책의
+// status가 completed로 "막" 바뀐 걸 감지하면(아래 useEffect) 이 burst가 생성되고,
+// BURST_DURATION_MS 동안만 정상 위에 그려진 뒤 사라진다(깃발은 이후에 정상 노출).
+
+const BURST_DURATION_MS = 3200
+const BURST_PARTICLE_COUNT = 22
+const BURST_COLORS = ['#f0c040', '#e03e2f', '#2f6fe0', '#2fb573', '#e0527a', '#8ac03f', '#ffd23e']
+
+type BurstParticle = { angle: number; speed: number; color: string; size: number }
+type Burst = { startedAt: number; particles: BurstParticle[] }
+
+function makeBurstParticles(): BurstParticle[] {
+  return Array.from({ length: BURST_PARTICLE_COUNT }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    speed: 0.7 + Math.random() * 1.5,
+    color: BURST_COLORS[Math.floor(Math.random() * BURST_COLORS.length)],
+    size: 3 + Math.floor(Math.random() * 3),
+  }))
+}
+
+// 정상 좌표(peakX, peakY) 기준으로 사방으로 튀어올랐다가 중력에 끌려 떨어지는
+// 폭죽 조각들. 매 프레임 elapsed(경과 ms)로부터 위치를 계산하는 방식이라
+// 별도 프레임 상태 갱신 없이도 재생 가능(값만 읽으면 됨).
+function drawBurstParticles(
+  ctx: CanvasRenderingContext2D,
+  burst: Burst,
+  elapsed: number,
+  peakX: number,
+  peakY: number
+) {
+  const t = elapsed / 1000 // 초 단위
+  const fade = Math.max(0, 1 - elapsed / BURST_DURATION_MS)
+  burst.particles.forEach((p) => {
+    const dist = p.speed * 42 * t
+    const x = peakX + Math.cos(p.angle) * dist
+    const y = peakY - Math.sin(p.angle) * dist * 0.7 - 18 + 70 * t * t
+    ctx.globalAlpha = fade
+    ctx.fillStyle = p.color
+    ctx.fillRect(Math.round(x), Math.round(y), p.size, p.size)
+  })
+  ctx.globalAlpha = 1
+}
+
+// "CLEAR!" 픽셀 타이포 — 팝인(scale) 후 종료 직전 페이드아웃
+function drawClearPixelText(ctx: CanvasRenderingContext2D, elapsed: number, cx: number, y: number) {
+  const popProgress = Math.min(elapsed / 260, 1)
+  const scale = 0.5 + 0.5 * popProgress
+  const fadeStart = BURST_DURATION_MS - 500
+  const alpha = elapsed > fadeStart ? Math.max(0, 1 - (elapsed - fadeStart) / 500) : 1
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.translate(cx, y)
+  ctx.scale(scale, scale)
+  ctx.font = 'bold 15px monospace'
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#b0791a'
+  ctx.fillText('CLEAR!', 2, 2)
+  ctx.fillStyle = '#ffd23e'
+  ctx.fillText('CLEAR!', 0, 0)
+  ctx.restore()
+  ctx.globalAlpha = 1
+}
+
+// 세레모니 전용 캐릭터 포즈(양팔을 번쩍 든 8열 스프라이트) — WorldMap 평상시
+// 걷기/오르기 포즈(CHAR_ROWS_A/B, 6열)와는 별개. 정상에서만 잠깐 등장.
+const DANCE_CHAR_ROWS_A = [
+  '..HHHH..',
+  'S.SSSS.S',
+  '..BBBB..',
+  '.BBBBBB.',
+  '..BBBB..',
+  '..BBBB..',
+  '.L....L.',
+  '.L....L.',
+]
+const DANCE_CHAR_ROWS_B = [
+  '.SHHHHS.',
+  '..SSSS..',
+  '..BBBB..',
+  '.BBBBBB.',
+  '..BBBB..',
+  '..BBBB..',
+  '..LLLL..',
+  '.L....L.',
+]
+
+function drawDanceChar(ctx: CanvasRenderingContext2D, cx: number, cy: number, frame: number, outfitColor?: string) {
+  const rows = frame % 2 === 0 ? DANCE_CHAR_ROWS_A : DANCE_CHAR_ROWS_B
+  const w = rows[0].length * CPX
+  const h = rows.length * CPX
+  rows.forEach((row, ri) => {
+    row.split('').forEach((cell, ci) => {
+      const color = cell === 'B' && outfitColor ? outfitColor : CHAR_COLORS[cell]
+      if (color) {
+        ctx.fillStyle = color
+        ctx.fillRect(
+          Math.round(cx - w / 2 + ci * CPX),
+          Math.round(cy - h + ri * CPX),
+          CPX,
+          CPX
+        )
+      }
+    })
+  })
+}
+
 function drawCampfire(ctx: CanvasRenderingContext2D, x: number, y: number, frame: number) {
   const fireColors = ['#ff6600', '#ff9900', '#ffcc00']
   ctx.fillStyle = '#8b4513'
@@ -732,7 +840,29 @@ export default function WorldMap({
     lastFireTime: 0,
     weatherParticles: null as RainDrop[] | SnowFlake[] | null,
     weatherForW: 0,
+    // 완등 세레모니 — bookId별로 시작 시각(performance.now() 기준, rAF timestamp와
+    // 같은 시계)과 폭죽 파티클을 들고 있음. 아래 감지 useEffect가 채워 넣고,
+    // draw() 루프가 BURST_DURATION_MS 지나면 알아서 지운다.
+    bursts: new Map<string, Burst>(),
   })
+
+  // 완등 세레모니 트리거 — books prop이 갱신될 때마다 이전 상태와 비교해서
+  // "이번에 막 completed로 바뀐 책"을 찾아 burst를 만든다. 최초 마운트(prev가 없을 때)엔
+  // 절대 트리거하지 않음 — 안 그러면 이미 완독된 책이 있는 페이지를 처음 열 때마다
+  // 세레모니가 뜨는 오작동이 생김.
+  const prevStatusRef = useRef<Map<string, WorldMapBook['status']> | null>(null)
+  useEffect(() => {
+    const prev = prevStatusRef.current
+    if (prev) {
+      books.forEach((b) => {
+        const prevStatus = prev.get(b.id)
+        if (b.status === 'completed' && prevStatus && prevStatus !== 'completed') {
+          stateRef.current.bursts.set(b.id, { startedAt: performance.now(), particles: makeBurstParticles() })
+        }
+      })
+    }
+    prevStatusRef.current = new Map(books.map((b) => [b.id, b.status]))
+  }, [books])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -891,9 +1021,29 @@ export default function WorldMap({
           }
         }
 
-        // 완독(24시간 유예 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색)
-        if (book.status === 'completed') {
+        // 완등 세레모니 진행 중인지 확인 — 진행 중이면 이번 프레임엔 깃발 대신
+        // 정상 댄스 캐릭터 + CLEAR! + 폭죽을 그리고, 지속시간이 지나면 burst를
+        // 지워서 이후 프레임부터는 평소처럼 깃발만 보이게 한다.
+        const burst = stateRef.current.bursts.get(book.id)
+        const burstElapsed = burst ? timestamp - burst.startedAt : 0
+        const burstActive = !!burst && burstElapsed < BURST_DURATION_MS
+        if (burst && !burstActive) {
+          stateRef.current.bursts.delete(book.id)
+        }
+
+        // 완독(24시간 유예 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색).
+        // 세레모니가 진행 중인 동안엔 깃발 대신 댄스 캐릭터가 그 자리를 대신함.
+        if (book.status === 'completed' && !burstActive) {
           drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id))
+        }
+
+        if (burstActive && burst) {
+          const peakX = baseX + mid * PX + PX / 2
+          const s2 = stateRef.current
+          const bounce = s2.bounceFrame < 10 ? -(s2.bounceFrame * 0.35) : -((20 - s2.bounceFrame) * 0.35)
+          drawDanceChar(ctx, peakX, baseY + bounce, s2.charFrame, theme.char)
+          drawClearPixelText(ctx, burstElapsed, peakX, baseY - 26)
+          drawBurstParticles(ctx, burst, burstElapsed, peakX, baseY)
         }
 
         // 독서중 → 진행도(current_page / total_pages)에 비례해 캐릭터가 산을 오름
