@@ -35,9 +35,22 @@ app/dashboard/books/page.tsx   (Server Component)
 | title (hidden) | ✓ | 검색/스캔 결과 자동 입력 |
 | author (hidden) | - | 검색/스캔 결과 자동 입력 |
 | total_pages | - | 검색 결과 자동 입력 가능 |
-| current_page | - | 0 |
 | status | ✓ | `reading` |
 | started_at | - | 비어있음 |
+| owned (소장 중 체크박스) | - | 체크됨 (true) |
+
+> `current_page`는 추가 폼에서 입력받지 않음. 신규 등록 시 항상 0에서 시작하고, 이후 `BookCard`의 페이지 업데이트로 갱신한다.
+
+### 소장 여부 & 중복 경고
+
+- `owned`는 열람 상태(`status`)와 독립적인 필드. 소장 여부와 무관하게 모든 등록 책은 동일하게 읽기 상태·진행률을 관리한다.
+- 중복 검사는 `owned`/`status`와 무관하게 항상 실행된다. ISBN이 있으면 동일 사용자의 동일 ISBN을 바로 중복으로 판단.
+  ISBN이 없으면 동일 사용자의 동일 제목(대소문자·공백 무시, `ilike`) 후보를 뽑은 뒤, 저자까지 비교한다:
+  신규/기존 양쪽 다 저자 정보가 있으면 저자까지 같아야 중복으로 판단(제목만 같고 저자가 다른
+  "동명이서"는 다른 책으로 취급), 어느 한쪽이라도 저자 정보가 없으면 정보 부족을 감안해 제목만으로 판단.
+  (⚠ 이전엔 "신규 등록이 `owned=true`이고 기존도 `owned=true`일 때"만 검사해서, ISBN 없이
+  등록하거나 `owned=false`로 등록하면 같은 책이 그냥 중복 등록되는 문제가 있었음 — 확장 수정됨.)
+- 조건에 걸리면 저장하지 않고 **"OO, 또 산 책이 됩니다!"** 메시지로 막는다(`AddBookForm`의 `duplicateError` 상태 + shake 애니메이션). 등록을 진행하려면 다른 책을 선택하거나 제목을 다르게 입력해야 한다.
 
 ### 제출
 
@@ -70,6 +83,13 @@ app/dashboard/books/page.tsx   (Server Component)
 - 입력값 변경 시 로컬 `useState`로 즉시 UI 반영
 - 버튼 클릭 시 `updateProgress(book.id, page)` Server Action 호출
 
+### 소장 여부 토글
+
+- 상단 컨트롤 영역, 메모 버튼 왼쪽에 집 아이콘(`Home`, lucide-react) 버튼
+- 소장 중이면 amber 색, 아니면 회색(호버 시 amber) — 클릭할 때마다 반전
+- 클릭 시 로컬 상태 즉시 반영 + `updateOwned(book.id, owned)` Server Action 호출
+- 등록 후에도 소장 여부를 자유롭게 고칠 수 있음(대출→구매, 구매→처분 등 상태 변화 반영용)
+
 ### 삭제
 
 - 휴지통 버튼 → `deleteBook(book.id)` Server Action 호출
@@ -100,7 +120,7 @@ const paused    = books?.filter((b) => b.status === 'paused')    ?? []
 ## 현재 미구현 / 개선 포인트
 
 - `kdc` 필드가 DB에는 있지만 AddBookForm에서 입력받지 않음 → 카카오 API 응답에 KDC 없음. **국립중앙도서관 API 연동(Phase 3)**이 KDC 채색의 전제.
-- **중복 ISBN 방어 미구현** — overview의 핵심 가치(중복 구매 방지)인데 재등록 차단 로직 없음. Shake + 말풍선 필요.
+- **`owned` DB 컬럼 미생성** — AddBookForm 체크박스와 서버 액션(actions.ts) 로직은 구현됨. Supabase `books` 테이블에 `owned` (boolean, default true) 컬럼을 추가해야 실제로 저장/조회가 동작한다. 컬럼 없이 저장 시도하면 insert 에러 발생.
 - **총 쪽수 누락 시 300쪽 기본값 미적용** — 현재 누락 도서는 진행률 0% 고정. 등록 파이프라인 보완 필요.
 
 > 상세 검증은 `docs/verification.md` 참고.

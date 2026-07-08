@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Read & Ridge",
+  title: "산책또산책 - Read & Ridge",
   description: "책과 산, 나만의 기록 공간",
 };
 

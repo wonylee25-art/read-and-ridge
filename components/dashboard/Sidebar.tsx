@@ -1,26 +1,29 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Mountain, LayoutDashboard } from 'lucide-react'
+import { BookOpen, Mountain } from 'lucide-react'
 import LogoutButton from '@/components/auth/LogoutButton'
+import AboutModal from '@/components/dashboard/AboutModal'
 
+// 홈과 산책기록(구 독서 페이지)을 하나로 합쳐서, 메뉴는 산책기록/완등기록 2개만 남김
 const nav = [
-  { href: '/dashboard', label: '홈', icon: LayoutDashboard },
-  { href: '/dashboard/books', label: '독서', icon: BookOpen },
-  { href: '/dashboard/hikes', label: '등산', icon: Mountain },
+  { href: '/dashboard', label: '산책기록', icon: BookOpen },
+  { href: '/dashboard/hikes', label: '완등기록', icon: Mountain },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   return (
     <aside className="flex flex-col w-56 h-screen bg-white border-r border-gray-100 px-4 py-6 shrink-0">
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-          Read &amp; Ridge
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          산책또산책
         </h1>
-        <p className="text-xs text-gray-400 mt-0.5">책과 산</p>
+        <p className="text-xs text-gray-400 mt-0.5">Read &amp; Ridge</p>
       </div>
 
       <nav className="flex-1 space-y-1">
@@ -43,7 +46,23 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <LogoutButton />
+      <div className="space-y-2.5 pt-4 mt-4 border-t border-gray-100">
+        <button
+          onClick={() => setAboutOpen(true)}
+          className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          산책또산책에 대하여
+        </button>
+        <a
+          href="/api/books/export"
+          className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          CSV 내려받기
+        </a>
+        <LogoutButton />
+      </div>
+
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </aside>
   )
 }

@@ -53,10 +53,39 @@ kdc가 없으면 `index % 4`로 테마 순환 배정 (`INDEX_THEMES`: nature→e
 |------|------|------|-----|
 | 0–5시 | #060b22 | #0d1540 | ✓ |
 | 6–15시 | #1a6bbf | #6ec6f0 | - |
-| 16–18시 | #c03010 | #f07040 | - |
+| 16–18시 | #d9772e | #f5b95f | - |
 | 19–23시 | #0e1248 | #141840 | ✓ |
 
 하늘은 CSS `linear-gradient` + `transition: background 4s ease`로 부드럽게 전환. 1분마다 시간 갱신.
+
+---
+
+## 날씨 (벚꽃비/비/눈)
+
+`home` 모드에서 오늘 날짜(`YYYY-MM-DD`)를 시드로 결정 — 하루 동안은 재방문/새로고침해도
+항상 같은 날씨. 한 달에 3~4번 정도만 나오도록 확률을 낮췄고(`WEATHER_CHANCE = 3.5/30 ≈ 11.7%`),
+나머지는 맑음. 날씨가 뜨는 날엔 달(월)에 따라 종류가 정해진다(랜덤 아님):
+
+| 시기 | 날씨 | 표현 |
+|------|------|------|
+| 4월 | 벚꽃비(`bloom`) | 눈과 같은 낙하 파티클이지만 연보라색(`#d9b3f0`), 하늘에 은은한 연보라 틴트 |
+| 5~11월 | 비(`rain`) | 사선 빗줄기 70개, 하늘에 어두운 청회색 틴트 |
+| 12~3월 | 눈(`snow`) | 흩날리는 눈송이 50개(사인파 드리프트, 흰색), 하늘에 옅은 흰색 틴트 |
+
+코드: `getTodaysWeather`, `getSeasonalWeatherKind`, `WEATHER_CHANCE` in `WorldMap.tsx`.
+`trophy`(완등기록) 화면에는 적용하지 않고 항상 맑음으로 고정.
+
+---
+
+## 완등기록(trophy) 표시 개수 제한
+
+완독이 쌓일수록 지도가 무한정 길어지는 걸 막기 위해, `trophy` 모드는 넘어온 책(호출 측에서
+이미 `completed_at` 내림차순 = 최신순으로 정렬해 넘김) 중 최근 `TARGET_TROPHY`(5)개만
+지도에 그린다. 나머지는 `hikes/page.tsx` 아래 전체 목록(BookCard 그리드)에서만 확인 가능.
+`TARGET_TROPHY`는 `WorldMap.tsx`에서 export되며, `hikes/page.tsx`가 안내 문구("최근
+완등한 5권만 지도에 표시돼요...")에 그대로 재사용한다.
+
+코드: `rollWeather`, `drawRain`, `drawSnow`, `drawWeatherTint` in `WorldMap.tsx`. 파티클은 캔버스 폭이 바뀔 때 재생성되며, 전체 장면 맨 위(오버레이)에 그려짐.
 
 ---
 
@@ -94,8 +123,13 @@ const progress = book.total_pages
   ? Math.min(book.current_page / book.total_pages, 1)
   : 0
 
-const charRow = Math.round((1 - progress) * (steps - 1))
-// 0% → 맨 아래(steps-1행), 100% → 0행(정상)
+const charH = 24 // 캐릭터 스프라이트 높이(8행 × 3px)
+const climbRange = mountainBaseY - baseY // 산 전체 높이(지면~정상)
+const travel = Math.max(climbRange - charH, 0)
+const charCY = mountainBaseY - progress * travel
+// 0% → 발이 지면(mountainBaseY), 100% → 머리가 정상(baseY)에 닿는 지점
+// 발 기준점의 이동 범위에서 캐릭터 키(charH)를 미리 빼서, 100%가 되어야만
+// 머리가 실제로 정상에 닿도록(그 전엔 정상 위로 튀어나오지 않도록) 세밀하게 조정
 ```
 
 ---

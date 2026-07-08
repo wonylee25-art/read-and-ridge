@@ -2,7 +2,7 @@
 
 ## GET /api/books/search
 
-외부 도서 API 프록시. 카카오 API 키를 서버에서 안전하게 사용하기 위해 클라이언트에서 직접 호출하지 않고 이 라우트를 통해 중계한다.
+외부 도서 API 프록시. 국립중앙도서관 인증키를 서버에서 안전하게 사용하기 위해 클라이언트에서 직접 호출하지 않고 이 라우트를 통해 중계한다.
 
 ---
 
@@ -38,9 +38,9 @@ GET /api/books/search?isbn={isbn}
 { "error": "책 정보를 찾을 수 없어요" }
 ```
 
-**데이터 소스**: Open Library API (`openlibrary.org/api/books`)
+**데이터 소스**: 1순위 국립중앙도서관 서지정보(SEOJI) API (`nl.go.kr/seoji/SearchApi.do`), 페이지 수 미제공 시 Open Library API (`openlibrary.org/api/books`)로 보완. 국립중앙도서관 조회에 실패하면 Open Library로 전체 폴백.
 
-응답 캐시: `next: { revalidate: 86400 }` (24시간)
+응답 캐시: Open Library 폴백 호출은 `next: { revalidate: 86400 }` (24시간)
 
 ---
 
@@ -74,11 +74,11 @@ GET /api/books/search?q={query}
 }
 ```
 
-`KAKAO_API_KEY` 환경변수가 없으면 빈 배열 반환.
+`NL_API_KEY` 환경변수가 없으면 빈 배열 반환.
 
-**데이터 소스**: 카카오 도서 검색 API (`dapi.kakao.com/v3/search/book`)
+**데이터 소스**: 국립중앙도서관 서지정보(SEOJI) API (`nl.go.kr/seoji/SearchApi.do`), `title` 파라미터로 제목 검색.
 
-ISBN 필드: 카카오 응답의 `isbn` 필드는 `"ISBN10 ISBN13"` 형식이므로 space split 후 두 번째 값(ISBN13) 사용.
+ISBN 필드: 응답의 `EA_ISBN` 필드가 `"ISBN13 ISBN13"` 형식으로 여러 값을 포함할 수 있어 space split 후 첫 번째 값 사용. 페이지 수는 `PAGE` 필드(예: `"312 p."`)에서 숫자만 추출.
 
 ---
 

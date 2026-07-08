@@ -27,7 +27,7 @@ export default function AddHikeForm() {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">등산 기록 추가</h3>
+        <h3 className="font-semibold text-gray-900">완등기록 추가</h3>
         <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-700">
           <X size={18} />
         </button>

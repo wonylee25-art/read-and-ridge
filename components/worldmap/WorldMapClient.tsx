@@ -4,9 +4,11 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import WorldMap, { type WorldMapBook } from './WorldMap'
 import ProgressModal from './ProgressModal'
+import AddBookBar from '@/components/books/AddBookBar'
 
 export default function WorldMapClient({ books }: { books: WorldMapBook[] }) {
   const [selectedBook, setSelectedBook] = useState<WorldMapBook | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
   const router = useRouter()
 
   const handleBookClick = useCallback((book: WorldMapBook) => {
@@ -20,7 +22,12 @@ export default function WorldMapClient({ books }: { books: WorldMapBook[] }) {
 
   return (
     <>
-      <WorldMap books={books} onBookClick={handleBookClick} />
+      {/* 눈에 띄는 책 추가 버튼 — 닫혀 있을 땐 버튼만, 열리면 검색/스캔 폼 + 왼쪽 설명문으로 확장.
+          해/별을 눌러도(onAddBook) 같은 상태를 열어서 동일한 폼이 뜸.
+          바 자체(버튼/폼/설명문)는 AddBookBar로 공용화 — 완등기록 페이지에서도 재사용. */}
+      <AddBookBar open={addOpen} onOpenChange={setAddOpen} />
+
+      <WorldMap books={books} onBookClick={handleBookClick} onAddBook={() => setAddOpen(true)} />
       {selectedBook && (
         <ProgressModal
           book={selectedBook}

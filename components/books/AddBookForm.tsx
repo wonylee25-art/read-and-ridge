@@ -17,12 +17,22 @@ type BookInfo = {
   total_pages?: number | null
 }
 
-export default function AddBookForm() {
-  const [open, setOpen] = useState(false)
+type Props = {
+  // 외부(예: WorldMap 해/별 클릭)에서 열고 닫기를 제어하고 싶을 때 사용.
+  // 안 넘기면 기존처럼 내부 상태로 알아서 동작(비제어 모드).
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}) {
+  const [openState, setOpenState] = useState(false)
+  const open = openProp ?? openState
+  const setOpen = onOpenChange ?? setOpenState
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<BookInfo[]>([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<BookInfo | null>(null)
+  const [authorInput, setAuthorInput] = useState('')
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const [duplicateError, setDuplicateError] = useState<string | null>(null)
@@ -62,6 +72,7 @@ export default function AddBookForm() {
       const book: BookInfo = data.book
       setSelected(book)
       setQuery(book.title)
+      setAuthorInput(book.authors ?? '')
     } catch {
       setScanError('오류가 발생했어요. 다시 시도해주세요.')
     } finally {
@@ -74,6 +85,7 @@ export default function AddBookForm() {
     setQuery(book.title)
     setResults([])
     setDuplicateError(null)
+    setAuthorInput(book.authors ?? '')
   }
 
   function reset() {
@@ -84,6 +96,7 @@ export default function AddBookForm() {
     setScanError(null)
     setDuplicateError(null)
     setShake(false)
+    setAuthorInput('')
   }
 
   function triggerShake() {
@@ -99,7 +112,7 @@ export default function AddBookForm() {
     if (result?.error === 'duplicate') {
       triggerShake()
       setDuplicateError(
-        `"${result.title}"은(는) 이미 책장에 있어요!`
+        `"${result.title}", 또 산 책이 됩니다!`
       )
       return
     }
@@ -235,8 +248,21 @@ export default function AddBookForm() {
 
           {/* 숨겨진 필드 */}
           <input type="hidden" name="title" value={selected?.title ?? query} />
-          <input type="hidden" name="author" value={selected?.authors ?? ''} />
           <input type="hidden" name="isbn" value={selected?.isbn ?? ''} />
+
+          {/* 저자 — 검색 결과를 고르면 자동으로 채워지지만, 검색에 안 걸리는 책도
+              직접 입력해서 남길 수 있게 항상 편집 가능한 입력창으로 둠.
+              (예전엔 숨김 필드라 검색 결과를 안 고르면 저자가 영영 비어 저장됐음) */}
+          <div className="col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">저자</label>
+            <input
+              name="author"
+              value={authorInput}
+              onChange={(e) => setAuthorInput(e.target.value)}
+              placeholder="저자 이름 (검색 결과를 고르면 자동 입력돼요)"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
 
           {/* 총 페이지 수 */}
           <div>
@@ -246,21 +272,22 @@ export default function AddBookForm() {
               type="number"
               min="1"
               defaultValue={selected?.total_pages ?? ''}
-              placeholder="300"
+              placeholder="비워두면 150쪽으로 등록돼요"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
 
-          {/* 현재 페이지 */}
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">현재 페이지</label>
-            <input
-              name="current_page"
-              type="number"
-              min="0"
-              defaultValue="0"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-            />
+          {/* 소장 여부 */}
+          <div className="flex items-end pb-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                name="owned"
+                type="checkbox"
+                defaultChecked
+                className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-900"
+              />
+              소장 중이에요
+            </label>
           </div>
 
           {/* 상태 */}

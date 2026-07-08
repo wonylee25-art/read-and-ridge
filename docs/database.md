@@ -13,6 +13,7 @@
 | `status` | text | `'reading'` \| `'completed'` \| `'paused'` |
 | `started_at` | date \| null | 읽기 시작일 |
 | `kdc` | text \| null | 한국십진분류 코드 (WorldMap 색상 테마용) |
+| `completed_at` | timestamptz \| null | 완독 처리된 시각. WorldMap 24시간 유예(깃발 표시) 판단 + 완등기록 정렬/날짜 표시에 사용 |
 | `created_at` | timestamptz | 자동 생성 |
 
 ### status 값

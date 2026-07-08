@@ -1,104 +1,85 @@
-import { createClient } from '@/lib/supabase/server'
-import AddHikeForm from '@/components/hikes/AddHikeForm'
-import { deleteHike } from './actions'
-import { Mountain, Clock, Ruler, TrendingUp, Trash2 } from 'lucide-react'
+export const runtime = 'nodejs'
 
-function formatDuration(min: number) {
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return h > 0 ? `${h}시간 ${m > 0 ? m + '분' : ''}` : `${m}분`
-}
+import { createClient } from '@/lib/supabase/server'
+import BookCard from '@/components/books/BookCard'
+import AddBookBar from '@/components/books/AddBookBar'
+import WorldMap, { type WorldMapBook, TARGET_TROPHY } from '@/components/worldmap/WorldMap'
+import { Mountain, TrendingUp } from 'lucide-react'
 
 export default async function HikesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: hikes } = await supabase
-    .from('hikes')
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: books } = await supabase
+    .from('books')
     .select('*')
     .eq('user_id', user!.id)
-    .order('date', { ascending: false })
+    .eq('status', 'completed')
+    .order('completed_at', { ascending: false })
 
-  const totalKm = hikes?.reduce((s, h) => s + (h.distance_km ?? 0), 0) ?? 0
-  const totalMin = hikes?.reduce((s, h) => s + (h.duration_min ?? 0), 0) ?? 0
+  const DISTANCE_PER_PAGE_M = 0.225
+  const totalKm =
+    ((books ?? []).reduce((sum, b) => sum + (b.total_pages ?? 0), 0) * DISTANCE_PER_PAGE_M) / 1000
+
+  // 완등기록의 WorldMap은 정상석 전용: 산/나무/모닥불/깃발만 보여주고
+  // 캐릭터·전경/배경 랜덤 선정 로직은 모두 비활성화된 mode="trophy" 사용.
+  // 책 추가는 WorldMap 내부(해/별 클릭) 대신, 산책기록 페이지와 동일한 AddBookBar를
+  // 별도로 얹어서 지원 — 완등기록 화면에서도 새 책을 바로 등록할 수 있게 함.
+  const worldMapBooks: WorldMapBook[] = (books ?? []).map((b) => ({
+    id: b.id,
+    title: b.title,
+    total_pages: b.total_pages,
+    current_page: b.current_page,
+    status: b.status as WorldMapBook['status'],
+    kdc: b.kdc ?? null,
+    completed_at: b.completed_at ?? null,
+    memo: b.memo ?? null,
+  }))
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">등산 기록</h2>
-          <p className="text-gray-400 text-sm mt-1">총 {hikes?.length ?? 0}회</p>
-        </div>
-        <AddHikeForm />
+    <div className="max-w-5xl mx-auto">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">완등기록</h2>
       </div>
 
-      {/* Summary bar */}
-      {hikes && hikes.length > 0 && (
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {[
-            { label: '총 거리', value: `${totalKm.toFixed(1)} km`, icon: Ruler },
-            { label: '총 시간', value: formatDuration(totalMin), icon: Clock },
-            { label: '최고 고도', value: `${Math.max(...hikes.map((h) => h.elevation_m ?? 0))} m`, icon: TrendingUp },
-          ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center">
-              <Icon size={16} className="text-gray-400 mx-auto mb-1" />
-              <div className="text-lg font-bold text-gray-900">{value}</div>
-              <div className="text-xs text-gray-400">{label}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="space-y-6 mb-10">
+        <AddBookBar variant="trophy" />
+        <WorldMap books={worldMapBooks} mode="trophy" />
+        {books && books.length > TARGET_TROPHY && (
+          <p className="text-xs text-gray-400 -mt-4">
+            최근 완등한 {TARGET_TROPHY}권만 지도에 표시돼요. 전체 기록은 아래 목록에서 확인하세요.
+          </p>
+        )}
 
-      {(!hikes || hikes.length === 0) ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <div className="inline-flex p-2 rounded-xl bg-green-950/40 mb-2">
+              <Mountain size={16} className="text-green-400" />
+            </div>
+            <div className="text-xl font-bold text-gray-900">{books?.length ?? 0}</div>
+            <div className="text-xs text-gray-400 mt-0.5">완등 기록</div>
+          </div>
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <div className="inline-flex p-2 rounded-xl bg-purple-950/40 mb-2">
+              <TrendingUp size={16} className="text-purple-400" />
+            </div>
+            <div className="text-xl font-bold text-gray-900">{totalKm.toFixed(1)}</div>
+            <div className="text-xs text-gray-400 mt-0.5">완등 거리 km</div>
+          </div>
+        </div>
+      </div>
+
+      {(!books || books.length === 0) ? (
         <div className="text-center py-20 text-gray-400">
-          <p className="text-lg">아직 등산 기록이 없어요</p>
-          <p className="text-sm mt-1">첫 번째 등산을 기록해보세요 ⛰️</p>
+          <p className="text-lg">아직 완등기록이 없어요</p>
+          <p className="text-sm mt-1">완독하면 여기에 정상석이 생겨요 🚩</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {hikes.map((hike) => (
-            <div key={hike.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Mountain size={16} className="text-orange-400" />
-                    <h4 className="font-semibold text-gray-900">{hike.mountain}</h4>
-                    {hike.trail && (
-                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {hike.trail}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-400 mt-1">{hike.date}</p>
-                </div>
-                <form action={() => deleteHike(hike.id)}>
-                  <button type="submit" className="text-gray-300 hover:text-red-400 transition-colors">
-                    <Trash2 size={14} />
-                  </button>
-                </form>
-              </div>
-
-              <div className="flex gap-4 mt-3 text-xs text-gray-500">
-                {hike.distance_km && (
-                  <span className="flex items-center gap-1">
-                    <Ruler size={12} /> {hike.distance_km} km
-                  </span>
-                )}
-                {hike.elevation_m && (
-                  <span className="flex items-center gap-1">
-                    <TrendingUp size={12} /> {hike.elevation_m} m
-                  </span>
-                )}
-                {hike.duration_min && (
-                  <span className="flex items-center gap-1">
-                    <Clock size={12} /> {formatDuration(hike.duration_min)}
-                  </span>
-                )}
-              </div>
-
-              {hike.memo && (
-                <p className="text-sm text-gray-500 mt-3 border-t border-gray-50 pt-3">{hike.memo}</p>
-              )}
-            </div>
+        <div className="columns-1 sm:columns-2 gap-4">
+          {books.map((book) => (
+            <BookCard key={book.id} book={book} />
           ))}
         </div>
       )}
