@@ -59,7 +59,14 @@ export default function Sidebar() {
         >
           CSV 내려받기
         </a>
+        <Link
+          href="/privacy"
+          className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          개인정보처리방침
+        </Link>
         <LogoutButton />
+        <p className="text-xs text-gray-300 pt-1">© 2026 산책또산책</p>
       </div>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}

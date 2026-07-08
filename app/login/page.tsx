@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -35,6 +36,10 @@ function LoginContent() {
       >
         Google로 계속하기
       </button>
+
+      <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+        개인정보처리방침
+      </Link>
     </main>
   )
 }
