@@ -19,14 +19,14 @@ app/dashboard/books/page.tsx   (Server Component)
 
 **1. 제목 검색**
 - 입력창에 타이핑 → 400ms 디바운스 후 `/api/books/search?q={query}` 호출
-- 카카오 도서 API 결과를 드롭다운으로 표시 (썸네일, 저자, 출판사)
+- 국립중앙도서관 서지정보(SEOJI) API 결과를 드롭다운으로 표시 (썸네일, 저자, 출판사)
 - 선택 시 제목/저자/ISBN이 자동 입력됨
 
 **2. 바코드 스캔**
 - 카메라 버튼 클릭 → `BarcodeScanner` 모달 열림
 - `@zxing/browser`의 `BrowserMultiFormatReader`로 실시간 바코드 인식
 - 978/979 시작 13자리 EAN 감지 시 → `/api/books/search?isbn={isbn}` 호출
-- Open Library API로 책 정보 자동 입력 (카카오는 ISBN 직접 검색 미지원)
+- 국립중앙도서관 API로 우선 조회하고, 페이지 수가 없으면 Open Library API로 보완
 
 ### 폼 필드
 
@@ -119,7 +119,7 @@ const paused    = books?.filter((b) => b.status === 'paused')    ?? []
 
 ## 현재 미구현 / 개선 포인트
 
-- `kdc` 필드가 DB에는 있지만 AddBookForm에서 입력받지 않음 → 카카오 API 응답에 KDC 없음. **국립중앙도서관 API 연동(Phase 3)**이 KDC 채색의 전제.
+- `kdc` 필드가 DB에는 있지만 AddBookForm/검색 결과 어디에서도 채워지지 않음 — 도서 검색은 이미 국립중앙도서관(SEOJI) API로 전환됐지만(Phase 3 완료), `/api/books/search`의 응답 매핑(`fetchNL`)이 KDC 필드를 추출·전달하지 않고 있어서 여전히 비어있음. KDC 채색 컨셉을 살리려면 이 매핑 보완이 필요.
 - **`owned` DB 컬럼 미생성** — AddBookForm 체크박스와 서버 액션(actions.ts) 로직은 구현됨. Supabase `books` 테이블에 `owned` (boolean, default true) 컬럼을 추가해야 실제로 저장/조회가 동작한다. 컬럼 없이 저장 시도하면 insert 에러 발생.
 - **총 쪽수 누락 시 300쪽 기본값 미적용** — 현재 누락 도서는 진행률 0% 고정. 등록 파이프라인 보완 필요.
 

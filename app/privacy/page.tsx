@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>Supabase — 인증(로그인) 및 데이터베이스 호스팅</li>
           <li>Google — 소셜 로그인(OAuth)</li>
-          <li>카카오 도서 검색 API, Open Library API — 도서 정보 조회 (이용자 개인정보는 전송되지 않습니다)</li>
+          <li>국립중앙도서관 서지정보(SEOJI) API, Open Library API — 도서 정보 조회 (이용자 개인정보는 전송되지 않습니다)</li>
         </ul>
       </section>
 
@@ -113,8 +113,8 @@ export default function PrivacyPolicyPage() {
       <section className="text-xs text-gray-400">
         <p className="mb-1">© 2026 산책또산책. All rights reserved.</p>
         <p>
-          서비스 내 도서 정보(표지, 제목, 저자 등)는 카카오 도서 검색 API 및 Open Library API를 통해
-          제공되며, 각 저작물의 저작권은 해당 출판사 및 저작권자에게 있습니다.
+          서비스 내 도서 정보(표지, 제목, 저자 등)는 국립중앙도서관 서지정보(SEOJI) API 및 Open
+          Library API를 통해 제공되며, 각 저작물의 저작권은 해당 출판사 및 저작권자에게 있습니다.
         </p>
       </section>
     </main>

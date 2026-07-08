@@ -81,4 +81,4 @@ BarcodeScanner (카메라)
 ## Server Actions vs API Route
 
 - **Server Actions** (`actions.ts`): DB 쓰기 (추가/수정/삭제). Form action으로 직접 연결.
-- **API Route** (`/api/books/search`): 외부 API 프록시 역할. 카카오 API 키가 서버에만 있어야 해서 클라이언트에서 직접 호출 불가.
+- **API Route** (`/api/books/search`): 외부 API 프록시 역할. 국립중앙도서관 API 키(`NL_API_KEY`)가 서버에만 있어야 해서 클라이언트에서 직접 호출 불가.
