@@ -60,7 +60,7 @@ function makeConfetti(count: number): ConfettiPiece[] {
 }
 
 const DANCE_BLOCK = 8
-const AUTO_CLOSE_MS = 2600
+const AUTO_CLOSE_MS = 4600
 const FRAME_MS = 220
 
 export default function CelebrationOverlay({
