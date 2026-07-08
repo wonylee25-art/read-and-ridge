@@ -83,7 +83,12 @@ const INDEX_THEMES = [
   KDC_THEME.mystery,
 ]
 
-function getTheme(kdc: string | null | undefined, index: number) {
+// ⚠ 예전엔 kdc가 없는 책의 색을 foreground 배열 안에서의 순번(index)으로 정했는데,
+// 같은 책이라도 산책기록/완등기록에서 배열 구성·순서가 서로 달라서(등록순 vs
+// 완독순, 개수도 다름) 페이지를 옮겨 다니면 색이 바뀌어 보이는 문제가 있었음.
+// book.id를 시드로 쓰는 결정론적 해시로 바꿔서, kdc가 없어도 그 책은 어디서
+// 봐도 항상 같은 색이 나오게 함(깃발 색과 동일한 방식 — getFlagColor 참고).
+function getTheme(kdc: string | null | undefined, bookId: string) {
   if (kdc) {
     const d = kdc[0]
     if ('012'.includes(d)) return KDC_THEME.mystery
@@ -91,7 +96,8 @@ function getTheme(kdc: string | null | undefined, index: number) {
     if ('45'.includes(d))  return KDC_THEME.nature
     if ('68'.includes(d))  return KDC_THEME.fantasy
   }
-  return INDEX_THEMES[index % INDEX_THEMES.length]
+  const idx = Math.abs(hashString(bookId)) % INDEX_THEMES.length
+  return INDEX_THEMES[idx]
 }
 
 const STATUS_LABEL: Record<WorldMapBook['status'], string> = {
@@ -1000,7 +1006,7 @@ export default function WorldMap({
       foreground.forEach((book, i) => {
         const level = getLevel(book.total_pages)
         const steps = STEPS_BY_LEVEL[level]
-        const theme = getTheme(book.kdc, i)
+        const theme = getTheme(book.kdc, book.id)
         const mid = steps - 1
         const mtnW = (2 * steps - 1) * PX
         const baseX = 24 + i * slotW + (MAX_MTN_W - mtnW) / 2
