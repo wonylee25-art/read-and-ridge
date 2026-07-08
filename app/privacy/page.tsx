@@ -93,8 +93,10 @@ export default function PrivacyPolicyPage() {
 
       <section className="mb-7">
         <h2 className="font-semibold text-gray-900 mb-2">9. 문의처</h2>
-        <p className="text-amber-600">
-          개인정보 관련 문의처 정보를 준비 중입니다. 곧 이메일 연락처가 추가될 예정입니다.
+        <p>
+          개인정보 관련 문의사항은 아래 이메일로 연락해 주세요.
+          <br />
+          이메일: readandridge@gmail.com
         </p>
       </section>
 
