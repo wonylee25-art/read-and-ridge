@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 import { BookOpen, Mountain } from 'lucide-react'
 import LogoutButton from '@/components/auth/LogoutButton'
 import AboutModal from '@/components/dashboard/AboutModal'
+import DeleteAccountModal from '@/components/dashboard/DeleteAccountModal'
+import { deleteAccount } from '@/app/dashboard/account-actions'
 
 // 홈과 산책기록(구 독서 페이지)을 하나로 합쳐서, 메뉴는 산책기록/완등기록 2개만 남김
 const nav = [
@@ -16,6 +18,7 @@ const nav = [
 export default function Sidebar() {
   const pathname = usePathname()
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
 
   return (
     <aside className="flex flex-col w-56 h-screen bg-white border-r border-gray-100 px-4 py-6 shrink-0">
@@ -69,10 +72,22 @@ export default function Sidebar() {
           </Link>
         </div>
         <LogoutButton />
+        <button
+          onClick={() => setDeleteAccountOpen(true)}
+          className="block text-sm text-gray-300 hover:text-red-400 transition-colors"
+        >
+          회원 탈퇴
+        </button>
         <p className="text-xs text-gray-300 pt-1">© 2026 산책또산책</p>
       </div>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {deleteAccountOpen && (
+        <DeleteAccountModal
+          onClose={() => setDeleteAccountOpen(false)}
+          onConfirm={deleteAccount}
+        />
+      )}
     </aside>
   )
 }
