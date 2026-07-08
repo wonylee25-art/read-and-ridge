@@ -37,9 +37,15 @@ function LoginContent() {
         Google로 계속하기
       </button>
 
-      <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-        개인정보처리방침
-      </Link>
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <Link href="/privacy" className="hover:text-gray-600 transition-colors">
+          개인정보처리방침
+        </Link>
+        <span className="text-gray-200">·</span>
+        <Link href="/terms" className="hover:text-gray-600 transition-colors">
+          이용약관
+        </Link>
+      </div>
     </main>
   )
 }

@@ -59,12 +59,15 @@ export default function Sidebar() {
         >
           CSV 내려받기
         </a>
-        <Link
-          href="/privacy"
-          className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          개인정보처리방침
-        </Link>
+        <div className="flex items-center gap-2 text-sm">
+          <Link href="/privacy" className="text-gray-500 hover:text-gray-700 transition-colors">
+            개인정보처리방침
+          </Link>
+          <span className="text-gray-200">·</span>
+          <Link href="/terms" className="text-gray-500 hover:text-gray-700 transition-colors">
+            이용약관
+          </Link>
+        </div>
         <LogoutButton />
         <p className="text-xs text-gray-300 pt-1">© 2026 산책또산책</p>
       </div>

@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export const metadata = {
   title: '개인정보처리방침 | 산책또산책',
 }
@@ -6,7 +8,9 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="max-w-2xl mx-auto px-6 py-16 text-sm leading-relaxed text-gray-700">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">개인정보처리방침</h1>
-      <p className="text-xs text-gray-400 mb-8">시행일자: 2026년 7월 8일</p>
+      <p className="text-xs text-gray-400 mb-8">
+        시행일자: 2026년 7월 8일 · <Link href="/terms" className="underline hover:text-gray-600">이용약관 보기</Link>
+      </p>
 
       <p className="mb-8">
         산책또산책(이하 &quot;서비스&quot;)은 이용자의 개인정보를 소중히 다루며, 관련 법령을 준수하기
