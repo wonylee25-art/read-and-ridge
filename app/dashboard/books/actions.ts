@@ -164,7 +164,7 @@ export async function changeStatus(bookId: string, status: string) {
     updates.completed_at = new Date().toISOString()
   } else {
     // 완독 상태에서 다시 되돌리는 경우 — 예전 완독 시각이 남아있으면
-    // 24시간 유예 로직이 오작동할 수 있으니 같이 지움
+    // WorldMap 노출 유예 로직이 오작동할 수 있으니 같이 지움
     updates.completed_at = null
   }
 

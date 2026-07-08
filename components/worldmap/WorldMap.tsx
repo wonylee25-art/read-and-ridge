@@ -11,7 +11,7 @@ export type WorldMapBook = {
   current_page: number
   status: 'reading' | 'completed' | 'paused'
   kdc?: string | null
-  completed_at?: string | null // 완독 처리된 시각 (ISO). 24시간 유예 판단용
+  completed_at?: string | null // 완독 처리된 시각 (ISO). WorldMap 노출 유예(COMPLETION_GRACE_MS) 판단용
   memo?: string | null
 }
 
@@ -153,9 +153,16 @@ function getFlagColor(id: string): string {
   return FLAG_COLORS[idx]
 }
 
-// 완독 후 24시간 유예 — 이 안엔 정상에 깃발 꽂힌 채로 WorldMap에 남아있고,
-// 지나면 완등기록(정상석)으로만 남고 WorldMap에선 사라짐
-const COMPLETION_GRACE_MS = 24 * 60 * 60 * 1000
+// 완독 후 유예 시간 — 이 안엔 정상에 깃발(또는 세레모니 진행 중이면 댄스 캐릭터)이
+// 꽂힌 채로 WorldMap(산책기록)에 남아있고, 지나면 완등기록(정상석)으로만 남고
+// WorldMap에선 사라짐.
+// ⚠ 예전엔 24시간이었는데, "산책기록 지도에 완독한 책이 계속 남아있지 않고 바로
+// 빠졌으면 좋겠다"는 피드백을 받고 대폭 줄임 — 완등 세레모니(폭죽·CLEAR·정상 댄스,
+// BURST_DURATION_MS=3200ms)가 다 재생될 시간만 확보하고 곧바로 사라지게 함.
+// 값 자체를 BURST_DURATION_MS를 참조해 정의하고 싶지만 그 상수가 파일 뒤쪽에
+// 선언돼 있어(TDZ 문제) 숫자를 직접 맞춰둠 — BURST_DURATION_MS를 바꾸면 이 값도
+// 같이 조정할 것.
+const COMPLETION_GRACE_MS = 3500
 
 function isRecentlyCompleted(book: WorldMapBook): boolean {
   if (book.status !== 'completed' || !book.completed_at) return false
@@ -369,7 +376,7 @@ function drawPixelSun(ctx: CanvasRenderingContext2D, x: number, y: number) {
 }
 
 // 완독 깃발 (색은 호출 측에서 getFlagColor(book.id)로 전달 — 책마다 고정된 랜덤 색).
-// 완독 24시간 유예 동안만 그려짐 — 그 이후엔 완등기록으로 옮겨가서 안 보임.
+// 완독 유예(COMPLETION_GRACE_MS) 동안만 그려짐 — 그 이후엔 완등기록으로 옮겨가서 안 보임.
 function drawFlag(ctx: CanvasRenderingContext2D, peakCenterX: number, peakTopY: number, color: string) {
   const poleH = 16
   ctx.fillStyle = '#5a5a5a'
@@ -757,7 +764,7 @@ export default function WorldMap({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const weather = useMemo<WeatherKind>(() => (mode === 'home' ? getTodaysWeather() : 'clear'), [])
 
-  // 완독 책은 완독 후 24시간 동안만 정상에 깃발 꽂힌 채로 WorldMap에 남고,
+  // 완독 책은 완독 후 잠깐(세레모니 재생 시간만큼)만 정상에 깃발 꽂힌 채로 WorldMap에 남고,
   // 그 이후엔 완등기록(정상석)으로만 남아 WorldMap에서 완전히 사라진다.
   // 남은 책(읽는 중 + 미시작) 중 읽는 중은 항상 전경, 부족분은 미시작 책 중
   // 방문마다(= books prop이 바뀔 때마다) 랜덤으로 뽑아 전경을 채운다.
@@ -1031,7 +1038,7 @@ export default function WorldMap({
           stateRef.current.bursts.delete(book.id)
         }
 
-        // 완독(24시간 유예 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색).
+        // 완독(유예 시간 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색).
         // 세레모니가 진행 중인 동안엔 깃발 대신 댄스 캐릭터가 그 자리를 대신함.
         if (book.status === 'completed' && !burstActive) {
           drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id))
