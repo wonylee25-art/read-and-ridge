@@ -14,6 +14,7 @@
 | `started_at` | date \| null | 읽기 시작일 |
 | `kdc` | text \| null | 한국십진분류 코드 (WorldMap 색상 테마용) |
 | `completed_at` | timestamptz \| null | 완독 처리된 시각. WorldMap 노출 유예(완등 세레모니 재생 시간만큼만 정상에 남았다가 바로 사라짐, 2026.07.08부터 짧게 조정) 판단 + 완등기록 정렬/날짜 표시에 사용 |
+| `status_changed_at` | timestamptz \| null | **신규 (2026.07.08)** — "지금 이 상태가 된 시각". `started_at`(사용자가 직접 고르는 과거 날짜 포함 가능한 "읽기 시작일")과는 별개로, 산책기록의 읽는 중/잠시 멈춤 목록을 "방금 상태를 바꾼 순"으로 정렬하기 위한 값. `addBook`/`changeStatus`/`updateProgress`(완독 전환 시) 호출마다 `now()`로 갱신됨 |
 | `created_at` | timestamptz | 자동 생성 |
 
 ### status 값
@@ -34,7 +35,7 @@ WorldMap 산 색상 테마에 영향을 줌.
 | 3, 7, 9 | 사회/예술/역사 | earth (황토색) |
 | 4, 5 | 과학/기술 | nature (초록) |
 | 6, 8 | 기술/문학 | fantasy (보라) |
-| null | 미입력 | index 기반 순환 |
+| null | 미입력 | book.id 해시 기반 순환 (2026.07.08부터 — 예전엔 화면상 순번 기반이라 페이지마다 색이 바뀌는 버그가 있었음) |
 
 ---
 

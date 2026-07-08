@@ -13,16 +13,26 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
 
   // 홈(WorldMap)과 산책기록(목록)이 합쳐진 페이지라 한 번의 조회로 둘 다 충당.
-  // 등록 순서(오래된 → 최신)로 받아서 WorldMap 타임라인 원칙은 그대로 유지하고,
-  // 목록 표시는 아래에서 최신순으로 뒤집어서 보여줌.
+  // 등록 순서(오래된 → 최신)로 받아서 WorldMap 타임라인 원칙은 그대로 유지함.
   const { data: books } = await supabase
     .from('books')
     .select('*')
     .eq('user_id', user!.id)
     .order('created_at', { ascending: true })
 
-  const readingBooks = books?.filter((b) => b.status === 'reading') ?? []
-  const pausedBooks = books?.filter((b) => b.status === 'paused') ?? []
+  // 목록(읽는 중/잠시 멈춤)은 WorldMap과 별개로 "이 상태가 된 시각"(status_changed_at)
+  // 기준 최신순으로 따로 정렬 — 단순히 등록순을 뒤집기만 하면, 오래전에 등록해둔
+  // 책을 오늘 막 "잠시 멈춤 → 읽는 중"으로 바꿔도 등록일이 오래됐다는 이유로 목록
+  // 위로 안 올라오는 문제가 있었음. status_changed_at이 없는(마이그레이션 이전) 책은
+  // created_at으로 대체.
+  function byRecentStatusChange(a: { status_changed_at?: string | null; created_at: string }, b: typeof a) {
+    const at = new Date(a.status_changed_at ?? a.created_at).getTime()
+    const bt = new Date(b.status_changed_at ?? b.created_at).getTime()
+    return bt - at
+  }
+
+  const readingBooks = (books?.filter((b) => b.status === 'reading') ?? []).slice().sort(byRecentStatusChange)
+  const pausedBooks = (books?.filter((b) => b.status === 'paused') ?? []).slice().sort(byRecentStatusChange)
 
   // 산책기록 페이지의 통계는 완독은 제외하고 '읽는 중 + 잠시 멈춤'만 대상으로 함
   // (완독 통계는 완등기록 페이지로 이동했음).
@@ -91,7 +101,7 @@ export default async function DashboardPage() {
         <section className="mb-8">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">읽는 중</h3>
           <div className="columns-1 sm:columns-2 gap-4">
-            {[...readingBooks].reverse().map((book) => <BookCard key={book.id} book={book} />)}
+            {readingBooks.map((book) => <BookCard key={book.id} book={book} />)}
           </div>
         </section>
       )}
@@ -100,7 +110,7 @@ export default async function DashboardPage() {
         <section className="mb-8">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">잠시 멈춤</h3>
           <div className="columns-1 sm:columns-2 gap-4">
-            {[...pausedBooks].reverse().map((book) => <BookCard key={book.id} book={book} />)}
+            {pausedBooks.map((book) => <BookCard key={book.id} book={book} />)}
           </div>
         </section>
       )}

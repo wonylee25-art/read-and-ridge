@@ -80,6 +80,10 @@ export async function addBook(formData: FormData) {
     // owned 컬럼이 books 테이블에 있어야 함 — Supabase에서 컬럼 추가 필요 (boolean, default true)
     started_at: formData.get('started_at') as string || null,
     completed_at: status === 'completed' ? new Date().toISOString() : null,
+    // status_changed_at: "읽는 중/잠시 멈춤" 목록을 최신순으로 정렬하기 위한 값.
+    // started_at(사용자가 직접 고르는 "읽기 시작일", 과거 날짜도 가능)과는 다른 개념 —
+    // 이건 항상 "지금 이 상태가 된 시각"이라 목록 정렬 전용으로만 씀.
+    status_changed_at: new Date().toISOString(),
   })
 
   revalidatePath('/dashboard/books')
@@ -107,6 +111,7 @@ export async function updateProgress(bookId: string, currentPage: number) {
     updates.status = 'completed'
     updates.current_page = book.total_pages // 초과 입력 방지
     updates.completed_at = new Date().toISOString()
+    updates.status_changed_at = updates.completed_at
     justCompleted = book.status !== 'completed'
   }
 
@@ -149,7 +154,11 @@ export async function updateOwned(bookId: string, owned: boolean) {
 export async function changeStatus(bookId: string, status: string) {
   const supabase = await createClient()
 
-  const updates: Record<string, unknown> = { status }
+  // status_changed_at: 드롭다운으로 상태를 바꿀 때마다 항상 "지금"으로 갱신 —
+  // 산책기록의 읽는 중/잠시 멈춤 목록이 이 값 기준 최신순이라, 예를 들어 오래전에
+  // 등록해둔 책을 오늘 "잠시 멈춤 → 읽는 중"으로 바꾸면 오늘 바꾼 다른 책들과
+  // 나란히 목록 맨 위로 올라옴 (등록일이 오래됐어도 상관없음).
+  const updates: Record<string, unknown> = { status, status_changed_at: new Date().toISOString() }
 
   // 완독으로 변경 시 현재 페이지를 총 페이지로 맞추고 완독 시각을 기록
   if (status === 'completed') {
