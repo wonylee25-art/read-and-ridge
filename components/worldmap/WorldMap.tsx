@@ -164,11 +164,11 @@ function getFlagColor(id: string): string {
 // WorldMap에선 사라짐.
 // ⚠ 예전엔 24시간이었는데, "산책기록 지도에 완독한 책이 계속 남아있지 않고 바로
 // 빠졌으면 좋겠다"는 피드백을 받고 대폭 줄임 — 완등 세레모니(폭죽·CLEAR·정상 댄스,
-// BURST_DURATION_MS=3200ms)가 다 재생될 시간만 확보하고 곧바로 사라지게 함.
+// BURST_DURATION_MS=10000ms)가 다 재생될 시간만 확보하고 곧바로 사라지게 함.
 // 값 자체를 BURST_DURATION_MS를 참조해 정의하고 싶지만 그 상수가 파일 뒤쪽에
 // 선언돼 있어(TDZ 문제) 숫자를 직접 맞춰둠 — BURST_DURATION_MS를 바꾸면 이 값도
-// 같이 조정할 것.
-const COMPLETION_GRACE_MS = 3500
+// 같이 조정할 것(BURST_DURATION_MS + 여유 500ms).
+const COMPLETION_GRACE_MS = 10500
 
 function isRecentlyCompleted(book: WorldMapBook): boolean {
   if (book.status !== 'completed' || !book.completed_at) return false
@@ -397,7 +397,7 @@ function drawFlag(ctx: CanvasRenderingContext2D, peakCenterX: number, peakTopY: 
 // status가 completed로 "막" 바뀐 걸 감지하면(아래 useEffect) 이 burst가 생성되고,
 // BURST_DURATION_MS 동안만 정상 위에 그려진 뒤 사라진다(깃발은 이후에 정상 노출).
 
-const BURST_DURATION_MS = 3200
+const BURST_DURATION_MS = 10000
 const BURST_PARTICLE_COUNT = 22
 const BURST_COLORS = ['#f0c040', '#e03e2f', '#2f6fe0', '#2fb573', '#e0527a', '#8ac03f', '#ffd23e']
 
@@ -416,6 +416,9 @@ function makeBurstParticles(): BurstParticle[] {
 // 정상 좌표(peakX, peakY) 기준으로 사방으로 튀어올랐다가 중력에 끌려 떨어지는
 // 폭죽 조각들. 매 프레임 elapsed(경과 ms)로부터 위치를 계산하는 방식이라
 // 별도 프레임 상태 갱신 없이도 재생 가능(값만 읽으면 됨).
+// ⚠ 물리량을 실시간 초 단위가 아니라 BURST_DURATION_MS 대비 진행률(0~1)로 계산함 —
+// 그래야 BURST_DURATION_MS를 늘리거나 줄여도 파티클이 항상 같은 화면 범위 안에서
+// 퍼졌다 떨어지며, 지속시간만 늘렸을 때 화면 밖으로 날아가 버리는 걸 방지함.
 function drawBurstParticles(
   ctx: CanvasRenderingContext2D,
   burst: Burst,
@@ -423,15 +426,17 @@ function drawBurstParticles(
   peakX: number,
   peakY: number
 ) {
-  const t = elapsed / 1000 // 초 단위
-  const fade = Math.max(0, 1 - elapsed / BURST_DURATION_MS)
-  burst.particles.forEach((p) => {
-    const dist = p.speed * 42 * t
-    const x = peakX + Math.cos(p.angle) * dist
-    const y = peakY - Math.sin(p.angle) * dist * 0.7 - 18 + 70 * t * t
+  const p = Math.min(elapsed / BURST_DURATION_MS, 1) // 0~1 진행률
+  const outward = Math.min(p * 5, 1) // 처음 20%에서 빠르게 퍼지고 이후 그 자리 유지
+  const drift = p * p // 전체 재생시간에 걸쳐 서서히 떨어짐(제곱으로 갈수록 가속)
+  const fade = Math.max(0, 1 - p)
+  burst.particles.forEach((particle) => {
+    const dist = particle.speed * 70 * outward
+    const x = peakX + Math.cos(particle.angle) * dist
+    const y = peakY - Math.sin(particle.angle) * dist * 0.7 - 18 + 90 * drift
     ctx.globalAlpha = fade
-    ctx.fillStyle = p.color
-    ctx.fillRect(Math.round(x), Math.round(y), p.size, p.size)
+    ctx.fillStyle = particle.color
+    ctx.fillRect(Math.round(x), Math.round(y), particle.size, particle.size)
   })
   ctx.globalAlpha = 1
 }
