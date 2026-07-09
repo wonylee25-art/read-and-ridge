@@ -179,6 +179,7 @@ export default function ProgressModal({ book, onClose, onSaved }: Props) {
             max={total || undefined}
             value={displayPage}
             onChange={(e) => handlePageInput(e.target.value)}
+            onFocus={(e) => e.target.select()}
             style={{
               width: 90, textAlign: 'center', fontFamily: 'monospace', fontSize: 18,
               background: '#1a2a1a', border: '1px solid #2a4428',

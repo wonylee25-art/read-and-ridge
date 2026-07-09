@@ -265,6 +265,7 @@ export default function BookCard({ book }: { book: Book }) {
             max={book.total_pages}
             value={page}
             onChange={(e) => setPage(Number(e.target.value))}
+            onFocus={(e) => e.target.select()}
             onKeyDown={(e) => e.key === 'Enter' && handleUpdateProgress()}
             className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900"
           />
