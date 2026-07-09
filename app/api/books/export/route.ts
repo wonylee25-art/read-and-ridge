@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { formatAuthor } from '@/lib/formatAuthor'
 
 export const runtime = 'nodejs'
 
@@ -46,7 +47,14 @@ export async function GET() {
   }
 
   const rows = (books ?? []).map((book) =>
-    HEADERS.map((key) => csvEscape((book as Record<string, unknown>)[key])).join(',')
+    HEADERS.map((key) => {
+      const raw = (book as Record<string, unknown>)[key]
+      // 저자/역자 원본("지은이: OOO ;옮긴이: OOO")은 화면 표시와 동일하게
+      // 정리된 형태("OOO 지음 · OOO 옮김")로 내보냄 — 그전엔 DB 원본을 그대로 내보내서
+      // 화면에서 보던 것과 CSV가 다르게 나오는 문제가 있었음.
+      const value = key === 'author' ? formatAuthor(raw as string | null) ?? raw : raw
+      return csvEscape(value)
+    }).join(',')
   )
   const csv = [HEADERS.join(','), ...rows].join('\r\n')
 
