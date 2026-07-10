@@ -22,7 +22,7 @@ export default function AddBookBar({ open: openProp, onOpenChange, variant = 'ho
   const setOpen = onOpenChange ?? setOpenState
 
   return (
-    <div className="flex flex-col md:flex-row items-start md:justify-end gap-4 mb-3">
+    <div className="flex flex-col items-end md:flex-row md:items-start md:justify-end gap-4 mb-3">
       {open && (
         <div className="w-full md:max-w-xs bg-gray-50 md:bg-transparent rounded-2xl p-4 md:p-0 text-sm text-gray-500 leading-relaxed">
           {variant === 'home' ? (
