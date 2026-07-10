@@ -142,13 +142,8 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
       )}
 
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 overflow-y-auto py-8"
-        onClick={reset}
-      >
-      <div
-        className={`bg-white border border-gray-200 rounded-2xl p-6 shadow-xl max-w-md w-full my-auto ${shake ? 'animate-shake' : ''}`}
+        className={`bg-white border border-gray-200 rounded-2xl p-6 shadow-sm ${shake ? 'animate-shake' : ''}`}
         style={shake ? { animation: 'shake 0.5s ease-in-out' } : {}}
-        onClick={(e) => e.stopPropagation()}
       >
         <style>{`
           @keyframes shake {
@@ -332,7 +327,6 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
             </button>
           </div>
         </form>
-      </div>
       </div>
     </>
   )

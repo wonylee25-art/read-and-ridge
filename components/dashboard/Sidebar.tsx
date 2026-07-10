@@ -118,15 +118,18 @@ export default function Sidebar() {
         </button>
         <p className="text-xs text-gray-300 pt-1">© 2026 산책또산책</p>
       </div>
-
-        {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
-        {deleteAccountOpen && (
-          <DeleteAccountModal
-            onClose={() => setDeleteAccountOpen(false)}
-            onConfirm={deleteAccount}
-          />
-        )}
       </aside>
+
+      {/* aside에 transform이 걸려있어(모바일 슬라이드용) 그 안에 fixed 모달을 두면
+          뷰포트가 아니라 aside 기준으로 위치가 잡혀버림(CSS containing block 이슈).
+          그래서 모달은 aside 바깥, 최상위에서 렌더링해야 화면 중앙에 제대로 뜸. */}
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {deleteAccountOpen && (
+        <DeleteAccountModal
+          onClose={() => setDeleteAccountOpen(false)}
+          onConfirm={deleteAccount}
+        />
+      )}
     </>
   )
 }
