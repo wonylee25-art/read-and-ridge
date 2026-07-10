@@ -1,46 +1,13 @@
 'use client'
 
 import React, { useEffect, useRef, useMemo, useState } from 'react'
+// 타입·순수 유틸(toWorldMapBooks, TARGET_TROPHY)은 Server Component에서도 직접 호출해야 해서
+// 'use client'가 없는 별도 파일로 분리돼 있음 (worldmap-utils.ts 상단 설명 참고).
+// 기존 import 경로(`from './WorldMap'`)를 그대로 쓰는 다른 파일들을 위해 여기서 재수출한다.
+import { type WorldMapBook, toWorldMapBooks, TARGET_TROPHY } from './worldmap-utils'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type WorldMapBook = {
-  id: string
-  title: string
-  total_pages: number | null
-  current_page: number
-  status: 'reading' | 'completed' | 'paused'
-  kdc?: string | null
-  completed_at?: string | null // 완독 처리된 시각 (ISO). WorldMap 노출 유예(COMPLETION_GRACE_MS) 판단용
-  memo?: string | null
-}
-
-// Supabase에서 받아온 books row 배열을 WorldMap이 필요로 하는 형태로 변환.
-// dashboard/page.tsx와 dashboard/hikes/page.tsx가 동일한 매핑을 각자 갖고 있던 걸
-// 여기로 통합 — books row 타입 전체를 import하지 않도록 필요한 필드만 구조적 타입으로 받음.
-type BookRow = {
-  id: string
-  title: string
-  total_pages: number | null
-  current_page: number
-  status: string
-  kdc?: string | null
-  completed_at?: string | null
-  memo?: string | null
-}
-
-export function toWorldMapBooks(books: BookRow[] | null | undefined): WorldMapBook[] {
-  return (books ?? []).map((b) => ({
-    id: b.id,
-    title: b.title,
-    total_pages: b.total_pages,
-    current_page: b.current_page,
-    status: b.status as WorldMapBook['status'],
-    kdc: b.kdc ?? null,
-    completed_at: b.completed_at ?? null,
-    memo: b.memo ?? null,
-  }))
-}
+export type { WorldMapBook }
+export { toWorldMapBooks, TARGET_TROPHY }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,11 +39,7 @@ const MAX_COMPRESS_COUNT = 10
 // 완독 책은 정상석(완등기록)으로 옮겨가므로 WorldMap엔 아예 그리지 않는다.
 const TARGET_FOREGROUND = 4
 
-// 완등기록(trophy)에 보여줄 최근 완독 책 수 — 이 이상은 지도에서 잘라내고
-// 아래 전체 목록(BookCard 그리드)에서만 확인 가능. 완독이 쌓일수록 지도가
-// 무한정 길어지는 걸 막기 위함 (호출 측이 completed_at 내림차순으로 넘겨준다는 전제).
-// hikes/page.tsx에서 안내 문구에 쓸 수 있도록 export.
-export const TARGET_TROPHY = 5
+// TARGET_TROPHY는 worldmap-utils.ts에서 import + 재수출함 (위 import 참고)
 
 function computeSlotW(count: number, containerW: number): number {
   const comfortable = MAX_MTN_W + GAP

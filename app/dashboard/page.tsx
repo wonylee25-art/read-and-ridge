@@ -6,7 +6,7 @@ import WorldMapClient from '@/components/worldmap/WorldMapClient'
 import BookCard from '@/components/books/BookCard'
 import StatCard from '@/components/dashboard/StatCard'
 import EmptyState from '@/components/dashboard/EmptyState'
-import { toWorldMapBooks } from '@/components/worldmap/WorldMap'
+import { toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 
 export default async function DashboardPage() {
   const supabase = await createClient()

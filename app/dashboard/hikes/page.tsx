@@ -5,7 +5,8 @@ import BookCard from '@/components/books/BookCard'
 import AddBookBar from '@/components/books/AddBookBar'
 import StatCard from '@/components/dashboard/StatCard'
 import EmptyState from '@/components/dashboard/EmptyState'
-import WorldMap, { TARGET_TROPHY, toWorldMapBooks } from '@/components/worldmap/WorldMap'
+import WorldMap from '@/components/worldmap/WorldMap'
+import { TARGET_TROPHY, toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { Mountain, TrendingUp } from 'lucide-react'
 
 export default async function HikesPage() {
