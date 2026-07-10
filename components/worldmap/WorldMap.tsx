@@ -15,6 +15,33 @@ export type WorldMapBook = {
   memo?: string | null
 }
 
+// Supabase에서 받아온 books row 배열을 WorldMap이 필요로 하는 형태로 변환.
+// dashboard/page.tsx와 dashboard/hikes/page.tsx가 동일한 매핑을 각자 갖고 있던 걸
+// 여기로 통합 — books row 타입 전체를 import하지 않도록 필요한 필드만 구조적 타입으로 받음.
+type BookRow = {
+  id: string
+  title: string
+  total_pages: number | null
+  current_page: number
+  status: string
+  kdc?: string | null
+  completed_at?: string | null
+  memo?: string | null
+}
+
+export function toWorldMapBooks(books: BookRow[] | null | undefined): WorldMapBook[] {
+  return (books ?? []).map((b) => ({
+    id: b.id,
+    title: b.title,
+    total_pages: b.total_pages,
+    current_page: b.current_page,
+    status: b.status as WorldMapBook['status'],
+    kdc: b.kdc ?? null,
+    completed_at: b.completed_at ?? null,
+    memo: b.memo ?? null,
+  }))
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PX = 10 // 1 "pixel" = 10px on canvas
@@ -318,8 +345,19 @@ function drawPixel(ctx: CanvasRenderingContext2D, x: number, y: number, color: s
   ctx.fillRect(Math.round(x), Math.round(y), size, size)
 }
 
-function drawChar(ctx: CanvasRenderingContext2D, cx: number, cy: number, frame: number, outfitColor?: string) {
-  const rows = frame % 2 === 0 ? CHAR_ROWS_A : CHAR_ROWS_B
+// drawChar/drawDanceChar가 공유하는 렌더링 로직 — 프레임에 따라 A/B 두 포즈 중
+// 하나를 골라 중심(cx, cy 하단) 기준으로 그려준다. 두 함수는 어떤 row 세트를
+// 쓰는지만 다르므로 얇은 wrapper로 둠.
+function drawCharSprite(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  frame: number,
+  rowsA: string[],
+  rowsB: string[],
+  outfitColor?: string
+) {
+  const rows = frame % 2 === 0 ? rowsA : rowsB
   const w = rows[0].length * CPX
   const h = rows.length * CPX
   rows.forEach((row, ri) => {
@@ -336,6 +374,10 @@ function drawChar(ctx: CanvasRenderingContext2D, cx: number, cy: number, frame: 
       }
     })
   })
+}
+
+function drawChar(ctx: CanvasRenderingContext2D, cx: number, cy: number, frame: number, outfitColor?: string) {
+  drawCharSprite(ctx, cx, cy, frame, CHAR_ROWS_A, CHAR_ROWS_B, outfitColor)
 }
 
 function drawCloud(
@@ -485,23 +527,7 @@ const DANCE_CHAR_ROWS_B = [
 ]
 
 function drawDanceChar(ctx: CanvasRenderingContext2D, cx: number, cy: number, frame: number, outfitColor?: string) {
-  const rows = frame % 2 === 0 ? DANCE_CHAR_ROWS_A : DANCE_CHAR_ROWS_B
-  const w = rows[0].length * CPX
-  const h = rows.length * CPX
-  rows.forEach((row, ri) => {
-    row.split('').forEach((cell, ci) => {
-      const color = cell === 'B' && outfitColor ? outfitColor : CHAR_COLORS[cell]
-      if (color) {
-        ctx.fillStyle = color
-        ctx.fillRect(
-          Math.round(cx - w / 2 + ci * CPX),
-          Math.round(cy - h + ri * CPX),
-          CPX,
-          CPX
-        )
-      }
-    })
-  })
+  drawCharSprite(ctx, cx, cy, frame, DANCE_CHAR_ROWS_A, DANCE_CHAR_ROWS_B, outfitColor)
 }
 
 function drawCampfire(ctx: CanvasRenderingContext2D, x: number, y: number, frame: number) {

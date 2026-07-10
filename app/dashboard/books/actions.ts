@@ -3,6 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+// books 관련 액션은 항상 이 세 경로를 함께 갱신해야 함(캐시된 목록이
+// 산책기록/완등기록 양쪽 다 최신화되도록). 여러 함수에서 반복되던 3줄을 추출.
+function revalidateBookPaths() {
+  revalidatePath('/dashboard/books')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/hikes')
+}
+
 export async function addBook(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -86,9 +94,7 @@ export async function addBook(formData: FormData) {
     status_changed_at: new Date().toISOString(),
   })
 
-  revalidatePath('/dashboard/books')
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/hikes')
+  revalidateBookPaths()
 }
 
 export async function updateProgress(bookId: string, currentPage: number) {
@@ -117,9 +123,7 @@ export async function updateProgress(bookId: string, currentPage: number) {
 
   const { error } = await supabase.from('books').update(updates).eq('id', bookId)
   if (error) console.error('updateProgress failed:', error.message)
-  revalidatePath('/dashboard/books')
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/hikes')
+  revalidateBookPaths()
 
   return { justCompleted }
 }
@@ -127,7 +131,9 @@ export async function updateProgress(bookId: string, currentPage: number) {
 export async function saveMemo(bookId: string, memo: string) {
   const supabase = await createClient()
   await supabase.from('books').update({ memo }).eq('id', bookId)
-  revalidatePath('/dashboard/books')
+  // 예전엔 여기만 '/dashboard/books'만 갱신하고 있었음 — 다른 액션들처럼
+  // '/dashboard', '/dashboard/hikes'도 같이 갱신해야 메모 수정이 두 목록에도 반영됨.
+  revalidateBookPaths()
 }
 
 // 검색 결과를 고르지 않고 제목만 입력해 추가한 책은 저자가 비어(null) 저장된다.
@@ -137,18 +143,14 @@ export async function updateAuthor(bookId: string, author: string) {
   const trimmed = author.trim() || null
   const { error } = await supabase.from('books').update({ author: trimmed }).eq('id', bookId)
   if (error) console.error('updateAuthor failed:', error.message)
-  revalidatePath('/dashboard/books')
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/hikes')
+  revalidateBookPaths()
 }
 
 export async function updateOwned(bookId: string, owned: boolean) {
   const supabase = await createClient()
   const { error } = await supabase.from('books').update({ owned }).eq('id', bookId)
   if (error) console.error('updateOwned failed:', error.message)
-  revalidatePath('/dashboard/books')
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/hikes')
+  revalidateBookPaths()
 }
 
 export async function changeStatus(bookId: string, status: string) {
@@ -179,15 +181,11 @@ export async function changeStatus(bookId: string, status: string) {
 
   const { error } = await supabase.from('books').update(updates).eq('id', bookId)
   if (error) console.error('changeStatus failed:', error.message)
-  revalidatePath('/dashboard/books')
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/hikes')
+  revalidateBookPaths()
 }
 
 export async function deleteBook(bookId: string) {
   const supabase = await createClient()
   await supabase.from('books').delete().eq('id', bookId)
-  revalidatePath('/dashboard/books')
-  revalidatePath('/dashboard')
-  revalidatePath('/dashboard/hikes')
+  revalidateBookPaths()
 }

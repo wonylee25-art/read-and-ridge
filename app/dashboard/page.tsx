@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { BookOpen, Footprints } from 'lucide-react'
 import WorldMapClient from '@/components/worldmap/WorldMapClient'
 import BookCard from '@/components/books/BookCard'
-import type { WorldMapBook } from '@/components/worldmap/WorldMap'
+import StatCard from '@/components/dashboard/StatCard'
+import EmptyState from '@/components/dashboard/EmptyState'
+import { toWorldMapBooks } from '@/components/worldmap/WorldMap'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -43,16 +45,7 @@ export default async function DashboardPage() {
     .concat(pausedBooks)
     .reduce((sum, b) => sum + (b.current_page ?? 0), 0)
 
-  const worldMapBooks: WorldMapBook[] = (books ?? []).map((b) => ({
-    id: b.id,
-    title: b.title,
-    total_pages: b.total_pages,
-    current_page: b.current_page,
-    status: b.status as WorldMapBook['status'],
-    kdc: b.kdc ?? null,
-    completed_at: b.completed_at ?? null,
-    memo: b.memo ?? null,
-  }))
+  const worldMapBooks = toWorldMapBooks(books)
 
   const stats = [
     { label: '내가 산 책', value: myBooksCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
@@ -70,31 +63,17 @@ export default async function DashboardPage() {
         <WorldMapClient books={worldMapBooks} />
 
         <div className="grid grid-cols-2 gap-3">
-          {stats.map(({ label, value, icon: Icon, color, bg }) => (
-            <div key={label} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className={`inline-flex p-2 rounded-xl ${bg} mb-2`}>
-                <Icon size={16} className={color} />
-              </div>
-              <div className="text-xl font-bold text-gray-900">{value}</div>
-              <div className="text-xs text-gray-400 mt-0.5">{label}</div>
-            </div>
-          ))}
+          {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
         </div>
       </div>
 
       {/* 하단 — 예전 산책기록: 읽는 중 / 잠시 멈춤 목록 (완독은 완등기록으로 이동) */}
       {(!books || books.length === 0) && (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-lg">아직 책이 없어요</p>
-          <p className="text-sm mt-1">첫 번째 책을 추가해보세요 📚</p>
-        </div>
+        <EmptyState title="아직 책이 없어요" subtitle="첫 번째 책을 추가해보세요 📚" />
       )}
 
       {books && books.length > 0 && readingBooks.length === 0 && pausedBooks.length === 0 && (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-lg">읽는 중이거나 잠시 멈춘 책이 없어요</p>
-          <p className="text-sm mt-1">완독한 책은 완등기록에서 볼 수 있어요 🚩</p>
-        </div>
+        <EmptyState title="읽는 중이거나 잠시 멈춘 책이 없어요" subtitle="완독한 책은 완등기록에서 볼 수 있어요 🚩" />
       )}
 
       {readingBooks.length > 0 && (

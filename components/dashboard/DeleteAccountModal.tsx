@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Modal from '@/components/ui/Modal'
 
 export default function DeleteAccountModal({
   onClose,
@@ -32,14 +33,7 @@ export default function DeleteAccountModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose}>
         <h3 className="font-semibold text-gray-900 mb-2">정말 탈퇴하시겠어요?</h3>
         <p className="text-sm text-gray-500 mb-4 leading-relaxed">
           지금까지 기록한 모든 책·독서 진행률·완독 기록이 즉시 삭제되고, 계정도 함께
@@ -74,7 +68,6 @@ export default function DeleteAccountModal({
             {deleting ? '탈퇴 처리 중…' : '회원 탈퇴'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

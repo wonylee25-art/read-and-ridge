@@ -1,17 +1,11 @@
 'use client'
 
 import { X } from 'lucide-react'
+import Modal from '@/components/ui/Modal'
 
 export default function AboutModal({ onClose }: { onClose: () => void }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-900">산책또산책에 대하여</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
@@ -47,7 +41,6 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
             기쁠 것 같아요.
           </p>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
