@@ -5,4 +5,4 @@ export const APP_VERSION = pkg.version
 
 // 마지막 배포 반영 날짜 — 배포(push)할 때마다 수동으로 갱신할 것.
 // (CHANGELOG.md에 무엇이 바뀌었는지 같이 기록)
-export const LAST_UPDATED = '2026-07-11'
+export const LAST_UPDATED = '2026-07-12'

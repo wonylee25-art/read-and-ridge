@@ -12,7 +12,7 @@
 | `current_page` | int | 현재 읽은 페이지 (기본값 0) |
 | `status` | text | `'reading'` \| `'completed'` \| `'paused'` |
 | `started_at` | date \| null | 읽기 시작일 |
-| `kdc` | text \| null | 한국십진분류 코드 (WorldMap 색상 테마용) |
+| `kdc` | text \| null | 한국십진분류 코드 (WorldMap 색상 테마용). 도서 검색/스캔 등록 시 `/api/books/search`가 SEOJI `KDC`(정본) 또는 `SUBJECT`(대분류, 폴백)로 자동 채움 — 상세: `docs/api.md` |
 | `completed_at` | timestamptz \| null | 완독 처리된 시각. WorldMap 노출 유예(완등 세레모니 재생 시간만큼만 정상에 남았다가 바로 사라짐, 2026.07.08부터 짧게 조정) 판단 + 완등기록 정렬/날짜 표시에 사용 |
 | `status_changed_at` | timestamptz \| null | **신규 (2026.07.08)** — "지금 이 상태가 된 시각". `started_at`(사용자가 직접 고르는 과거 날짜 포함 가능한 "읽기 시작일")과는 별개로, 산책기록의 읽는 중/잠시 멈춤 목록을 "방금 상태를 바꾼 순"으로 정렬하기 위한 값. `addBook`/`changeStatus`/`updateProgress`(완독 전환 시) 호출마다 `now()`로 갱신됨 |
 | `created_at` | timestamptz | 자동 생성 |

@@ -9,6 +9,14 @@ interface NLBookDoc {
   PAGE?: string
   TITLE_URL?: string
   PUBLISH_PREDATE?: string
+  // 한국십진분류. 공식 문서 기준 "2020.12.31 이후 데이터 제공불가"라 실제로는
+  // CIP(도서 사전 등록) 절차를 거친 일부 도서에서만 값이 채워진다(실측 확인,
+  // 2026.07.12). 대부분의 최신/자가출판 도서는 빈 문자열로 온다 → SUBJECT로 보완.
+  KDC?: string
+  // KDC 대분류에 해당하는 한 자리 숫자(예: "8" = 문학). KDC 필드가 비어도 이 필드는
+  // 채워지는 경우가 많아(실측 확인) 산 색상 배정의 1차 폴백으로 사용한다.
+  // 단, KDC 정본과 항상 정확히 일치하지는 않는 근사값이다.
+  SUBJECT?: string
 }
 
 // Open Library 저자 객체 형태
@@ -21,6 +29,17 @@ function parsePageCount(page?: string): number | null {
   if (!page) return null
   const match = page.match(/\d+/)
   return match ? Number(match[0]) : null
+}
+
+// KDC(정본, 예: "476.01") 우선, 없으면 SUBJECT(대분류 한 자리, 예: "8")로 폴백.
+// WorldMap의 getTheme()은 첫 글자만 보므로 둘 다 같은 방식으로 소비 가능.
+// 둘 다 없으면 null → 프론트에서 book.id 해시 순환 배정으로 자연스럽게 폴백됨.
+function resolveKdc(kdc?: string, subject?: string): string | null {
+  const k = kdc?.trim()
+  if (k) return k
+  const s = subject?.trim()
+  if (s) return s
+  return null
 }
 
 // 서지정보 API 응답에서 결과 배열 추출 (정상 응답은 docs 필드에 배열이 담김)
@@ -90,6 +109,7 @@ async function fetchNL(params: { isbn?: string; title?: string }, size = 10) {
       thumbnail: d.TITLE_URL ?? '',
       datetime: d.PUBLISH_PREDATE?.slice(0, 4) ?? '',
       total_pages: parsePageCount(d.PAGE),
+      kdc: resolveKdc(d.KDC, d.SUBJECT),
     }))
   } catch (e) {
     console.error('[NL API] fetch 자체가 실패함 (네트워크/DNS/TLS 등):', e)

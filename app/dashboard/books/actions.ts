@@ -21,6 +21,10 @@ export async function addBook(formData: FormData) {
   const owned = formData.get('owned') === 'on'
   const title = ((formData.get('title') as string) || '').trim()
   const author = ((formData.get('author') as string) || '').trim() || null
+  // /api/books/search가 KDC(정본) 우선, 없으면 SUBJECT(대분류)로 채워서 보냄.
+  // 둘 다 없거나 직접 입력한 책이면 빈 문자열 → null로 저장, WorldMap이 book.id
+  // 해시 순환으로 색을 배정한다.
+  const kdc = ((formData.get('kdc') as string) || '').trim() || null
 
   // 중복 방지: 같은 책이 이미 등록돼 있으면 경고 팝업을 띄우고 등록을 막는다.
   // ⚠ 예전엔 "ISBN이 있고 + 소장 중(owned)"일 때만 검사해서, ISBN 없이 검색/직접
@@ -81,6 +85,7 @@ export async function addBook(formData: FormData) {
     title,
     author,
     isbn,
+    kdc,
     total_pages: totalPages,
     current_page: currentPage,
     status,

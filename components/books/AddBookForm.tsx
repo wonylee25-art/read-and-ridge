@@ -15,6 +15,7 @@ type BookInfo = {
   thumbnail?: string
   datetime?: string
   total_pages?: number | null
+  kdc?: string | null
 }
 
 type Props = {
@@ -254,6 +255,10 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
           {/* 숨겨진 필드 */}
           <input type="hidden" name="title" value={selected?.title ?? query} />
           <input type="hidden" name="isbn" value={selected?.isbn ?? ''} />
+          {/* 검색/스캔 결과에서 자동으로 채워짐 (KDC 우선, 없으면 SUBJECT 대분류로 폴백 —
+              /api/books/search에서 이미 처리됨). 직접 입력한 책은 항상 빈 값 →
+              WorldMap에서 book.id 해시 순환 색상으로 자연스럽게 대체됨. */}
+          <input type="hidden" name="kdc" value={selected?.kdc ?? ''} />
 
           {/* 저자 — 검색 결과를 고르면 자동으로 채워지지만, 검색에 안 걸리는 책도
               직접 입력해서 남길 수 있게 항상 편집 가능한 입력창으로 둠.

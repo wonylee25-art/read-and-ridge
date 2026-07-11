@@ -27,7 +27,8 @@ GET /api/books/search?isbn={isbn}
     "authors": "저자명",
     "publisher": "출판사",
     "total_pages": 320,
-    "isbn": "9791234567890"
+    "isbn": "9791234567890",
+    "kdc": "8"
   }
 }
 ```
@@ -39,6 +40,13 @@ GET /api/books/search?isbn={isbn}
 ```
 
 **데이터 소스**: 1순위 국립중앙도서관 서지정보(SEOJI) API (`nl.go.kr/seoji/SearchApi.do`), 페이지 수 미제공 시 Open Library API (`openlibrary.org/api/books`)로 보완. 국립중앙도서관 조회에 실패하면 Open Library로 전체 폴백.
+
+**`kdc` 필드**: SEOJI 응답의 `KDC`(정본, 예: `"476.01"`) 우선 사용, 없으면 `SUBJECT`(KDC 대분류
+한 자리 숫자, 예: `"8"`)로 폴백. 실측 확인 결과 `KDC`는 CIP(사전 등록) 절차를 거친 일부
+도서에서만 채워지고 대부분의 최신/전자책/자가출판 도서는 비어 있어, `SUBJECT`가 사실상
+주 데이터 소스에 가깝다(근사값이라 정본 KDC와 항상 일치하지는 않음). 둘 다 없으면
+`null`을 반환하고, WorldMap이 `book.id` 해시 순환으로 색을 배정한다. Open Library 폴백
+경로는 KDC 데이터가 없어 항상 `kdc` 필드가 빠진다.
 
 응답 캐시: Open Library 폴백 호출은 `next: { revalidate: 86400 }` (24시간)
 
@@ -68,7 +76,8 @@ GET /api/books/search?q={query}
       "isbn": "9791234567890",
       "thumbnail": "https://...",
       "datetime": "2023",
-      "total_pages": null
+      "total_pages": null,
+      "kdc": "8"
     }
   ]
 }
