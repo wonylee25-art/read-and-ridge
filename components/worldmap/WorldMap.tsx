@@ -267,6 +267,13 @@ const TREE_COLORS: Record<string, string> = {
   T: '#6b4226', // 줄기
 }
 
+// 완독맵 PNG 배경 장식용 벚꽃나무 — TREE_ROWS와 모양은 같고 잎 색만 벚꽃 톤으로 교체
+const CHERRY_TREE_COLORS: Record<string, string> = {
+  A: '#fbd5e6', // 밝은 벚꽃잎
+  G: '#f3a6c8', // 벚꽃잎
+  T: '#6b4226', // 줄기
+}
+
 const FLOWER_ROWS = [
   '.P.P.',
   'PPPPP',
@@ -768,8 +775,11 @@ function drawMountainTitle(
 // 완독한 산만 모아 가로 파노라마로 그린 새 캔버스를 반환(화면엔 그리지 않고 다운로드 전용).
 // 압축 배치(computeSlotW) 없이 항상 넉넉한 간격을 써서 — "정해진 틀에 맞추지 않고
 // 산맥 너비만큼 자연스럽게 긴 형태"라는 원칙대로 완독한 책이 많을수록 그냥 길어진다.
+// 산 사이 간격 — 화면 표시용 GAP(20)보다 좁게 잡아 PNG에서는 산끼리 더 붙어 보이게 함
+const PANO_GAP = 8
+
 function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): HTMLCanvasElement {
-  const slotW = MAX_MTN_W + GAP
+  const slotW = MAX_MTN_W + PANO_GAP
   const canvasW = Math.max(completedBooks.length * slotW + 64, 360)
   const canvasH = CANVAS_H
 
@@ -807,6 +817,19 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
   ctx.fillRect(0, groundTopY, canvasW, 6)
 
   const mountainBaseY = groundTopY
+
+  // ── 배경 장식 (나무 · 벚꽃나무) — 산보다 먼저 그려서 산 뒤로 살짝 가려 보이게 함.
+  // 좌측 끝 + 산 사이 경계마다 배치, 짝수/홀수로 초록 나무·벚꽃나무를 번갈아 씀.
+  const decoBlock = 6
+  drawSprite(ctx, TREE_ROWS, TREE_COLORS, 4, mountainBaseY, decoBlock)
+  drawSprite(ctx, TREE_ROWS, CHERRY_TREE_COLORS, 40, mountainBaseY, decoBlock)
+  for (let i = 0; i < completedBooks.length - 1; i++) {
+    const slotBoundary = 24 + (i + 1) * slotW - PANO_GAP / 2
+    const colorsA = i % 2 === 0 ? TREE_COLORS : CHERRY_TREE_COLORS
+    const colorsB = i % 2 === 0 ? CHERRY_TREE_COLORS : TREE_COLORS
+    drawSprite(ctx, TREE_ROWS, colorsA, slotBoundary - 40, mountainBaseY, decoBlock)
+    drawSprite(ctx, TREE_ROWS, colorsB, slotBoundary + 4, mountainBaseY, decoBlock)
+  }
 
   completedBooks.forEach((book, i) => {
     const level = getLevel(book.total_pages)
