@@ -8,6 +8,9 @@ import EmptyState from '@/components/dashboard/EmptyState'
 import WorldMap from '@/components/worldmap/WorldMap'
 import { TARGET_TROPHY, toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { Mountain, TrendingUp } from 'lucide-react'
+import { DEMO_TROPHY_BOOKS } from '@/lib/demo-books'
+
+const DISTANCE_PER_PAGE_M = 0.225
 
 export default async function HikesPage() {
   const supabase = await createClient()
@@ -15,14 +18,37 @@ export default async function HikesPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // 비로그인 — 완등기록은 정적 예시 이미지 성격으로만 보여준다. 실제 데이터 조회도,
+  // 책 추가 바도, 클릭 인터랙션도 전혀 없음(WorldMap에 onBookClick/onAddBook을 넘기지 않음).
+  if (!user) {
+    const totalKm =
+      (DEMO_TROPHY_BOOKS.reduce((sum, b) => sum + (b.total_pages ?? 0), 0) * DISTANCE_PER_PAGE_M) / 1000
+
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">완등기록</h2>
+        </div>
+
+        <div className="space-y-6 mb-10">
+          <WorldMap books={DEMO_TROPHY_BOOKS} mode="trophy" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard label="완등 기록" value={DEMO_TROPHY_BOOKS.length} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
+            <StatCard label="완등 거리 km" value={totalKm.toFixed(1)} icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const { data: books } = await supabase
     .from('books')
     .select('*')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
 
-  const DISTANCE_PER_PAGE_M = 0.225
   const totalKm =
     ((books ?? []).reduce((sum, b) => sum + (b.total_pages ?? 0), 0) * DISTANCE_PER_PAGE_M) / 1000
 

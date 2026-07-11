@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { updateProgress } from '@/app/dashboard/books/actions'
 import type { WorldMapBook } from './WorldMap'
+import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
 
 // ─── 모달 ────────────────────────────────────────────────────────────────────
 
@@ -10,11 +11,14 @@ type Props = {
   book: WorldMapBook
   onClose: () => void
   onSaved: () => void
+  // 비로그인(예시 지형도) 상태 — 게이지를 만져보는 것 자체는 되지만,
+  // 저장을 누르면 실제 저장 대신 구글 로그인으로 유도한다.
+  authenticated?: boolean
 }
 
 const GAUGE_H = 220
 
-export default function ProgressModal({ book, onClose, onSaved }: Props) {
+export default function ProgressModal({ book, onClose, onSaved, authenticated = true }: Props) {
   const total = book.total_pages ?? 0
   const initPct = total > 0 ? Math.min(book.current_page / total, 1) : 0
 
@@ -72,6 +76,10 @@ export default function ProgressModal({ book, onClose, onSaved }: Props) {
   }, [onClose])
 
   async function handleSave() {
+    if (!authenticated) {
+      signInWithGoogle()
+      return
+    }
     setSaving(true)
     try {
       const result = await updateProgress(book.id, displayPage)

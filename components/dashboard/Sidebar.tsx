@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BookOpen, Mountain, Menu, X } from 'lucide-react'
@@ -9,6 +9,7 @@ import AboutModal from '@/components/dashboard/AboutModal'
 import DeleteAccountModal from '@/components/dashboard/DeleteAccountModal'
 import { deleteAccount } from '@/app/dashboard/account-actions'
 import { APP_VERSION, LAST_UPDATED } from '@/lib/version'
+import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
 
 // 홈과 산책기록(구 독서 페이지)을 하나로 합쳐서, 메뉴는 산책기록/완등기록 2개만 남김
 const nav = [
@@ -16,11 +17,28 @@ const nav = [
   { href: '/dashboard/hikes', label: '완등기록', icon: Mountain },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ authenticated = true }: { authenticated?: boolean }) {
   const pathname = usePathname()
   const [aboutOpen, setAboutOpen] = useState(false)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // CSV 내려받기/회원 탈퇴는 로그인 상태에서만 실제 동작하고, 비로그인이면
+  // 눌렀을 때 구글 로그인으로 유도한다 (책 추가/게이지 저장과 동일한 패턴).
+  function handleCsvClick(e: MouseEvent) {
+    if (!authenticated) {
+      e.preventDefault()
+      signInWithGoogle()
+    }
+  }
+
+  function handleDeleteAccountClick() {
+    if (!authenticated) {
+      signInWithGoogle()
+      return
+    }
+    setDeleteAccountOpen(true)
+  }
 
   return (
     <>
@@ -98,15 +116,26 @@ export default function Sidebar() {
           })}
         </nav>
 
-      <div className="space-y-2.5 pt-4 mt-4 border-t border-gray-100">
+      <div className="space-y-2.5 pt-4 mt-4">
         <button
           onClick={() => setAboutOpen(true)}
           className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
           산책또산책에 대하여
         </button>
+        {authenticated ? (
+          <LogoutButton />
+        ) : (
+          <button
+            onClick={() => signInWithGoogle()}
+            className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            로그인
+          </button>
+        )}
         <a
           href="/api/books/export"
+          onClick={handleCsvClick}
           className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
           CSV 내려받기
@@ -120,9 +149,8 @@ export default function Sidebar() {
             이용약관
           </Link>
         </div>
-        <LogoutButton />
         <button
-          onClick={() => setDeleteAccountOpen(true)}
+          onClick={handleDeleteAccountClick}
           className="block text-sm text-gray-300 hover:text-red-400 transition-colors"
         >
           회원 탈퇴

@@ -29,7 +29,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedPaths = ['/dashboard', '/profile', '/books']
+  // /dashboard(산책기록/완등기록)는 비로그인 상태에서도 예시 지형도를 볼 수 있어야
+  // 해서 더 이상 보호 경로가 아님 — 실제 데이터 접근은 각 페이지 내부에서
+  // user 유무로 분기 처리함 (app/dashboard/page.tsx, app/dashboard/hikes/page.tsx 참고).
+  const protectedPaths = ['/profile', '/books']
   const isProtected = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )

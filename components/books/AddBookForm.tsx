@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { addBook } from '@/app/dashboard/books/actions'
 import { Plus, X, Search, BookOpen, Camera, AlertCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
 
 const BarcodeScanner = dynamic(() => import('./BarcodeScanner'), { ssr: false })
 
@@ -23,9 +24,11 @@ type Props = {
   // 안 넘기면 기존처럼 내부 상태로 알아서 동작(비제어 모드).
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  // 비로그인 상태면 폼을 열지 않고 바로 구글 로그인으로 유도.
+  authenticated?: boolean
 }
 
-export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}) {
+export default function AddBookForm({ open: openProp, onOpenChange, authenticated = true }: Props = {}) {
   const [openState, setOpenState] = useState(false)
   const open = openProp ?? openState
   const setOpen = onOpenChange ?? setOpenState
@@ -129,7 +132,10 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (!authenticated) { signInWithGoogle(); return }
+          setOpen(true)
+        }}
         className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 transition-colors"
       >
         <Plus size={16} /> 책 추가

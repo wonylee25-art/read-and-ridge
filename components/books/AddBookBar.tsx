@@ -14,9 +14,10 @@ type Props = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   variant?: Variant
+  authenticated?: boolean
 }
 
-export default function AddBookBar({ open: openProp, onOpenChange, variant = 'home' }: Props = {}) {
+export default function AddBookBar({ open: openProp, onOpenChange, variant = 'home', authenticated = true }: Props = {}) {
   const [openState, setOpenState] = useState(false)
   const open = openProp ?? openState
   const setOpen = onOpenChange ?? setOpenState
@@ -72,7 +73,7 @@ export default function AddBookBar({ open: openProp, onOpenChange, variant = 'ho
         </div>
       )}
       <div className="shrink-0">
-        <AddBookForm open={open} onOpenChange={setOpen} />
+        <AddBookForm open={open} onOpenChange={setOpen} authenticated={authenticated} />
       </div>
     </div>
   )

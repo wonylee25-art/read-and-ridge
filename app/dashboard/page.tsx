@@ -7,6 +7,7 @@ import BookCard from '@/components/books/BookCard'
 import StatCard from '@/components/dashboard/StatCard'
 import EmptyState from '@/components/dashboard/EmptyState'
 import { toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
+import { DEMO_HOME_BOOKS } from '@/lib/demo-books'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -14,12 +15,43 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // 비로그인 — 실제 데이터 조회 없이 예시 지형도만 보여준다. 산 클릭(게이지 만져보기)
+  // / 책 추가는 되지만 저장·등록은 구글 로그인으로 유도됨(WorldMapClient 내부에서 처리).
+  // 아래 "읽는 중/잠시 멈춤" 카드 목록(BookCard)은 삭제·메모 등 계정 데이터를 직접
+  // 다루는 액션이 많아 비로그인에서는 아예 보여주지 않는다.
+  if (!user) {
+    const readingCount = DEMO_HOME_BOOKS.filter((b) => b.status === 'reading').length
+    const pausedCount = DEMO_HOME_BOOKS.filter((b) => b.status === 'paused').length
+    const stepsWalked = DEMO_HOME_BOOKS.reduce((sum, b) => sum + (b.current_page ?? 0), 0)
+
+    const demoStats = [
+      { label: '내가 산 책', value: readingCount + pausedCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
+      { label: '발걸음 수', value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
+    ]
+
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">산책기록</h2>
+        </div>
+
+        <div className="space-y-6 mb-10">
+          <WorldMapClient books={DEMO_HOME_BOOKS} authenticated={false} />
+
+          <div className="grid grid-cols-2 gap-3">
+            {demoStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // 홈(WorldMap)과 산책기록(목록)이 합쳐진 페이지라 한 번의 조회로 둘 다 충당.
   // 등록 순서(오래된 → 최신)로 받아서 WorldMap 타임라인 원칙은 그대로 유지함.
   const { data: books } = await supabase
     .from('books')
     .select('*')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: true })
 
   // 목록(읽는 중/잠시 멈춤)은 WorldMap과 별개로 "이 상태가 된 시각"(status_changed_at)
