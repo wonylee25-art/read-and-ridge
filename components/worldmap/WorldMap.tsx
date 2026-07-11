@@ -769,21 +769,69 @@ function drawMountainTitle(
   ctx.fillText(text, cx, y)
 }
 
-// 제목 바로 아래 한 줄 — 메모가 있는 책만. 제목과 구분되게 옅은 톤으로, 더 작게.
-function drawMountainMemo(
+// 둥근 사각형 경로 — 구형 브라우저 호환을 위해 ctx.roundRect 대신 직접 구현
+// (arcTo 4번으로 네 모서리를 둥글림). fill/stroke는 호출 측에서 처리.
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+// 메모 말풍선 — 웹페이지 지도(memoBubbles)와 같은 톤(amber 박스 + 아래 꼭짓점 포인터)으로
+// 산 정상(깃발 위)에 떠 있게 그림. 예전엔 제목 아래 작은 텍스트 한 줄로만 넣었는데,
+// 웹 버전과 스타일이 달라서 "메모가 안 보인다"는 오해를 샀음 — 웹과 동일한 말풍선
+// 모양으로 맞춤.
+function drawMemoBubble(
   ctx: CanvasRenderingContext2D,
   memo: string,
   cx: number,
-  groundTopY: number,
+  peakTopY: number, // 산 정상 y좌표(깃발이 꽂히는 지점, drawFlag의 peakTopY와 동일)
   maxWidth: number
 ) {
-  ctx.font = '9px monospace'
+  const FLAG_POLE_H = 16
+  const pointerTipY = peakTopY - FLAG_POLE_H - 6 // 깃발 위로 살짝 띄운 지점
+  const pointerHalf = 5
+  const padX = 8
+  const padY = 6
+  const lineH = 12
+
+  ctx.font = '10px monospace'
   ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  const text = truncateToWidth(ctx, memo, maxWidth + 14)
-  const y = groundTopY + 20
-  ctx.fillStyle = 'rgba(253,246,227,0.75)'
-  ctx.fillText(text, cx, y)
+  ctx.textBaseline = 'middle'
+
+  const cap = Math.min(maxWidth, 150)
+  const text = truncateToWidth(ctx, memo, cap)
+  const textW = Math.min(ctx.measureText(text).width, cap)
+
+  const boxW = textW + padX * 2
+  const boxH = lineH + padY * 2
+  const boxX = cx - boxW / 2
+  const boxY = pointerTipY - pointerHalf - boxH
+
+  // 박스 (amber-50 배경 + amber-200 테두리 — 웹 memoBubbles와 동일 팔레트)
+  roundRectPath(ctx, boxX, boxY, boxW, boxH, 6)
+  ctx.fillStyle = '#fffbeb'
+  ctx.fill()
+  ctx.strokeStyle = '#fde68a'
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  // 포인터(말풍선 꼭짓점)
+  ctx.beginPath()
+  ctx.moveTo(cx - pointerHalf, boxY + boxH - 1)
+  ctx.lineTo(cx + pointerHalf, boxY + boxH - 1)
+  ctx.lineTo(cx, pointerTipY)
+  ctx.closePath()
+  ctx.fillStyle = '#fffbeb'
+  ctx.fill()
+
+  // 텍스트 (amber-900)
+  ctx.fillStyle = '#78350f'
+  ctx.fillText(text, cx, boxY + boxH / 2)
 }
 
 // 완독한 산만 모아 가로 파노라마로 그린 새 캔버스를 반환(화면엔 그리지 않고 다운로드 전용).
@@ -890,9 +938,9 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
 
     // 땅과 산이 맞닿는 지점에 책 제목 각인
     drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)
-    // 메모가 있는 책만 제목 바로 아래에 한 줄 더
+    // 메모가 있는 책만 정상(깃발 위)에 말풍선으로 — 웹페이지 지도의 memoBubbles와 같은 스타일
     if (book.memo && book.memo.trim()) {
-      drawMountainMemo(ctx, book.memo, baseX + mtnW / 2, mountainBaseY, mtnW)
+      drawMemoBubble(ctx, book.memo, baseX + mid * PX + PX / 2, baseY, mtnW)
     }
   })
 
