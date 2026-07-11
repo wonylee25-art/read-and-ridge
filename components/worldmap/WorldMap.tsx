@@ -768,7 +768,7 @@ function drawMountainTitle(
 // 완독한 산만 모아 가로 파노라마로 그린 새 캔버스를 반환(화면엔 그리지 않고 다운로드 전용).
 // 압축 배치(computeSlotW) 없이 항상 넉넉한 간격을 써서 — "정해진 틀에 맞추지 않고
 // 산맥 너비만큼 자연스럽게 긴 형태"라는 원칙대로 완독한 책이 많을수록 그냥 길어진다.
-function renderCompletedPanorama(completedBooks: WorldMapBook[]): HTMLCanvasElement {
+function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): HTMLCanvasElement {
   const slotW = MAX_MTN_W + GAP
   const canvasW = Math.max(completedBooks.length * slotW + 64, 360)
   const canvasH = CANVAS_H
@@ -779,15 +779,22 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[]): HTMLCanvasElem
   const ctx = canvas.getContext('2d')!
   ctx.imageSmoothingEnabled = false
 
-  // 하늘 — 캡처 시각에 따라 색이 바뀌면 매번 다른 이미지가 나와버리니(drift),
-  // WorldMap의 fixedHour 원칙과 동일하게 항상 맑은 낮(10시)로 고정.
-  const sky = getSky(10)
+  // 하늘 — 저장 버튼을 누른 시점에 화면에 보이던 것과 같은 시각(hour)으로 그려서,
+  // 지금 보고 있는 모습 그대로 캡처되게 함 (밤에 저장하면 밤하늘로 저장됨).
+  const sky = getSky(hour)
   const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasH - GROUND_H)
   skyGrad.addColorStop(0, sky.topColor)
   skyGrad.addColorStop(1, sky.bottomColor)
   ctx.fillStyle = skyGrad
   ctx.fillRect(0, 0, canvasW, canvasH - GROUND_H)
-  drawPixelSun(ctx, canvasW - 64, 28)
+
+  if (sky.daytime) {
+    drawPixelSun(ctx, canvasW - 64, 28)
+  } else if (sky.stars) {
+    makeStars(60).forEach((st) => {
+      drawStar(ctx, st.xRatio * canvasW, st.yRatio * canvasH, st.r, st.opacity)
+    })
+  }
 
   // 지면
   const groundTopY = canvasH - GROUND_H
@@ -894,14 +901,16 @@ export default function WorldMap({
 
   const handleCaptureCompletedMap = useCallback(() => {
     if (completedBooks.length === 0) return
-    const panorama = renderCompletedPanorama(completedBooks)
+    // fixedHour가 지정돼 있으면 그 값을, 아니면 저장 버튼을 누른 실제 현재 시각을 사용 —
+    // 지금 화면에 보이는 하늘(낮/밤)과 항상 같은 모습으로 저장되도록.
+    const panorama = renderCompletedPanorama(completedBooks, fixedHour ?? new Date().getHours())
     const link = document.createElement('a')
     link.href = panorama.toDataURL('image/png')
     link.download = `산책또산책_완독맵_${todayFileDateKey()}.png`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  }, [completedBooks])
+  }, [completedBooks, fixedHour])
 
   useEffect(() => {
     setTooltip(null)
