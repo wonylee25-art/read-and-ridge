@@ -3,6 +3,14 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.2.1 — 2026-07-12 (2)
+
+- **KDC 백필 스크립트 추가** (`scripts/backfill-kdc.mjs`, `npm run backfill:kdc`) — 이미
+  등록된 책 중 `kdc`가 비어있고 `isbn`이 있는 책을 대상으로 SEOJI API를 다시 조회해
+  `kdc` 컬럼을 채운다. `SUPABASE_SERVICE_ROLE_KEY`로 RLS를 우회해 전체 유저 대상으로
+  1회 실행. 로컬(네트워크 제한 없는 환경)에서 직접 실행 필요 — 개발 서버/배포 파이프라인에
+  포함되지 않는 수동 유지보수 스크립트.
+
 ## 0.2.1 — 2026-07-12
 
 - **KDC 산 색상 매핑**: 국립중앙도서관 서지정보(SEOJI) API 응답에서 `KDC`·`SUBJECT` 필드를
