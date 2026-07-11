@@ -42,27 +42,20 @@ export default function BookCard({ book }: { book: Book }) {
   const [owned, setOwned] = useState(!!book.owned)
   const memoRef = useRef<HTMLTextAreaElement>(null)
 
-  // 저자 인라인 수정 — 검색 결과를 안 고르고 추가한 책은 저자가 비어 저장되므로,
-  // 나중에 여기서 채우거나 고칠 수 있게 함. 메모 편집(StickyNote)과는 아이콘·위치를
-  // 분리해서(저자 텍스트 바로 옆의 연필 아이콘) 서로 헷갈리지 않게 함.
-  const [authorValue, setAuthorValue] = useState(book.author ?? '')
-  const [authorEditing, setAuthorEditing] = useState(false)
-  const [authorDraft, setAuthorDraft] = useState(authorValue)
-  const [authorSaving, setAuthorSaving] = useState(false)
-
-  // 제목 인라인 수정 — 등록 시 오타가 났거나 검색 결과를 안 고르고 직접 입력한 경우
-  // 나중에 고칠 수 있게 함. 저자 수정과 동일한 패턴.
+  // 책 정보(제목·저자·전체 쪽수) 인라인 수정 — 등록 시 오타가 났거나, 검색 결과를 안
+  // 고르고 직접 입력했거나, 자동 채워진 쪽수(검색 결과 또는 기본 150쪽)가 실제 책과
+  // 다를 때 나중에 고칠 수 있게 함. 예전엔 세 필드마다 연필 아이콘이 따로 있었는데
+  // 카드 하나에 연필이 3개나 반복돼 산만해서, 연필 하나로 세 필드를 한 번에 여닫는
+  // 방식으로 통합함(메모 편집 아이콘과는 여전히 구분).
   const [titleValue, setTitleValue] = useState(book.title)
-  const [titleEditing, setTitleEditing] = useState(false)
-  const [titleDraft, setTitleDraft] = useState(titleValue)
-  const [titleSaving, setTitleSaving] = useState(false)
-
-  // 전체 쪽수 인라인 수정 — 등록 시 자동 채워진 값(검색 결과 또는 기본 150쪽)이 실제
-  // 책과 다르면 진행률이 부정확해지는데, 지금까지는 등록 후 고칠 방법이 없었음.
+  const [authorValue, setAuthorValue] = useState(book.author ?? '')
   const [totalPagesValue, setTotalPagesValue] = useState(book.total_pages)
-  const [totalPagesEditing, setTotalPagesEditing] = useState(false)
+
+  const [infoEditing, setInfoEditing] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(titleValue)
+  const [authorDraft, setAuthorDraft] = useState(authorValue)
   const [totalPagesDraft, setTotalPagesDraft] = useState(String(totalPagesValue ?? ''))
-  const [totalPagesSaving, setTotalPagesSaving] = useState(false)
+  const [infoSaving, setInfoSaving] = useState(false)
 
   // 삭제 확인 팝업 — 실수로 바로 삭제되던 걸 막기 위해 확인 단계를 추가.
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -114,46 +107,72 @@ export default function BookCard({ book }: { book: Book }) {
     }, 700)
   }
 
-  async function handleAuthorSave() {
-    setAuthorSaving(true)
-    await updateAuthor(book.id, authorDraft)
-    const saved = authorDraft.trim()
-    setAuthorValue(saved)
-    setAuthorDraft(saved)
-    setAuthorSaving(false)
-    setAuthorEditing(false)
+  function openInfoEdit() {
+    setTitleDraft(titleValue)
+    setAuthorDraft(authorValue)
+    setTotalPagesDraft(String(totalPagesValue ?? ''))
+    setInfoEditing(true)
   }
 
-  async function handleTitleSave() {
-    const trimmed = titleDraft.trim()
-    if (!trimmed) return
-    setTitleSaving(true)
-    const result = await updateTitle(book.id, trimmed)
-    if (!result?.error) {
-      setTitleValue(trimmed)
-      setTitleDraft(trimmed)
-      setTitleEditing(false)
-    }
-    setTitleSaving(false)
+  function cancelInfoEdit() {
+    setTitleDraft(titleValue)
+    setAuthorDraft(authorValue)
+    setTotalPagesDraft(String(totalPagesValue ?? ''))
+    setInfoEditing(false)
   }
 
-  async function handleTotalPagesSave() {
-    const parsed = Number(totalPagesDraft)
-    if (!Number.isFinite(parsed) || parsed < 1) return
-    setTotalPagesSaving(true)
-    const result = await updateTotalPages(book.id, parsed)
-    if (!result?.error) {
-      const applied = Math.round(parsed)
-      setTotalPagesValue(applied)
-      if (typeof result.currentPage === 'number') setPage(result.currentPage)
-      if (result.justCompleted) {
-        setStatus('completed')
-        setJustCompleted(true)
-        setTimeout(() => setJustCompleted(false), 3000)
-      }
-      setTotalPagesEditing(false)
+  // 제목·저자·전체 쪽수를 한 번에 저장. 바뀐 필드만 골라 각자의 서버 액션을 호출한다
+  // (안 바뀐 필드까지 매번 쓰면, 특히 전체 쪽수는 현재 페이지 clamp/자동 완독 처리가
+  // 딸려 있어 불필요한 부작용이 생길 수 있음).
+  async function handleInfoSave() {
+    const trimmedTitle = titleDraft.trim()
+    const trimmedAuthor = authorDraft.trim()
+    const parsedTotalPages = Number(totalPagesDraft)
+    const totalPagesChanged =
+      totalPagesDraft.trim() !== '' &&
+      Number.isFinite(parsedTotalPages) &&
+      parsedTotalPages >= 1 &&
+      Math.round(parsedTotalPages) !== totalPagesValue
+
+    setInfoSaving(true)
+
+    const tasks: Promise<void>[] = []
+
+    if (trimmedTitle && trimmedTitle !== titleValue) {
+      tasks.push(
+        updateTitle(book.id, trimmedTitle).then((result) => {
+          if (!result?.error) setTitleValue(trimmedTitle)
+        })
+      )
     }
-    setTotalPagesSaving(false)
+
+    if (trimmedAuthor !== authorValue) {
+      tasks.push(
+        updateAuthor(book.id, trimmedAuthor).then(() => {
+          setAuthorValue(trimmedAuthor)
+        })
+      )
+    }
+
+    if (totalPagesChanged) {
+      tasks.push(
+        updateTotalPages(book.id, parsedTotalPages).then((result) => {
+          if (!result?.error) {
+            setTotalPagesValue(Math.round(parsedTotalPages))
+            if (typeof result.currentPage === 'number') setPage(result.currentPage)
+            if (result.justCompleted) {
+              setStatus('completed')
+              setJustCompleted(true)
+              setTimeout(() => setJustCompleted(false), 3000)
+            }
+          }
+        })
+      )
+    }
+
+    await Promise.all(tasks)
+    setInfoSaving(false)
+    setInfoEditing(false)
   }
 
   async function handleDelete() {
@@ -198,75 +217,79 @@ export default function BookCard({ book }: { book: Book }) {
       {/* 상단: 제목 + 컨트롤 */}
       <div className="flex justify-between items-start mb-3 gap-2">
         <div className="flex-1 min-w-0">
-          {titleEditing ? (
-            <div className="flex items-center gap-1.5">
+          {infoEditing ? (
+            <div className="space-y-1.5">
               <input
                 autoFocus
                 value={titleDraft}
                 onChange={(e) => setTitleDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleTitleSave()
-                  if (e.key === 'Escape') { setTitleDraft(titleValue); setTitleEditing(false) }
+                  if (e.key === 'Enter') handleInfoSave()
+                  if (e.key === 'Escape') cancelInfoEdit()
                 }}
-                className="flex-1 min-w-0 font-semibold text-gray-900 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                placeholder="제목"
+                className="w-full font-semibold text-gray-900 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
-              <button
-                onClick={handleTitleSave}
-                disabled={titleSaving}
-                className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40 shrink-0"
-              >
-                {titleSaving ? '저장 중' : '저장'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 min-w-0">
-              <h4 className="font-semibold text-gray-900 truncate">{titleValue}</h4>
-              <button
-                onClick={() => { setTitleDraft(titleValue); setTitleEditing(true) }}
-                className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
-                title="제목 수정"
-                aria-label="제목 수정"
-              >
-                <Pencil size={11} />
-              </button>
-            </div>
-          )}
-
-          {authorEditing ? (
-            <div className="flex items-center gap-1.5 mt-1">
               <input
-                autoFocus
                 value={authorDraft}
                 onChange={(e) => setAuthorDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAuthorSave()
-                  if (e.key === 'Escape') { setAuthorDraft(authorValue); setAuthorEditing(false) }
+                  if (e.key === 'Enter') handleInfoSave()
+                  if (e.key === 'Escape') cancelInfoEdit()
                 }}
                 placeholder="저자 이름"
-                className="flex-1 min-w-0 text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
-              <button
-                onClick={handleAuthorSave}
-                disabled={authorSaving}
-                className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40 shrink-0"
-              >
-                {authorSaving ? '저장 중' : '저장'}
-              </button>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span>전체</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={totalPagesDraft}
+                  onChange={(e) => setTotalPagesDraft(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleInfoSave()
+                    if (e.key === 'Escape') cancelInfoEdit()
+                  }}
+                  className="w-16 border border-gray-200 rounded-lg px-1.5 py-0.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                />
+                <span>페이지</span>
+              </div>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  onClick={handleInfoSave}
+                  disabled={infoSaving}
+                  className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  {infoSaving ? '저장 중' : '저장'}
+                </button>
+                <button
+                  onClick={cancelInfoEdit}
+                  disabled={infoSaving}
+                  className="text-xs px-2 py-1 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40"
+                >
+                  취소
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="flex items-center gap-1 mt-0.5 min-w-0">
-              <p className={`text-xs truncate ${formatAuthor(authorValue) ? 'text-gray-400' : 'text-gray-300 italic'}`}>
+            <>
+              <div className="flex items-center gap-1 min-w-0">
+                <h4 className="font-semibold text-gray-900 truncate">{titleValue}</h4>
+                <button
+                  onClick={openInfoEdit}
+                  className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
+                  title="책 정보 수정 (제목·저자·전체 쪽수)"
+                  aria-label="책 정보 수정"
+                >
+                  <Pencil size={11} />
+                </button>
+              </div>
+              <p className={`text-xs mt-0.5 truncate ${formatAuthor(authorValue) ? 'text-gray-400' : 'text-gray-300 italic'}`}>
                 {formatAuthor(authorValue) ?? '저자 정보 없음'}
               </p>
-              <button
-                onClick={() => { setAuthorDraft(authorValue); setAuthorEditing(true) }}
-                className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
-                title="저자 수정"
-                aria-label="저자 수정"
-              >
-                <Pencil size={11} />
-              </button>
-            </div>
+            </>
           )}
         </div>
 
@@ -314,47 +337,10 @@ export default function BookCard({ book }: { book: Book }) {
         </div>
       </div>
 
-      {/* 진행률 바 + 전체 쪽수 수정 */}
+      {/* 진행률 바 — 전체 쪽수 수정은 위쪽 책 정보 수정(연필)으로 통합됨 */}
       <div className="mb-3">
         <div className="flex justify-between items-center text-xs text-gray-400 mb-1 gap-2">
-          {totalPagesEditing ? (
-            <div className="flex items-center gap-1.5">
-              <span>{page} /</span>
-              <input
-                autoFocus
-                type="number"
-                min={1}
-                value={totalPagesDraft}
-                onChange={(e) => setTotalPagesDraft(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleTotalPagesSave()
-                  if (e.key === 'Escape') { setTotalPagesDraft(String(totalPagesValue ?? '')); setTotalPagesEditing(false) }
-                }}
-                className="w-16 border border-gray-200 rounded-lg px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900"
-              />
-              <span>페이지</span>
-              <button
-                onClick={handleTotalPagesSave}
-                disabled={totalPagesSaving}
-                className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40"
-              >
-                {totalPagesSaving ? '저장 중' : '저장'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <span>{page} / {totalPagesValue ?? '미입력'}{totalPagesValue ? ' 페이지' : ''}</span>
-              <button
-                onClick={() => { setTotalPagesDraft(String(totalPagesValue ?? '')); setTotalPagesEditing(true) }}
-                className="text-gray-300 hover:text-gray-500 transition-colors"
-                title="전체 쪽수 수정"
-                aria-label="전체 쪽수 수정"
-              >
-                <Pencil size={11} />
-              </button>
-            </div>
-          )}
+          <span>{page} / {totalPagesValue ?? '미입력'}{totalPagesValue ? ' 페이지' : ''}</span>
           {totalPagesValue ? <span>{progress}%</span> : null}
         </div>
         {totalPagesValue ? (
