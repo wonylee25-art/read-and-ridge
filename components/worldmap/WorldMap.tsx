@@ -773,14 +773,19 @@ function drawMountainTitle(
 }
 
 // 완독한 산만 모아 가로 파노라마로 그린 새 캔버스를 반환(화면엔 그리지 않고 다운로드 전용).
-// 압축 배치(computeSlotW) 없이 항상 넉넉한 간격을 써서 — "정해진 틀에 맞추지 않고
-// 산맥 너비만큼 자연스럽게 긴 형태"라는 원칙대로 완독한 책이 많을수록 그냥 길어진다.
+// 최근 완독순 TARGET_TROPHY(5)개만 선명한 전경 산으로 그리고, 나머지는 drawBackgroundRange로
+// 흐릿한 능선 실루엣만 깔아 "산맥" 느낌을 준다 — 이러면 책이 몇 권이든 캔버스 폭이 전경
+// 개수(최대 5개) 기준으로만 정해져서 가로로 무한정 길어지지 않고, 제목도 서로 안 겹친다.
 // 산 사이 간격 — 화면 표시용 GAP(20)보다 좁게 잡아 PNG에서는 산끼리 더 붙어 보이게 함
 const PANO_GAP = 8
 
 function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): HTMLCanvasElement {
+  // completedBooks는 호출 측에서 이미 최근 완독순(내림차순)으로 정렬해서 넘겨줌.
+  const front = completedBooks.slice(0, TARGET_TROPHY)
+  const back = completedBooks.slice(TARGET_TROPHY)
+
   const slotW = MAX_MTN_W + PANO_GAP
-  const canvasW = Math.max(completedBooks.length * slotW + 64, 360)
+  const canvasW = Math.max(front.length * slotW + 64, 360)
   const canvasH = CANVAS_H
 
   const canvas = document.createElement('canvas')
@@ -818,12 +823,15 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
 
   const mountainBaseY = groundTopY
 
+  // ── 배경 능선 (전경에 못 든 나머지 완독 책들 — 흐릿하고 식별 불가, "산맥" 볼륨감용) ──
+  drawBackgroundRange(ctx, back, canvasW, mountainBaseY)
+
   // ── 배경 장식 (나무 · 벚꽃나무) — 산보다 먼저 그려서 산 뒤로 살짝 가려 보이게 함.
   // 좌측 끝 + 산 사이 경계마다 배치, 짝수/홀수로 초록 나무·벚꽃나무를 번갈아 씀.
   const decoBlock = 6
   drawSprite(ctx, TREE_ROWS, TREE_COLORS, 4, mountainBaseY, decoBlock)
   drawSprite(ctx, TREE_ROWS, CHERRY_TREE_COLORS, 40, mountainBaseY, decoBlock)
-  for (let i = 0; i < completedBooks.length - 1; i++) {
+  for (let i = 0; i < front.length - 1; i++) {
     const slotBoundary = 24 + (i + 1) * slotW - PANO_GAP / 2
     const colorsA = i % 2 === 0 ? TREE_COLORS : CHERRY_TREE_COLORS
     const colorsB = i % 2 === 0 ? CHERRY_TREE_COLORS : TREE_COLORS
@@ -831,7 +839,7 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
     drawSprite(ctx, TREE_ROWS, colorsB, slotBoundary + 4, mountainBaseY, decoBlock)
   }
 
-  completedBooks.forEach((book, i) => {
+  front.forEach((book, i) => {
     const level = getLevel(book.total_pages)
     const steps = STEPS_BY_LEVEL[level]
     const theme = getTheme(book.kdc, book.id)
@@ -870,7 +878,25 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
     drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)
   })
 
+  drawWatermark(ctx, canvasW, canvasH)
+
   return canvas
+}
+
+// PNG 우측 하단 워터마크 — drawMountainTitle과 같은 톤(어두운 외곽선 + 크림색)으로
+// 어떤 하늘/지면 색 위에서도 읽히게 함.
+function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number) {
+  const text = '산책또산책'
+  ctx.font = 'bold 12px monospace'
+  ctx.textAlign = 'right'
+  ctx.textBaseline = 'bottom'
+  const x = canvasW - 10
+  const y = canvasH - 8
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(15,35,10,0.85)'
+  ctx.strokeText(text, x, y)
+  ctx.fillStyle = '#fdf6e3'
+  ctx.fillText(text, x, y)
 }
 
 function todayFileDateKey(): string {
@@ -917,10 +943,14 @@ export default function WorldMap({
   const [containerW, setContainerW] = useState(0)
 
   // 완독 맵 공유(PNG) — foreground/background로 나뉘기 전의 books 원본에서 완독한
-  // 책만 골라둔다. mode(home/trophy)와 무관하게 books 자체가 호출 측에서 이미
-  // "이 사용자의 전체 완독 목록"을 담고 있어(dashboard/hikes 양쪽 다), trophy 화면의
-  // TARGET_TROPHY 표시 개수 제한과 별개로 공유 이미지엔 잘림 없이 전부 담긴다.
-  const completedBooks = useMemo(() => books.filter((b) => b.status === 'completed'), [books])
+  // 책만 골라 최근 완독순(내림차순)으로 정렬해둔다. 호출 측(dashboard/hikes) 쿼리 정렬이
+  // 서로 달라(하나는 created_at, 하나는 completed_at) 여기서 직접 정렬해야 안전함.
+  // 파노라마에서 앞줄(선명한 산 TARGET_TROPHY개)/뒷줄(흐릿한 능선) 구분에 이 순서를 그대로 씀.
+  const completedBooks = useMemo(() => {
+    return books
+      .filter((b) => b.status === 'completed')
+      .sort((a, b) => new Date(b.completed_at ?? 0).getTime() - new Date(a.completed_at ?? 0).getTime())
+  }, [books])
 
   const handleCaptureCompletedMap = useCallback(() => {
     if (completedBooks.length === 0) return
