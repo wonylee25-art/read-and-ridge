@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, updateAuthor } from '@/app/dashboard/books/actions'
+import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, updateAuthor, updateTitle, updateTotalPages } from '@/app/dashboard/books/actions'
 import { Trash2, CheckCircle, StickyNote, Home, Pencil } from 'lucide-react'
 import { formatAuthor } from '@/lib/formatAuthor'
 import DeleteConfirmModal from '@/components/books/DeleteConfirmModal'
@@ -50,11 +50,25 @@ export default function BookCard({ book }: { book: Book }) {
   const [authorDraft, setAuthorDraft] = useState(authorValue)
   const [authorSaving, setAuthorSaving] = useState(false)
 
+  // 제목 인라인 수정 — 등록 시 오타가 났거나 검색 결과를 안 고르고 직접 입력한 경우
+  // 나중에 고칠 수 있게 함. 저자 수정과 동일한 패턴.
+  const [titleValue, setTitleValue] = useState(book.title)
+  const [titleEditing, setTitleEditing] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(titleValue)
+  const [titleSaving, setTitleSaving] = useState(false)
+
+  // 전체 쪽수 인라인 수정 — 등록 시 자동 채워진 값(검색 결과 또는 기본 150쪽)이 실제
+  // 책과 다르면 진행률이 부정확해지는데, 지금까지는 등록 후 고칠 방법이 없었음.
+  const [totalPagesValue, setTotalPagesValue] = useState(book.total_pages)
+  const [totalPagesEditing, setTotalPagesEditing] = useState(false)
+  const [totalPagesDraft, setTotalPagesDraft] = useState(String(totalPagesValue ?? ''))
+  const [totalPagesSaving, setTotalPagesSaving] = useState(false)
+
   // 삭제 확인 팝업 — 실수로 바로 삭제되던 걸 막기 위해 확인 단계를 추가.
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const total = book.total_pages ?? 0
+  const total = totalPagesValue ?? 0
   const progress = total > 0 ? Math.min(Math.round((page / total) * 100), 100) : 0
 
   // 메모 텍스트영역 자동 높이 조절 — 내용이 길어지면 내부 스크롤 대신
@@ -71,7 +85,7 @@ export default function BookCard({ book }: { book: Book }) {
   }, [memoOpen])
 
   async function handleUpdateProgress() {
-    if (!book.total_pages) return
+    if (!totalPagesValue) return
     setIsUpdating(true)
     const result = await updateProgress(book.id, page)
 
@@ -110,6 +124,38 @@ export default function BookCard({ book }: { book: Book }) {
     setAuthorEditing(false)
   }
 
+  async function handleTitleSave() {
+    const trimmed = titleDraft.trim()
+    if (!trimmed) return
+    setTitleSaving(true)
+    const result = await updateTitle(book.id, trimmed)
+    if (!result?.error) {
+      setTitleValue(trimmed)
+      setTitleDraft(trimmed)
+      setTitleEditing(false)
+    }
+    setTitleSaving(false)
+  }
+
+  async function handleTotalPagesSave() {
+    const parsed = Number(totalPagesDraft)
+    if (!Number.isFinite(parsed) || parsed < 1) return
+    setTotalPagesSaving(true)
+    const result = await updateTotalPages(book.id, parsed)
+    if (!result?.error) {
+      const applied = Math.round(parsed)
+      setTotalPagesValue(applied)
+      if (typeof result.currentPage === 'number') setPage(result.currentPage)
+      if (result.justCompleted) {
+        setStatus('completed')
+        setJustCompleted(true)
+        setTimeout(() => setJustCompleted(false), 3000)
+      }
+      setTotalPagesEditing(false)
+    }
+    setTotalPagesSaving(false)
+  }
+
   async function handleDelete() {
     setDeleting(true)
     await deleteBook(book.id)
@@ -125,8 +171,8 @@ export default function BookCard({ book }: { book: Book }) {
   async function handleStatusChange(newStatus: string) {
     const wasCompleted = status === 'completed'
     setStatus(newStatus)
-    if (newStatus === 'completed' && book.total_pages) {
-      setPage(book.total_pages)
+    if (newStatus === 'completed' && totalPagesValue) {
+      setPage(totalPagesValue)
     }
     await changeStatus(book.id, newStatus)
     // 드롭다운으로 직접 "완독"을 골랐을 때도(자동 전환이 아니라 수동이어도) 축하 배너
@@ -152,7 +198,39 @@ export default function BookCard({ book }: { book: Book }) {
       {/* 상단: 제목 + 컨트롤 */}
       <div className="flex justify-between items-start mb-3 gap-2">
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-gray-900 truncate">{book.title}</h4>
+          {titleEditing ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTitleSave()
+                  if (e.key === 'Escape') { setTitleDraft(titleValue); setTitleEditing(false) }
+                }}
+                className="flex-1 min-w-0 font-semibold text-gray-900 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
+              />
+              <button
+                onClick={handleTitleSave}
+                disabled={titleSaving}
+                className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40 shrink-0"
+              >
+                {titleSaving ? '저장 중' : '저장'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 min-w-0">
+              <h4 className="font-semibold text-gray-900 truncate">{titleValue}</h4>
+              <button
+                onClick={() => { setTitleDraft(titleValue); setTitleEditing(true) }}
+                className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
+                title="제목 수정"
+                aria-label="제목 수정"
+              >
+                <Pencil size={11} />
+              </button>
+            </div>
+          )}
 
           {authorEditing ? (
             <div className="flex items-center gap-1.5 mt-1">
@@ -236,13 +314,50 @@ export default function BookCard({ book }: { book: Book }) {
         </div>
       </div>
 
-      {/* 진행률 바 */}
-      {book.total_pages && (
-        <div className="mb-3">
-          <div className="flex justify-between text-xs text-gray-400 mb-1">
-            <span>{page} / {book.total_pages} 페이지</span>
-            <span>{progress}%</span>
-          </div>
+      {/* 진행률 바 + 전체 쪽수 수정 */}
+      <div className="mb-3">
+        <div className="flex justify-between items-center text-xs text-gray-400 mb-1 gap-2">
+          {totalPagesEditing ? (
+            <div className="flex items-center gap-1.5">
+              <span>{page} /</span>
+              <input
+                autoFocus
+                type="number"
+                min={1}
+                value={totalPagesDraft}
+                onChange={(e) => setTotalPagesDraft(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTotalPagesSave()
+                  if (e.key === 'Escape') { setTotalPagesDraft(String(totalPagesValue ?? '')); setTotalPagesEditing(false) }
+                }}
+                className="w-16 border border-gray-200 rounded-lg px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-900"
+              />
+              <span>페이지</span>
+              <button
+                onClick={handleTotalPagesSave}
+                disabled={totalPagesSaving}
+                className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40"
+              >
+                {totalPagesSaving ? '저장 중' : '저장'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <span>{page} / {totalPagesValue ?? '미입력'}{totalPagesValue ? ' 페이지' : ''}</span>
+              <button
+                onClick={() => { setTotalPagesDraft(String(totalPagesValue ?? '')); setTotalPagesEditing(true) }}
+                className="text-gray-300 hover:text-gray-500 transition-colors"
+                title="전체 쪽수 수정"
+                aria-label="전체 쪽수 수정"
+              >
+                <Pencil size={11} />
+              </button>
+            </div>
+          )}
+          {totalPagesValue ? <span>{progress}%</span> : null}
+        </div>
+        {totalPagesValue ? (
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
@@ -253,16 +368,18 @@ export default function BookCard({ book }: { book: Book }) {
               style={{ width: `${progress}%` }}
             />
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-xs text-gray-300 italic">전체 쪽수를 입력하면 진행률이 표시돼요</p>
+        )}
+      </div>
 
       {/* 페이지 업데이트 — 완독이 아닐 때 */}
-      {book.total_pages && status !== 'completed' && (
+      {totalPagesValue && status !== 'completed' && (
         <div className="flex items-center gap-2 mt-3">
           <input
             type="number"
             min={0}
-            max={book.total_pages}
+            max={totalPagesValue}
             value={page}
             onChange={(e) => setPage(Number(e.target.value))}
             onFocus={(e) => e.target.select()}

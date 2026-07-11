@@ -146,6 +146,69 @@ export async function updateAuthor(bookId: string, author: string) {
   revalidateBookPaths()
 }
 
+// 검색 결과를 안 고르고 직접 입력했거나 오타가 난 제목을 나중에 고칠 수 있게 하는 액션.
+// 저자 수정(updateAuthor)과 같은 패턴 — 등록 후에도 카드에서 인라인으로 고칠 수 있음.
+export async function updateTitle(bookId: string, title: string) {
+  const supabase = await createClient()
+  const trimmed = title.trim()
+  if (!trimmed) return { error: 'empty' as const }
+
+  const { error } = await supabase.from('books').update({ title: trimmed }).eq('id', bookId)
+  if (error) console.error('updateTitle failed:', error.message)
+  revalidateBookPaths()
+
+  return { error: null }
+}
+
+// 전체 쪽수는 등록 시 검색/스캔 결과나 기본값(150쪽)으로 자동 채워지는데, 실제 책과
+// 다르면 진행률이 부정확해진다. 지금까지는 등록 후 고칠 방법이 없었음 — 이 액션으로
+// 카드에서 인라인 수정 가능하게 함.
+// 현재 페이지와의 정합성 처리:
+//  - 이미 완독(completed) 상태였던 책은 총 쪽수를 고쳐도 계속 완독으로 유지하고,
+//    현재 페이지도 새 총 쪽수에 맞춰 같이 옮긴다(완독 책은 항상 current == total 이어야 함).
+//  - 완독 전 책인데 새 총 쪽수가 지금까지 읽은 페이지보다 작아지면, 초과분은 새 총
+//    쪽수로 잘라내고(clamp), 그 결과 현재==총 쪽수가 되면 updateProgress와 동일하게
+//    자동 완독 처리한다.
+export async function updateTotalPages(bookId: string, totalPages: number) {
+  const supabase = await createClient()
+  if (!Number.isFinite(totalPages) || totalPages < 1) return { error: 'invalid' as const }
+  const safeTotalPages = Math.round(totalPages)
+
+  const { data: book } = await supabase
+    .from('books')
+    .select('current_page, status')
+    .eq('id', bookId)
+    .single()
+
+  const wasCompleted = book?.status === 'completed'
+  let nextCurrentPage = book?.current_page ?? 0
+
+  if (wasCompleted) {
+    nextCurrentPage = safeTotalPages
+  } else if (nextCurrentPage > safeTotalPages) {
+    nextCurrentPage = safeTotalPages
+  }
+
+  const updates: Record<string, unknown> = {
+    total_pages: safeTotalPages,
+    current_page: nextCurrentPage,
+  }
+
+  let justCompleted = false
+  if (!wasCompleted && nextCurrentPage >= safeTotalPages) {
+    updates.status = 'completed'
+    updates.completed_at = new Date().toISOString()
+    updates.status_changed_at = updates.completed_at
+    justCompleted = true
+  }
+
+  const { error } = await supabase.from('books').update(updates).eq('id', bookId)
+  if (error) console.error('updateTotalPages failed:', error.message)
+  revalidateBookPaths()
+
+  return { error: null, currentPage: nextCurrentPage, justCompleted }
+}
+
 export async function updateOwned(bookId: string, owned: boolean) {
   const supabase = await createClient()
   const { error } = await supabase.from('books').update({ owned }).eq('id', bookId)

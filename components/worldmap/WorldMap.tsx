@@ -769,6 +769,23 @@ function drawMountainTitle(
   ctx.fillText(text, cx, y)
 }
 
+// 제목 바로 아래 한 줄 — 메모가 있는 책만. 제목과 구분되게 옅은 톤으로, 더 작게.
+function drawMountainMemo(
+  ctx: CanvasRenderingContext2D,
+  memo: string,
+  cx: number,
+  groundTopY: number,
+  maxWidth: number
+) {
+  ctx.font = '9px monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  const text = truncateToWidth(ctx, memo, maxWidth + 14)
+  const y = groundTopY + 20
+  ctx.fillStyle = 'rgba(253,246,227,0.75)'
+  ctx.fillText(text, cx, y)
+}
+
 // 완독한 산만 모아 가로 파노라마로 그린 새 캔버스를 반환(화면엔 그리지 않고 다운로드 전용).
 // 최근 완독순 TARGET_TROPHY(5)개만 선명한 전경 산으로 그리고, 나머지는 drawBackgroundRange로
 // 흐릿한 능선 실루엣만 깔아 "산맥" 느낌을 준다 — 이러면 책이 몇 권이든 캔버스 폭이 전경
@@ -873,6 +890,10 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
 
     // 땅과 산이 맞닿는 지점에 책 제목 각인
     drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)
+    // 메모가 있는 책만 제목 바로 아래에 한 줄 더
+    if (book.memo && book.memo.trim()) {
+      drawMountainMemo(ctx, book.memo, baseX + mtnW / 2, mountainBaseY, mtnW)
+    }
   })
 
   drawWatermark(ctx, canvasW, canvasH)
