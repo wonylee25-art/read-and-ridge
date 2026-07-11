@@ -7,7 +7,15 @@ export const metadata = {
 export default function PrivacyPolicyPage() {
   return (
     <main className="max-w-2xl mx-auto px-6 py-16 text-sm leading-relaxed text-gray-700">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">개인정보처리방침</h1>
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-2xl font-bold text-gray-900">개인정보처리방침</h1>
+        <Link
+          href="/dashboard"
+          className="text-xs text-gray-400 underline hover:text-gray-600 whitespace-nowrap mt-2"
+        >
+          🔙 메인화면으로 돌아가기
+        </Link>
+      </div>
       <p className="text-xs text-gray-400 mb-8">
         시행일자: 2026년 7월 8일 · <Link href="/terms" className="underline hover:text-gray-600">이용약관 보기</Link>
       </p>
