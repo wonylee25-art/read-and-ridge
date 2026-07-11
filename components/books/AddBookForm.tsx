@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { addBook } from '@/app/dashboard/books/actions'
 import { Plus, X, Search, BookOpen, Camera, AlertCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import AuroraOverlay from '@/components/effects/AuroraOverlay'
 
 const BarcodeScanner = dynamic(() => import('./BarcodeScanner'), { ssr: false })
 
@@ -38,7 +37,6 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
   const [scanError, setScanError] = useState<string | null>(null)
   const [duplicateError, setDuplicateError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
-  const [auroraActive, setAuroraActive] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 제목 검색 (debounce)
@@ -119,35 +117,22 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
       return
     }
 
-    // 오로라 이스터에그: 방금 추가한 책이 개발자 지정 목록에 있으면(드물게), 폼을 닫는
-    // 것과 별개로 화면 전체에 10초짜리 오로라 연출을 띄운다. 폼은 평소처럼 바로 reset.
-    if (result?.aurora) {
-      setAuroraActive(true)
-    }
-
     reset()
   }
 
   if (!open) {
     return (
-      <>
-        {/* 오로라 이스터에그 — 폼이 닫힌 뒤에도(reset이 바로 호출되므로) 10초 재생이
-            끊기지 않도록 open 상태와 무관하게 렌더 */}
-        {auroraActive && <AuroraOverlay onDone={() => setAuroraActive(false)} />}
-        <button
-          onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 transition-colors"
-        >
-          <Plus size={16} /> 책 추가
-        </button>
-      </>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 transition-colors"
+      >
+        <Plus size={16} /> 책 추가
+      </button>
     )
   }
 
   return (
     <>
-      {auroraActive && <AuroraOverlay onDone={() => setAuroraActive(false)} />}
-
       {/* 바코드 스캐너 모달 */}
       {scanning && (
         <BarcodeScanner

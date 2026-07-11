@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { isAuroraBook } from '@/lib/aurora-books'
 
 // books 관련 액션은 항상 이 세 경로를 함께 갱신해야 함(캐시된 목록이
 // 산책기록/완등기록 양쪽 다 최신화되도록). 여러 함수에서 반복되던 3줄을 추출.
@@ -96,10 +95,6 @@ export async function addBook(formData: FormData) {
   })
 
   revalidateBookPaths()
-
-  // 오로라 이스터에그: 방금 추가한 책이 개발자 지정 목록(lib/aurora-books.ts)에 있으면
-  // 프론트엔드(AddBookForm)에 알려 10초짜리 오로라 연출을 트리거하게 한다.
-  return { aurora: isAuroraBook(isbn) }
 }
 
 export async function updateProgress(bookId: string, currentPage: number) {

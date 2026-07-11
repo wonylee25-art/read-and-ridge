@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 // 기존 import 경로(`from './WorldMap'`)를 그대로 쓰는 다른 파일들을 위해 여기서 재수출한다.
 import { type WorldMapBook, toWorldMapBooks, TARGET_TROPHY } from './worldmap-utils'
 import { isAuroraBook } from '@/lib/aurora-books'
+import AuroraOverlay from '@/components/effects/AuroraOverlay'
 import { Camera } from 'lucide-react'
 
 export type { WorldMapBook }
@@ -1021,6 +1022,26 @@ export default function WorldMap({
     prevStatusRef.current = new Map(books.map((b) => [b.id, b.status]))
   }, [books])
 
+  // 오로라 이스터에그 트리거 — books prop이 갱신될 때마다 "이번에 새로 나타난 책 id"를
+  // 찾아, 그중에 개발자 지정 오로라 책(lib/aurora-books.ts)이 있으면 WorldMap 안에서만
+  // 10초짜리 오로라 연출을 띄운다. burst 감지와 같은 이유로 최초 마운트(prev가 없을 때)엔
+  // 트리거하지 않음 — 안 그러면 이미 등록된 오로라 책이 있는 페이지를 열 때마다 매번 재생됨.
+  // (AddBookForm 쪽에 심었던 이전 버전은 화면 전체를 덮는 문제가 있어서, 여기 WorldMap
+  // 자체의 books 변화 감지로 옮겨 자연스럽게 이 캔버스 영역 안에만 갇히게 함.)
+  const prevBookIdsRef = useRef<Set<string> | null>(null)
+  const [auroraActive, setAuroraActive] = useState(false)
+  useEffect(() => {
+    const prevIds = prevBookIdsRef.current
+    if (prevIds) {
+      const justAdded = books.filter((b) => !prevIds.has(b.id))
+      if (justAdded.some((b) => isAuroraBook(b.isbn))) {
+        setAuroraActive(true)
+      }
+    }
+    prevBookIdsRef.current = new Set(books.map((b) => b.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [books])
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -1444,6 +1465,11 @@ export default function WorldMap({
               </div>
             ))}
         </div>
+
+        {/* 오로라 이스터에그 — WorldMap 컨테이너(wrap) 안에만 갇히도록 여기(캔버스를
+            스크롤시키는 내부 div 바깥, wrap 바로 안쪽)에 둔다. wrap의 overflow-hidden
+            덕분에 화면 전체가 아니라 정확히 이 지도 영역 안에서만 보인다. */}
+        {auroraActive && <AuroraOverlay onDone={() => setAuroraActive(false)} />}
 
         {/* 완독 맵 공유 — 왼쪽 하단 카메라 버튼. 스크롤되는 내부 div가 아니라
             바깥 wrap(고정 크기) 기준으로 둬서, 산이 많아 가로 스크롤이 생겨도
