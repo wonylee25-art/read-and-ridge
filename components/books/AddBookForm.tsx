@@ -39,6 +39,11 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
   const [shake, setShake] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // 저자가 여러 명이면 문자열이 한없이 길어질 수 있어 30자로 자름 (팝업 높이 고정 유지)
+  function truncateAuthors(authors: string, max = 30) {
+    return authors.length > max ? authors.slice(0, max) + '...' : authors
+  }
+
   // 제목 검색 (debounce)
   useEffect(() => {
     if (!query.trim() || selected) { setResults([]); return }
@@ -72,7 +77,7 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
       const book: BookInfo = data.book
       setSelected(book)
       setQuery(book.title)
-      setAuthorInput(book.authors ?? '')
+      setAuthorInput(truncateAuthors(book.authors ?? ''))
     } catch {
       setScanError('오류가 발생했어요. 다시 시도해주세요.')
     } finally {
@@ -85,7 +90,7 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
     setQuery(book.title)
     setResults([])
     setDuplicateError(null)
-    setAuthorInput(book.authors ?? '')
+    setAuthorInput(truncateAuthors(book.authors ?? ''))
   }
 
   function reset() {
@@ -207,7 +212,7 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
 
             {/* 검색 결과 드롭다운 */}
             {results.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+              <ul className="absolute z-10 mt-1 w-full max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg">
                 {results.map((book, i) => (
                   <li
                     key={i}

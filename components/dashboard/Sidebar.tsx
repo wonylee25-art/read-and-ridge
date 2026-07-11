@@ -8,6 +8,7 @@ import LogoutButton from '@/components/auth/LogoutButton'
 import AboutModal from '@/components/dashboard/AboutModal'
 import DeleteAccountModal from '@/components/dashboard/DeleteAccountModal'
 import { deleteAccount } from '@/app/dashboard/account-actions'
+import { APP_VERSION, LAST_UPDATED } from '@/lib/version'
 
 // 홈과 산책기록(구 독서 페이지)을 하나로 합쳐서, 메뉴는 산책기록/완등기록 2개만 남김
 const nav = [
@@ -26,7 +27,12 @@ export default function Sidebar() {
       {/* 모바일 전용 상단 바 — md 이상에서는 숨김. 사이드바가 화면을 항상 차지하면
           좁은 화면에서 본문이 눌리므로, 모바일에서는 이 바 + 아래 드로어로 대체 */}
       <header className="flex items-center justify-between w-full px-4 py-3 bg-white border-b border-gray-100 md:hidden">
-        <h1 className="text-lg font-bold text-gray-900 tracking-tight">산책또산책</h1>
+        <h1 className="flex items-center gap-1.5 text-lg font-bold text-gray-900 tracking-tight">
+          산책또산책
+          <span className="px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 bg-amber-100 rounded">
+            BETA
+          </span>
+        </h1>
         <button
           onClick={() => setMobileOpen(true)}
           aria-label="메뉴 열기"
@@ -55,7 +61,12 @@ export default function Sidebar() {
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
               산책또산책
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">Read &amp; Ridge</p>
+            <p className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+              Read &amp; Ridge
+              <span className="px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 bg-amber-100 rounded">
+                BETA
+              </span>
+            </p>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -116,7 +127,12 @@ export default function Sidebar() {
         >
           회원 탈퇴
         </button>
-        <p className="text-xs text-gray-300 pt-1">© 2026 산책또산책</p>
+      </div>
+
+      {/* 버전/업데이트 정보 — 메뉴 하단에 늘 고정되도록 별도 블록으로 분리 (mt-auto) */}
+      <div className="mt-auto pt-3 border-t border-gray-100">
+        <p className="text-xs text-gray-300">© 2026 산책또산책</p>
+        <p className="text-[11px] text-gray-300">v{APP_VERSION} · {LAST_UPDATED} 업데이트</p>
       </div>
       </aside>
 
