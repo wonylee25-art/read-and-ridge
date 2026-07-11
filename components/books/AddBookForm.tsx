@@ -244,7 +244,7 @@ export default function AddBookForm({ open: openProp, onOpenChange }: Props = {}
               )}
               <div className="text-xs text-gray-600 min-w-0">
                 <div className="font-medium text-gray-900 truncate">{selected.title}</div>
-                {selected.authors && <div className="truncate">{selected.authors}</div>}
+                {selected.authors && <div className="truncate">{truncateAuthors(selected.authors)}</div>}
                 {selected.publisher && <div className="truncate">{selected.publisher}{selected.datetime ? ` · ${selected.datetime}` : ''}</div>}
                 {selected.isbn && <div className="text-gray-400">ISBN: {selected.isbn}</div>}
               </div>
