@@ -17,6 +17,7 @@ export type WorldMapBook = {
   kdc?: string | null
   completed_at?: string | null // 완독 처리된 시각 (ISO). WorldMap 노출 유예(COMPLETION_GRACE_MS) 판단용
   memo?: string | null
+  isbn?: string | null // 오로라 이스터에그(개발자 지정 책) 판별용 — lib/aurora-books.ts 참고
 }
 
 // Supabase에서 받아온 books row 배열을 WorldMap이 필요로 하는 형태로 변환.
@@ -31,6 +32,7 @@ type BookRow = {
   kdc?: string | null
   completed_at?: string | null
   memo?: string | null
+  isbn?: string | null
 }
 
 export function toWorldMapBooks(books: BookRow[] | null | undefined): WorldMapBook[] {
@@ -43,6 +45,7 @@ export function toWorldMapBooks(books: BookRow[] | null | undefined): WorldMapBo
     kdc: b.kdc ?? null,
     completed_at: b.completed_at ?? null,
     memo: b.memo ?? null,
+    isbn: b.isbn ?? null,
   }))
 }
 

@@ -163,3 +163,54 @@ type WorldMapBook = {
 const MAX_MTN_W = (2 * STEPS_BY_LEVEL[4] - 1) * PX  // level 4 최대 너비
 const totalW = Math.max(books.length * (MAX_MTN_W + 20) + 64, 700)
 ```
+
+---
+
+## 완독 맵 공유 (PNG 다운로드) — 2026.07.11
+
+WorldMap 컨테이너 왼쪽 하단에 카메라 아이콘 버튼(`mode`·화면과 무관하게, 완독한 책이
+하나라도 있으면 노출). 클릭 시 별도 미리보기 없이 즉시 PNG가 다운로드된다.
+
+- **대상**: 화면에 보이는 `foreground`/`background`가 아니라 `books` prop 원본에서
+  `status === 'completed'`만 필터링. `dashboard/page.tsx`·`hikes/page.tsx` 둘 다
+  이미 사용자의 전체 완독 목록을 넘겨주므로, trophy 화면의 `TARGET_TROPHY`(5개)
+  표시 제한과 무관하게 파노라마엔 잘림 없이 전부 담긴다.
+- **배치**: 완독한 산을 가로로 나란히, 압축 없는 넉넉한 간격(`MAX_MTN_W + GAP`)으로
+  이어붙임 — 정해진 비율 없이 산맥 너비만큼 자연스럽게 길어짐.
+- **텍스트 각인**: 땅과 산이 맞닿는 지점(`groundTopY` 바로 아래)에 책 제목을 각인.
+  산 너비를 넘으면 캔버스 실측 텍스트 폭 기준으로 말줄임(…) 처리 (`truncateToWidth`).
+- **버튼 고정 위치**: 스크롤되는 내부 div가 아니라 바깥 wrap(고정 크기) 기준으로 둬서,
+  산이 많아 가로 스크롤이 생겨도 버튼은 항상 같은 자리에 고정됨("+ 책 추가" 버튼과
+  동일한 원칙).
+- **하늘 고정**: 캡처 시각에 따라 이미지가 매번 달라지지 않도록(drift 방지 원칙과 동일)
+  항상 맑은 낮(`getSky(10)`)으로 고정.
+- 파일명: `산책또산책_완독맵_YYYY-MM-DD.png`
+
+코드: `renderCompletedPanorama`, `drawMountainTitle`, `truncateToWidth`,
+`handleCaptureCompletedMap` in `WorldMap.tsx`. `dom-to-image`/`html-to-image` 같은
+라이브러리 불필요 — WorldMap이 애초에 `<canvas>` 기반이라 오프스크린 캔버스를 새로
+그려 `canvas.toDataURL('image/png')`로 바로 내보내면 됨(스크롤 밖 영역도 이미
+비트맵에 포함돼 있어 화면 캡처 특유의 잘림 문제 자체가 없음).
+
+---
+
+## 오로라 이스터에그 — 2026.07.11
+
+개발자가 `lib/aurora-books.ts`의 `AURORA_ISBNS`에 등록해둔 특정 책을 사용자가
+갤러리에 추가하는 순간, 화면 전체에 10초짜리 초록-보라 오로라 커튼 연출
+(`components/effects/AuroraOverlay.tsx`)이 1회 재생된다. 공유 대상이 아닌 순전히
+개인적인 발견의 순간이라 서버에 상태를 남기지 않고, `addBook` 서버 액션의 반환값
+(`{ aurora: boolean }`)을 `AddBookForm.tsx`가 받아 그 자리에서 트리거한다.
+
+- **판별 기준**: ISBN (하이픈/공백 정규화 후 비교). 제목 대신 ISBN을 쓰는 이유는
+  동명이서·번역판 오탐을 피하기 위함.
+- **지속 효과**: 오로라 트리거 책은 완독 후 정상 깃발 색도 일반 6색 팔레트
+  (`FLAG_COLORS`)가 아니라 오로라 팔레트(`AURORA_FLAG_COLORS`, 초록-보라 계열)로
+  고정됨 — `getFlagColor(id, isbn)`이 `isAuroraBook(isbn)`으로 분기.
+- **완독 증표(손수건/도장)에 정적 흔적을 남기는 부분**은 그 증표 자체의 노출 위치가
+  아직 미정(보류 사항, `산책또산책 — 완독 기록 공유 기능 스펙 정리` 문서 참고)이라
+  이번 구현 범위에서는 제외.
+
+코드: `lib/aurora-books.ts`(`AURORA_ISBNS`, `isAuroraBook`),
+`components/effects/AuroraOverlay.tsx`, `AddBookForm.tsx`의 `auroraActive` 상태,
+`app/dashboard/books/actions.ts`의 `addBook` 반환값.

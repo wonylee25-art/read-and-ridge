@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useEffect, useRef, useMemo, useState } from 'react'
+import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 // 타입·순수 유틸(toWorldMapBooks, TARGET_TROPHY)은 Server Component에서도 직접 호출해야 해서
 // 'use client'가 없는 별도 파일로 분리돼 있음 (worldmap-utils.ts 상단 설명 참고).
 // 기존 import 경로(`from './WorldMap'`)를 그대로 쓰는 다른 파일들을 위해 여기서 재수출한다.
 import { type WorldMapBook, toWorldMapBooks, TARGET_TROPHY } from './worldmap-utils'
+import { isAuroraBook } from '@/lib/aurora-books'
+import { Camera } from 'lucide-react'
 
 export type { WorldMapBook }
 export { toWorldMapBooks, TARGET_TROPHY }
@@ -142,9 +144,17 @@ function buildSnowMask(book: WorldMapBook, steps: number): Set<string> {
   return mask
 }
 
-// 완독 깃발 색 — book.id로 시드 고정, 매번 같은 책은 같은 색
+// 완독 깃발 색 — book.id로 시드 고정, 매번 같은 책은 같은 색.
+// 개발자가 지정한 오로라 이스터에그 책(lib/aurora-books.ts)만 예외적으로 일반
+// 6색 팔레트 대신 초록-보라 오로라 팔레트에서 골라, 완독 후에도 깃발 색에
+// "그 책은 오로라를 봤었다"는 흔적이 정적으로 남는다.
 const FLAG_COLORS = ['#e03e2f', '#2f6fe0', '#e0a72f', '#7d3fe0', '#2fb573', '#e0527a']
-function getFlagColor(id: string): string {
+const AURORA_FLAG_COLORS = ['#3fe0a0', '#7d5ae0', '#4fd9c8', '#a25ae0']
+function getFlagColor(id: string, isbn?: string | null): string {
+  if (isAuroraBook(isbn)) {
+    const idx = Math.abs(hashString(id)) % AURORA_FLAG_COLORS.length
+    return AURORA_FLAG_COLORS[idx]
+  }
   const idx = Math.abs(hashString(id)) % FLAG_COLORS.length
   return FLAG_COLORS[idx]
 }
@@ -386,7 +396,8 @@ function drawPixelSun(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.fillRect(Math.round(x + b), Math.round(y + b), b, b)
 }
 
-// 완독 깃발 (색은 호출 측에서 getFlagColor(book.id)로 전달 — 책마다 고정된 랜덤 색).
+// 완독 깃발 (색은 호출 측에서 getFlagColor(book.id, book.isbn)로 전달 — 책마다 고정된
+// 랜덤 색. 오로라 이스터에그 책이면 오로라 팔레트로 자동 분기됨).
 // 완독 유예(COMPLETION_GRACE_MS) 동안만 그려짐 — 그 이후엔 완등기록으로 옮겨가서 안 보임.
 function drawFlag(ctx: CanvasRenderingContext2D, peakCenterX: number, peakTopY: number, color: string) {
   const poleH = 16
@@ -713,6 +724,128 @@ function getAddButtonRect(canvasW: number) {
   return { x: x - 20, y: y - 20, w: 40, h: 40 }
 }
 
+// ─── 완독 맵 공유 (PNG 다운로드) ───────────────────────────────────────────────
+// 좌하단 카메라 버튼을 누르면, 화면(캔버스)에 지금 보이는 상태와 무관하게 완독한
+// 산 "전부"를 가로로 이어붙인 새 오프스크린 캔버스를 그려 즉시 PNG로 다운로드한다.
+// (trophy 모드 화면 자체는 TARGET_TROPHY개로 잘려 보이지만, books prop 자체는
+// 호출 측에서 이미 전체 완독 목록을 넘겨주므로 공유용 파노라마엔 잘림이 없다.)
+// 정적 이미지 1회 렌더라 WorldMap 애니메이션 루프(rAF)와는 완전히 별개로 동작.
+
+// 산 너비를 넘는 제목은 말줄임(…) — memo 말풍선의 truncateMemo와 같은 원칙이지만
+// 여기는 폭 제한이 산마다 달라(레벨별로 다른 mtnW) 캔버스 실측 텍스트 폭 기준으로 자름.
+function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  const trimmed = text.trim()
+  if (ctx.measureText(trimmed).width <= maxWidth) return trimmed
+  let cut = trimmed
+  while (cut.length > 1 && ctx.measureText(cut + '…').width > maxWidth) {
+    cut = cut.slice(0, -1)
+  }
+  return cut + '…'
+}
+
+// 땅과 산이 맞닿는 지점(지면 시작선 바로 아래)에 책 제목을 각인. 초록 잔디 위에서도
+// 읽히도록 어두운 외곽선 + 밝은 크림색 글자로 그림(픽셀아트 톤과 어울리는 monospace).
+function drawMountainTitle(
+  ctx: CanvasRenderingContext2D,
+  title: string,
+  cx: number,
+  groundTopY: number,
+  maxWidth: number
+) {
+  ctx.font = 'bold 11px monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  const text = truncateToWidth(ctx, title, maxWidth + 14)
+  const y = groundTopY + 7
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(15,35,10,0.85)'
+  ctx.strokeText(text, cx, y)
+  ctx.fillStyle = '#fdf6e3'
+  ctx.fillText(text, cx, y)
+}
+
+// 완독한 산만 모아 가로 파노라마로 그린 새 캔버스를 반환(화면엔 그리지 않고 다운로드 전용).
+// 압축 배치(computeSlotW) 없이 항상 넉넉한 간격을 써서 — "정해진 틀에 맞추지 않고
+// 산맥 너비만큼 자연스럽게 긴 형태"라는 원칙대로 완독한 책이 많을수록 그냥 길어진다.
+function renderCompletedPanorama(completedBooks: WorldMapBook[]): HTMLCanvasElement {
+  const slotW = MAX_MTN_W + GAP
+  const canvasW = Math.max(completedBooks.length * slotW + 64, 360)
+  const canvasH = CANVAS_H
+
+  const canvas = document.createElement('canvas')
+  canvas.width = canvasW
+  canvas.height = canvasH
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = false
+
+  // 하늘 — 캡처 시각에 따라 색이 바뀌면 매번 다른 이미지가 나와버리니(drift),
+  // WorldMap의 fixedHour 원칙과 동일하게 항상 맑은 낮(10시)로 고정.
+  const sky = getSky(10)
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasH - GROUND_H)
+  skyGrad.addColorStop(0, sky.topColor)
+  skyGrad.addColorStop(1, sky.bottomColor)
+  ctx.fillStyle = skyGrad
+  ctx.fillRect(0, 0, canvasW, canvasH - GROUND_H)
+  drawPixelSun(ctx, canvasW - 64, 28)
+
+  // 지면
+  const groundTopY = canvasH - GROUND_H
+  const groundGrad = ctx.createLinearGradient(0, groundTopY, 0, canvasH)
+  groundGrad.addColorStop(0, '#2c5423')
+  groundGrad.addColorStop(1, '#1d3a18')
+  ctx.fillStyle = groundGrad
+  ctx.fillRect(0, groundTopY, canvasW, GROUND_H)
+  ctx.fillStyle = '#55a141'
+  ctx.fillRect(0, groundTopY, canvasW, 6)
+
+  const mountainBaseY = groundTopY
+
+  completedBooks.forEach((book, i) => {
+    const level = getLevel(book.total_pages)
+    const steps = STEPS_BY_LEVEL[level]
+    const theme = getTheme(book.kdc, book.id)
+    const mid = steps - 1
+    const mtnW = (2 * steps - 1) * PX
+    const baseX = 24 + i * slotW + (MAX_MTN_W - mtnW) / 2
+    const baseY = mountainBaseY - (steps + 2) * PX
+
+    // 산 본체 (완독 산엔 눈 패턴 없음 — WorldMap 본 렌더와 동일한 규칙)
+    for (let row = 0; row < steps; row++) {
+      for (let col = mid - row; col <= mid + row; col++) {
+        const px = baseX + col * PX
+        const py = baseY + row * PX
+        const isTop = row === 0
+        const isEdge = col === mid - row || col === mid + row
+        const color = isTop ? theme.snow : isEdge ? theme.edge : theme.fill
+        drawPixel(ctx, px, py, color)
+      }
+    }
+    // 베이스 2행
+    for (let r = 0; r < 2; r++) {
+      for (let col = 0; col < 2 * steps - 1; col++) {
+        drawPixel(ctx, baseX + col * PX, baseY + steps * PX + r * PX, theme.edge)
+      }
+    }
+
+    // 정상 깃발 (오로라 이스터에그 책이면 자동으로 오로라 팔레트 — getFlagColor 참고)
+    drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
+
+    // 자축 모닥불 — trophy 모드와 동일하게 항상 켜둠(정적 이미지라 프레임 고정)
+    const FIRE_X_RATIOS = [0.12, 0.28, 0.68, 0.82]
+    const fireRatio = FIRE_X_RATIOS[Math.abs(hashString(book.id)) % FIRE_X_RATIOS.length]
+    drawCampfire(ctx, baseX + mtnW * fireRatio - 4, mountainBaseY - 14, 1)
+
+    // 땅과 산이 맞닿는 지점에 책 제목 각인
+    drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)
+  })
+
+  return canvas
+}
+
+function todayFileDateKey(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 // ─── 데모 데이터 (props 없이 단독 실행될 때 사용 — 미리보기/스토리북용) ────────
 
 const DEMO_BOOKS: WorldMapBook[] = [
@@ -751,6 +884,23 @@ export default function WorldMap({
 
   // 메모 말풍선 위치 계산용 — 캔버스와 별개로 컨테이너 실측 폭을 상태로도 들고 있음
   const [containerW, setContainerW] = useState(0)
+
+  // 완독 맵 공유(PNG) — foreground/background로 나뉘기 전의 books 원본에서 완독한
+  // 책만 골라둔다. mode(home/trophy)와 무관하게 books 자체가 호출 측에서 이미
+  // "이 사용자의 전체 완독 목록"을 담고 있어(dashboard/hikes 양쪽 다), trophy 화면의
+  // TARGET_TROPHY 표시 개수 제한과 별개로 공유 이미지엔 잘림 없이 전부 담긴다.
+  const completedBooks = useMemo(() => books.filter((b) => b.status === 'completed'), [books])
+
+  const handleCaptureCompletedMap = useCallback(() => {
+    if (completedBooks.length === 0) return
+    const panorama = renderCompletedPanorama(completedBooks)
+    const link = document.createElement('a')
+    link.href = panorama.toDataURL('image/png')
+    link.download = `산책또산책_완독맵_${todayFileDateKey()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [completedBooks])
 
   useEffect(() => {
     setTooltip(null)
@@ -1041,7 +1191,7 @@ export default function WorldMap({
         // 완독(유예 시간 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색).
         // 세레모니가 진행 중인 동안엔 깃발 대신 댄스 캐릭터가 그 자리를 대신함.
         if (book.status === 'completed' && !burstActive) {
-          drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id))
+          drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
         }
 
         if (burstActive && burst) {
@@ -1294,6 +1444,23 @@ export default function WorldMap({
               </div>
             ))}
         </div>
+
+        {/* 완독 맵 공유 — 왼쪽 하단 카메라 버튼. 스크롤되는 내부 div가 아니라
+            바깥 wrap(고정 크기) 기준으로 둬서, 산이 많아 가로 스크롤이 생겨도
+            버튼은 항상 화면 왼쪽 아래 같은 자리에 고정된다("+ 책 추가" 버튼과 동일한 원칙).
+            별도 미리보기 없이 클릭 즉시 완독한 산만 모은 파노라마 PNG를 다운로드하고,
+            완독한 책이 하나도 없으면 공유할 게 없으니 버튼 자체를 숨긴다. */}
+        {completedBooks.length > 0 && (
+          <button
+            type="button"
+            onClick={handleCaptureCompletedMap}
+            title="완독 맵 PNG로 저장"
+            aria-label="완독 맵 PNG로 저장"
+            className="absolute left-3 bottom-3 z-20 flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow-md hover:bg-white active:scale-95 transition-all"
+          >
+            <Camera size={18} className="text-gray-700" />
+          </button>
+        )}
       </div>
     </div>
   )
