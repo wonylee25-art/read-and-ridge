@@ -751,8 +751,8 @@ function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: 
   return cut + '…'
 }
 
-// 땅과 산이 맞닿는 지점(지면 시작선 바로 아래)에 책 제목을 각인. 초록 잔디 위에서도
-// 읽히도록 어두운 외곽선 + 밝은 크림색 글자로 그림(픽셀아트 톤과 어울리는 monospace).
+// 땅과 산이 맞닿는 지점(지면 시작선 바로 아래)에 책 제목을 각인. 초록 잔디 위에서
+// 잘 보이도록 밝은 크림색 글자로, 외곽선 없이 얇게 그림(픽셀아트 톤과 어울리는 monospace).
 function drawMountainTitle(
   ctx: CanvasRenderingContext2D,
   title: string,
@@ -760,14 +760,11 @@ function drawMountainTitle(
   groundTopY: number,
   maxWidth: number
 ) {
-  ctx.font = 'bold 11px monospace'
+  ctx.font = '11px monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
   const text = truncateToWidth(ctx, title, maxWidth + 14)
   const y = groundTopY + 7
-  ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(15,35,10,0.85)'
-  ctx.strokeText(text, cx, y)
   ctx.fillStyle = '#fdf6e3'
   ctx.fillText(text, cx, y)
 }
@@ -883,18 +880,14 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
   return canvas
 }
 
-// PNG 우측 하단 워터마크 — drawMountainTitle과 같은 톤(어두운 외곽선 + 크림색)으로
-// 어떤 하늘/지면 색 위에서도 읽히게 함.
+// PNG 우측 하단 워터마크 — drawMountainTitle과 같은 크림색 텍스트(외곽선 없음).
 function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number) {
   const text = '산책또산책'
-  ctx.font = 'bold 12px monospace'
+  ctx.font = '12px monospace'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
   const x = canvasW - 10
   const y = canvasH - 8
-  ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(15,35,10,0.85)'
-  ctx.strokeText(text, x, y)
   ctx.fillStyle = '#fdf6e3'
   ctx.fillText(text, x, y)
 }
