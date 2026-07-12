@@ -1423,7 +1423,7 @@ export default function WorldMap({
         ctx.font = '13px monospace'
         ctx.textAlign = 'center'
         ctx.fillText(
-          mode === 'trophy' ? '완독하면 여기에 정상석이 생겨요 🚩' : '책을 추가하면 여기에 산이 생겨요 ⛰',
+          mode === 'trophy' ? '완등한 산이 이곳으로 옮겨옵니다 🚩' : '책을 추가하면 여기에 산이 생겨요 ⛰',
           W / 2,
           H - 80
         )

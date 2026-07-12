@@ -80,7 +80,7 @@ export default async function HikesPage() {
       </div>
 
       {(!books || books.length === 0) ? (
-        <EmptyState title="아직 완등기록이 없어요" subtitle="완독하면 여기에 정상석이 생겨요 🚩" />
+        <EmptyState title="아직 완등기록이 없어요" subtitle="완등한 산이 이곳으로 옮겨옵니다 🚩" />
       ) : (
         <div className="columns-1 sm:columns-2 gap-4">
           {books.map((book) => (
