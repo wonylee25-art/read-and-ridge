@@ -3,6 +3,12 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.15 — 2026-07-12 (24)
+
+- **회원 탈퇴 경고 문구 보강** — `components/dashboard/DeleteAccountModal.tsx`.
+  "이 작업은 되돌릴 수 없어요." 뒤에 "개발자도 복구할 수 없습니다."를 추가해
+  탈퇴가 정말로 되돌릴 수 없는 작업임을 한 번 더 강조.
+
 ## 0.4.14 — 2026-07-12 (23)
 
 - **"내가 산 책" 통계를 등록된 책 전체 기준으로 변경** — `app/dashboard/page.tsx`,

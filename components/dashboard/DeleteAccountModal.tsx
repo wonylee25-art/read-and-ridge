@@ -38,7 +38,7 @@ export default function DeleteAccountModal({
         <h3 className="font-semibold text-gray-900 mb-2">정말 탈퇴하시겠어요?</h3>
         <p className="text-sm text-gray-500 mb-4 leading-relaxed">
           지금까지 기록한 모든 책·독서 진행률·완독 기록이 즉시 삭제되고, 계정도 함께
-          삭제돼요. 이 작업은 되돌릴 수 없어요.
+          삭제돼요. 이 작업은 되돌릴 수 없어요. 개발자도 복구할 수 없습니다.
         </p>
 
         <label className="block text-xs text-gray-500 mb-1.5">
