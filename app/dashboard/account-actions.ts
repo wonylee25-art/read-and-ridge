@@ -23,7 +23,7 @@ export async function updateNickname(nickname: string) {
   return { error: null }
 }
 
-// 회원 탈퇴 — 이용자 데이터(books, 레거시 hikes)를 전부 지우고, Supabase Auth
+// 회원 탈퇴 — 이용자 데이터(books)를 전부 지우고, Supabase Auth
 // 계정 자체도 완전히 삭제한다(재로그인 시 새 계정으로 취급됨). 개인정보처리방침/
 // 이용약관의 "탈퇴 시 지체 없이 파기" 문구를 실제로 이행하는 기능.
 //
@@ -46,15 +46,6 @@ export async function deleteAccount() {
   // 1. 이용자가 등록한 데이터 삭제. RLS(user_id = auth.uid())가 적용된 일반
   // 클라이언트로 지우기 때문에, 본인 데이터만 지워지는 게 이중으로 보장됨.
   await supabase.from('books').delete().eq('user_id', userId)
-
-  // 레거시 hikes 테이블 — 더 이상 코드에서 안 쓰지만 예전 데이터가 남아있을 수
-  // 있어 탈퇴 시 함께 정리. 테이블이 이미 없거나 권한 문제가 있어도 탈퇴 자체는
-  // 막히지 않도록 실패를 조용히 무시.
-  try {
-    await supabase.from('hikes').delete().eq('user_id', userId)
-  } catch (e) {
-    console.error('deleteAccount: legacy hikes cleanup failed (ignored):', e)
-  }
 
   // 2. 세션 종료
   await supabase.auth.signOut()
