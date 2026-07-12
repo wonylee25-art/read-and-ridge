@@ -1208,19 +1208,40 @@ function renderCompletionCapture(
   const profile = getMountainProfile(shape, steps, seed)
   const mtnW = profile.numCols * PX
   const peakCol = profile.peakCols[profile.peakCols.length - 1]
-  const baseX = size / 2 - mtnW / 2
-  const baseY = mountainBaseY - (steps + 2) * PX
+  const heroCenterX = size / 2
+  const baseX = heroCenterX - mtnW / 2
+  const naturalHeight = (steps + 2) * PX
+  const baseY = mountainBaseY - naturalHeight
   const peakX = baseX + peakCol * PX + PX / 2
+
+  // 주인공 산 확대 — 원래 페이지수 기반 크기 그대로 그리면 하늘 여백이 너무 커서
+  // (사용자 피드백 2026.07.12: "하늘 여백이 너무 많은데 산을 더 키워서 2/3 정도
+  // 위치하도록") 캔버스 중심(heroCenterX, mountainBaseY)을 고정점으로 확대해
+  // 프레임의 대략 절반~2/3를 채우도록 한다. 세로로만 늘리면 픽셀이 찌그러지므로
+  // 가로세로 동일 배율(ctx.scale(S,S))로 확대하되, 옆산/캔버스 밖으로 넘치지
+  // 않게 가로 폭 상한도 함께 걸어 둘 중 더 작은 배율을 쓴다.
+  const HERO_TARGET_HEIGHT = size * 0.59 // 목표: 산이 세로 프레임의 약 2/3 지점까지 닿도록
+  const HERO_MAX_WIDTH = size * 0.75 // 옆산이 그려질 여백을 남기기 위한 가로 상한
+  const HERO_MAX_SCALE = 4.5 // 너무 작은 책(steps 적음)이 과하게 블록져 보이지 않게 상한
+  const heroScale = Math.min(
+    Math.max(HERO_TARGET_HEIGHT / naturalHeight, 1),
+    Math.max(HERO_MAX_WIDTH / mtnW, 1),
+    HERO_MAX_SCALE
+  )
+  const scaledMtnW = mtnW * heroScale
+  const scaledLeft = heroCenterX - scaledMtnW / 2
+  const scaledRight = heroCenterX + scaledMtnW / 2
 
   // 주인공 산 옆에 다른 책들도 실제 산으로(축소·반투명) 보여줘서 "혼자가 아니라
   // 책장 전체의 맥락 속 완독"이라는 느낌을 준다 — 흐릿한 실루엣 대신 진짜 실루엣/
   // 색을 축소해서 보여주는 쪽이 "다른 책도 옆에 나온다"는 걸 알아보기 쉬움.
-  // 최대 3권, 왼쪽에 더 많이 배치. 캔버스 폭을 벗어나면 그 이후는 그리지 않는다.
+  // 최대 3권, 왼쪽에 더 많이 배치. 주인공 산이 커진 만큼(scaledLeft/scaledRight)
+  // 자리를 비켜서 배치하고, 캔버스 폭을 벗어나면 그 이후는 그리지 않는다.
   const others = allBooks.filter((b) => b.id !== book.id && b.status !== 'completed').slice(0, 3)
   const leftSideBooks = others.filter((_, i) => i % 2 === 0)
   const rightSideBooks = others.filter((_, i) => i % 2 === 1)
 
-  let cursorRight = baseX + mtnW + SIDE_MOUNTAIN_GAP
+  let cursorRight = scaledRight + SIDE_MOUNTAIN_GAP
   rightSideBooks.forEach((b) => {
     const w = sideMountainWidth(b)
     if (cursorRight + w > size - 8) return
@@ -1228,7 +1249,7 @@ function renderCompletionCapture(
     cursorRight += w + SIDE_MOUNTAIN_GAP
   })
 
-  let cursorLeft = baseX - SIDE_MOUNTAIN_GAP
+  let cursorLeft = scaledLeft - SIDE_MOUNTAIN_GAP
   leftSideBooks.forEach((b) => {
     const w = sideMountainWidth(b)
     const x = cursorLeft - w
@@ -1237,10 +1258,18 @@ function renderCompletionCapture(
     cursorLeft = x - SIDE_MOUNTAIN_GAP
   })
 
-  // 주인공 산 좌우로 나무 장식
+  // 주인공 산 좌우로 나무 장식 — 커진 산 폭(scaledLeft/scaledRight) 기준으로 배치
   const decoBlock = 6
-  drawSprite(ctx, TREE_ROWS, TREE_COLORS, baseX - 44, mountainBaseY, decoBlock)
-  drawSprite(ctx, TREE_ROWS, TREE_COLORS, baseX + mtnW + 8, mountainBaseY, decoBlock)
+  drawSprite(ctx, TREE_ROWS, TREE_COLORS, scaledLeft - 44, mountainBaseY, decoBlock)
+  drawSprite(ctx, TREE_ROWS, TREE_COLORS, scaledRight + 8, mountainBaseY, decoBlock)
+
+  // 산 본체 + 세레모니 이펙트 — heroCenterX/mountainBaseY(지면)를 고정점으로 확대해서
+  // 그린다. 이 transform 안에서는 원래(자연 크기) 좌표를 그대로 써도 자동으로
+  // heroScale배 커진 위치/크기로 그려진다.
+  ctx.save()
+  ctx.translate(heroCenterX, mountainBaseY)
+  ctx.scale(heroScale, heroScale)
+  ctx.translate(-heroCenterX, -mountainBaseY)
 
   // 산 본체 — 실제 라이브 화면과 동일한 실루엣 계산(getMountainShape/getMountainProfile)
   drawMountainBody(ctx, profile, steps, theme, baseX, baseY)
@@ -1257,15 +1286,18 @@ function renderCompletionCapture(
   drawClearPixelText(ctx, CAPTURE_BURST_PEAK_MS, peakX, baseY - 26)
   drawBurstParticles(ctx, { startedAt: 0, particles }, CAPTURE_BURST_PEAK_MS, peakX, baseY)
 
+  ctx.restore()
+
   // 책 제목 + 완독일만 최소 노출 (진행률 %, 페이지 수 등은 넣지 않음 — "정보 절제" 원칙)
-  drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, Math.max(mtnW, 160))
+  // 확대된 산 폭에 맞춰 텍스트 줄바꿈 기준 폭도 scaledMtnW로 넓혀준다.
+  drawMountainTitle(ctx, book.title, heroCenterX, mountainBaseY, Math.max(scaledMtnW, 160))
   if (book.completed_at) {
     const dateLabel = new Date(book.completed_at).toISOString().slice(0, 10).replaceAll('-', '.')
     ctx.font = '10px monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.fillStyle = 'rgba(253,246,227,0.75)'
-    ctx.fillText(dateLabel, baseX + mtnW / 2, mountainBaseY + 20)
+    ctx.fillText(dateLabel, heroCenterX, mountainBaseY + 20)
   }
 
   // 왼쪽 상단 KDC 뱃지 — 산책기록 캡처는 "책장 전체(읽는 중+완독+미시작)" 기준
