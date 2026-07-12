@@ -50,7 +50,7 @@
 2. **정보 절제** — 진행률 %, 페이지 수 같은 수치를 나열하지 않는다. 책 제목 + 완독일 정도만 최소 노출(`design-style.md`의 "텍스트 정보 밀도 최소화" 원칙).
 3. **포맷 적합성** — 용도에 맞는 별도 구도(정사각형 vs 파노라마)를 각각 렌더링한다. 하나의 캔버스를 억지로 재사용하지 않는다.
 4. **순간성** — 정적 스냅샷보다 세레모니 순간(폭죽 피크 프레임 등 타이밍 지정 필요)을 캡처해 서사를 담는다.
-5. **고유성** — 산 실루엣 다양화(책 id 시드 기반, 현재 목업 단계·코드 미반영)가 들어가야 "내 산맥"이 남과 달라 보여 캡처의 자랑거리가 커진다.
+5. **고유성** — 산 실루엣 다양화(제목 길이 + 책 id 시드 기반, **완료 2026.07.12** — 아래 선행 조건 참고)가 들어가야 "내 산맥"이 남과 달라 보여 캡처의 자랑거리가 커진다.
 
 ---
 
@@ -58,7 +58,7 @@
 
 - ~~**KDC 필드 매핑 미완성**~~ — **완료 (2026.07.12)**. `/api/books/search`가 SEOJI `KDC`/`SUBJECT`를 추출해 `books.kdc`에 저장. 상세: `docs/verification.md` ✅ 해소 6.
 - ~~**닉네임 설정 미구현**~~ — **완료 (2026.07.12)**. `auth.users.user_metadata.nickname`에 저장(`updateNickname()`, `app/dashboard/account-actions.ts`), 산책기록·완등기록 레이아웃 상단 "산책자 증표" 팝업(`docs/features/profile.md`)에서 수정 가능. 워터마크 자체는 아직 미구현이지만, 필요한 닉네임 데이터는 이제 준비됨 — 워터마크 구현 시 `user.user_metadata.nickname` 그대로 읽어 쓰면 됨.
-- **산 실루엣 다양화 미반영**: `design-style.md`에 설계는 있으나 코드(`getMountainGeometry`, hit-test 로직)에 아직 반영 안 됨.
+- ~~**산 실루엣 다양화 미반영**~~ — **완료 (2026.07.12)**. `WorldMap.tsx`의 `getMountainShape`/`getMountainProfile`이 제목 길이(≥12자 → 쌍봉) + 책 id 시드(그 외 뾰족/비대칭/고원)로 실루엣을 결정하고, `drawMountainBody`가 본 렌더·PNG 파노라마·hit-test(`getMountainRects`) 전부에서 이 프로필을 공유한다. 상세: `design-style.md` "산 모양 다양화".
 
 ---
 

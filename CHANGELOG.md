@@ -3,6 +3,17 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.3.4 — 2026-07-12 (7)
+
+- **산 실루엣 다양화 구현** — `components/worldmap/WorldMap.tsx`. `design-style.md`에
+  설계만 있고 코드에는 반영 안 돼 있던 기능. 책 제목이 길면(12자 이상) 폭이 가장 넓은
+  쌍봉(twin) 실루엣을 배정해 산 아래 제목이 덜 잘리게 하고, 그 외에는 책 id 시드로
+  뾰족(sharp)/비대칭(skew)/고원(plateau) 중 하나를 결정론적으로 골라 같은 분야 책이라도
+  산 모양이 다양해지게 함(색은 그대로 KDC 분류를 나타냄). `getMountainShape`/
+  `getMountainProfile`로 실루엣별 칼럼 높이맵을 계산하고, `drawMountainBody`로 본
+  렌더(`WorldMap`)·PNG 파노라마(`renderCompletedPanorama`)·클릭 hit-test
+  (`getMountainRects`)가 모두 같은 프로필을 공유해 실루엣이 어긋나지 않게 함.
+
 ## 0.3.3 — 2026-07-12 (6)
 
 - **산책자 증표(프로필) 트리거 정렬 수정** — `app/dashboard/layout.tsx`에서 "{닉네임}님,

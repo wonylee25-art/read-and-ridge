@@ -26,7 +26,9 @@ const STEPS_BY_LEVEL: Record<1 | 2 | 3 | 4, number> = {
 const CANVAS_H = 440
 const GROUND_H = 52
 const GAP = 20
-const MAX_MTN_W = (2 * STEPS_BY_LEVEL[4] - 1) * PX
+// 실루엣 중 쌍봉(twin)이 가장 넓으므로(폭 +2칸, getMountainProfile 참고) 레벨4
+// 기준 쌍봉 폭을 기준으로 잡는다 — 다른 실루엣은 이보다 좁아서 슬롯 안에서 중앙 정렬됨.
+const MAX_MTN_W = (2 * STEPS_BY_LEVEL[4] + 1) * PX
 
 // ─── 산이 많을 때 간격 압축 ───────────────────────────────────────────────────
 // 산이 5개 이상이면 기본 슬롯 폭(MAX_MTN_W + GAP)으로는 화면에 다 안 들어옴.
@@ -132,15 +134,84 @@ function mulberry32(seed: number) {
   }
 }
 
-// 미시작 산의 랜덤 눈덮임 패턴 — book.id로 시드 고정, 위쪽일수록 눈 확률 ↑ (설선 효과)
-function buildSnowMask(book: WorldMapBook, steps: number): Set<string> {
+// ─── 산 실루엣 다양화 ─────────────────────────────────────────────────────────
+// 색(KDC 테마)은 분류를 고정으로 나타내고, 실루엣(모양)은 책 하나하나를 구분하는
+// 용도(design-style.md "산 모양 다양화" 참고). 제목이 길면 폭이 가장 넓은 쌍봉
+// (twin)을 배정해 산 아래 제목이 덜 잘리게 하고, 그 외에는 책 id 시드로
+// 뾰족/비대칭/고원 중 하나를 결정론적으로 골라 "같은 분야도 다른 실루엣"을 만든다.
+type MountainShape = 'sharp' | 'skew' | 'twin' | 'plateau'
+
+const LONG_TITLE_THRESHOLD = 12 // 이 글자 수 이상이면 쌍봉(twin) 배정
+
+function getMountainShape(book: WorldMapBook): MountainShape {
+  if (book.title && book.title.trim().length >= LONG_TITLE_THRESHOLD) return 'twin'
+  const others: MountainShape[] = ['sharp', 'skew', 'plateau']
+  return others[Math.abs(hashString(book.id)) % others.length]
+}
+
+type MountainProfile = {
+  numCols: number
+  heights: number[] // 칼럼별 쌓인 블록 수(1~steps) — 산 몸통 렌더링·hit-test가 모두 이 값을 기준으로 함
+  peakCols: number[] // 정상(snow) 칼럼. 쌍봉/고원은 2개 이상.
+}
+
+// 실루엣별 컬럼 높이맵을 계산. numCols(=산 폭 ÷ PX)는 실루엣마다 달라질 수 있음
+// (쌍봉만 더 넓게 잡아 긴 제목이 들어갈 공간을 확보). seed는 비대칭(skew)의
+// 치우침 방향/정도를 책마다 다르게 주기 위한 값(호출 측이 hashString(book.id)로 넘김).
+function getMountainProfile(shape: MountainShape, steps: number, seed: number): MountainProfile {
+  if (shape === 'twin') {
+    const numCols = 2 * steps + 1
+    const mid = steps
+    const peakOffset = Math.max(2, Math.floor(steps / 2))
+    const leftPeak = mid - peakOffset
+    const rightPeak = mid + peakOffset
+    const heights = Array.from({ length: numCols }, (_, c) =>
+      Math.max(1, steps - Math.abs(c - leftPeak), steps - Math.abs(c - rightPeak))
+    )
+    return { numCols, heights, peakCols: [leftPeak, rightPeak] }
+  }
+
+  const numCols = 2 * steps - 1
+  const mid = steps - 1
+
+  if (shape === 'plateau') {
+    const flatHalf = Math.max(0, Math.floor(steps / 3))
+    const flatStart = mid - flatHalf
+    const flatEnd = mid + flatHalf
+    const heights = Array.from({ length: numCols }, (_, c) =>
+      c >= flatStart && c <= flatEnd ? steps : steps - Math.abs(c - mid)
+    )
+    const peakCols = Array.from({ length: flatEnd - flatStart + 1 }, (_, i) => flatStart + i)
+    return { numCols, heights, peakCols }
+  }
+
+  if (shape === 'skew') {
+    const magnitude = 1 + (Math.abs(seed) % Math.max(1, Math.floor(steps / 3)))
+    const dir = seed % 2 === 0 ? 1 : -1
+    const peakCol = Math.min(numCols - 2, Math.max(1, mid + dir * magnitude))
+    const heights = Array.from({ length: numCols }, (_, c) => {
+      if (c <= peakCol) return 1 + Math.round((steps - 1) * (c / peakCol))
+      return 1 + Math.round((steps - 1) * ((numCols - 1 - c) / (numCols - 1 - peakCol)))
+    })
+    return { numCols, heights, peakCols: [peakCol] }
+  }
+
+  // sharp — 좌우대칭 삼각형(기본형)
+  const heights = Array.from({ length: numCols }, (_, c) => steps - Math.abs(c - mid))
+  return { numCols, heights, peakCols: [mid] }
+}
+
+// 미시작 산의 랜덤 눈덮임 패턴 — book.id로 시드 고정, 위쪽일수록 눈 확률 ↑ (설선 효과).
+// profile(실루엣별 높이맵) 기준으로 실제 채워진 칼럼에만 눈을 흩뿌려서, 실루엣이
+// 달라져도(쌍봉·고원 등) 항상 산 몸통 안쪽에만 패턴이 생기게 한다.
+function buildSnowMask(book: WorldMapBook, steps: number, profile: MountainProfile): Set<string> {
   const mask = new Set<string>()
   if (book.status !== 'paused') return mask
   const rand = mulberry32(hashString(book.id))
-  const mid = steps - 1
   for (let row = 1; row < steps; row++) {
     const snowChance = Math.max(0.05, 0.78 - (row / steps) * 0.75)
-    for (let col = mid - row; col <= mid + row; col++) {
+    for (let col = 0; col < profile.numCols; col++) {
+      if (profile.heights[col] < steps - row) continue // 이 칼럼은 이 row에서 아직 안 채워짐
       if (rand() < snowChance) mask.add(`${row}:${col}`)
     }
   }
@@ -326,6 +397,47 @@ function drawSprite(
 function drawPixel(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, size = PX) {
   ctx.fillStyle = color
   ctx.fillRect(Math.round(x), Math.round(y), size, size)
+}
+
+// 산 몸통(실루엣별 칼럼 높이맵 기준) + 베이스 2행을 그린다. WorldMap 본 렌더와
+// renderCompletedPanorama(PNG 내보내기) 양쪽이 이 함수를 공유해서 실루엣 계산이
+// 어긋나지 않게 함. row별로 실제 채워진 칼럼 중 맨 왼쪽/오른쪽을 능선(edge)으로,
+// row 0(정상)에 걸리는 칼럼(들)을 snow로 칠한다 — 쌍봉·고원처럼 정상이 여러 칼럼
+// 이어도 자동으로 전부 snow 처리됨. snowMask는 미시작(paused) 산의 랜덤 눈 패턴(선택).
+function drawMountainBody(
+  ctx: CanvasRenderingContext2D,
+  profile: MountainProfile,
+  steps: number,
+  theme: { fill: string; edge: string; snow: string },
+  baseX: number,
+  baseY: number,
+  snowMask?: Set<string>
+) {
+  for (let row = 0; row < steps; row++) {
+    const filledCols: number[] = []
+    for (let col = 0; col < profile.numCols; col++) {
+      if (profile.heights[col] >= steps - row) filledCols.push(col)
+    }
+    if (filledCols.length === 0) continue
+    const rowMin = filledCols[0]
+    const rowMax = filledCols[filledCols.length - 1]
+    filledCols.forEach((col) => {
+      const px = baseX + col * PX
+      const py = baseY + row * PX
+      const isTop = row === 0
+      const isEdge = col === rowMin || col === rowMax
+      // 미시작 상태 → 랜덤(고정 시드) 눈 패턴이 edge/fill보다 우선 적용
+      const isSnowPatch = row > 0 && !!snowMask?.has(`${row}:${col}`)
+      const color = isTop || isSnowPatch ? theme.snow : isEdge ? theme.edge : theme.fill
+      drawPixel(ctx, px, py, color)
+    })
+  }
+  // 베이스 2행 — 실루엣과 무관하게 항상 산 전체 폭을 꽉 채우는 어두운 띠
+  for (let r = 0; r < 2; r++) {
+    for (let col = 0; col < profile.numCols; col++) {
+      drawPixel(ctx, baseX + col * PX, baseY + steps * PX + r * PX, theme.edge)
+    }
+  }
 }
 
 // drawChar/drawDanceChar가 공유하는 렌더링 로직 — 프레임에 따라 A/B 두 포즈 중
@@ -715,7 +827,9 @@ function getMountainRects(books: WorldMapBook[], canvasH: number, containerW: nu
   return books.map((book, i) => {
     const level = getLevel(book.total_pages)
     const steps = STEPS_BY_LEVEL[level]
-    const mtnW = (2 * steps - 1) * PX
+    const shape = getMountainShape(book)
+    const { numCols } = getMountainProfile(shape, steps, hashString(book.id))
+    const mtnW = numCols * PX
     const mtnH = (steps + 2) * PX
     const baseX = 24 + i * slotW + (MAX_MTN_W - mtnW) / 2
     const baseY = mountainBaseY - mtnH
@@ -907,42 +1021,30 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
     const level = getLevel(book.total_pages)
     const steps = STEPS_BY_LEVEL[level]
     const theme = getTheme(book.kdc, book.id)
-    const mid = steps - 1
-    const mtnW = (2 * steps - 1) * PX
+    const shape = getMountainShape(book)
+    const seed = hashString(book.id)
+    const profile = getMountainProfile(shape, steps, seed)
+    const mtnW = profile.numCols * PX
+    const peakCol = profile.peakCols[profile.peakCols.length - 1]
     const baseX = 24 + i * slotW + (MAX_MTN_W - mtnW) / 2
     const baseY = mountainBaseY - (steps + 2) * PX
 
-    // 산 본체 (완독 산엔 눈 패턴 없음 — WorldMap 본 렌더와 동일한 규칙)
-    for (let row = 0; row < steps; row++) {
-      for (let col = mid - row; col <= mid + row; col++) {
-        const px = baseX + col * PX
-        const py = baseY + row * PX
-        const isTop = row === 0
-        const isEdge = col === mid - row || col === mid + row
-        const color = isTop ? theme.snow : isEdge ? theme.edge : theme.fill
-        drawPixel(ctx, px, py, color)
-      }
-    }
-    // 베이스 2행
-    for (let r = 0; r < 2; r++) {
-      for (let col = 0; col < 2 * steps - 1; col++) {
-        drawPixel(ctx, baseX + col * PX, baseY + steps * PX + r * PX, theme.edge)
-      }
-    }
+    // 산 본체 (완독 산엔 눈 패턴 없음 — WorldMap 본 렌더와 동일한 규칙, drawMountainBody 공유)
+    drawMountainBody(ctx, profile, steps, theme, baseX, baseY)
 
     // 정상 깃발 (오로라 이스터에그 책이면 자동으로 오로라 팔레트 — getFlagColor 참고)
-    drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
+    drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
 
     // 자축 모닥불 — trophy 모드와 동일하게 항상 켜둠(정적 이미지라 프레임 고정)
     const FIRE_X_RATIOS = [0.12, 0.28, 0.68, 0.82]
-    const fireRatio = FIRE_X_RATIOS[Math.abs(hashString(book.id)) % FIRE_X_RATIOS.length]
+    const fireRatio = FIRE_X_RATIOS[Math.abs(seed) % FIRE_X_RATIOS.length]
     drawCampfire(ctx, baseX + mtnW * fireRatio - 4, mountainBaseY - 14, 1)
 
     // 땅과 산이 맞닿는 지점에 책 제목 각인
     drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)
     // 메모가 있는 책만 정상(깃발 위)에 말풍선으로 — 웹페이지 지도의 memoBubbles와 같은 스타일
     if (book.memo && book.memo.trim()) {
-      drawMemoBubble(ctx, book.memo, baseX + mid * PX + PX / 2, baseY, mtnW)
+      drawMemoBubble(ctx, book.memo, baseX + peakCol * PX + PX / 2, baseY, mtnW)
     }
   })
 
@@ -1110,11 +1212,13 @@ export default function WorldMap({
     const map = new Map<string, Set<string>>()
     foreground.forEach((book) => {
       const steps = STEPS_BY_LEVEL[getLevel(book.total_pages)]
-      map.set(book.id, buildSnowMask(book, steps))
+      const shape = getMountainShape(book)
+      const profile = getMountainProfile(shape, steps, hashString(book.id))
+      map.set(book.id, buildSnowMask(book, steps, profile))
     })
     return map
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground.map((b) => `${b.id}:${b.total_pages}:${b.status}`).join(',')])
+  }, [foreground.map((b) => `${b.id}:${b.title}:${b.total_pages}:${b.status}`).join(',')])
 
   // 메모 있는 책 중 오늘(날짜 기준) 랜덤 2~3개만 뽑아 산 위에 말풍선으로 항상 띄운다.
   // 모두 다 띄우면 번잡스러우니 개수를 제한하고, 날짜를 시드로 써서 하루 동안은
@@ -1330,32 +1434,18 @@ export default function WorldMap({
         const level = getLevel(book.total_pages)
         const steps = STEPS_BY_LEVEL[level]
         const theme = getTheme(book.kdc, book.id)
-        const mid = steps - 1
-        const mtnW = (2 * steps - 1) * PX
+        const shape = getMountainShape(book)
+        const seed = hashString(book.id)
+        const profile = getMountainProfile(shape, steps, seed)
+        const mtnW = profile.numCols * PX
+        const peakCol = profile.peakCols[profile.peakCols.length - 1]
         const baseX = 24 + i * slotW + (MAX_MTN_W - mtnW) / 2
         const baseY = mountainBaseY - (steps + 2) * PX
         const snowMask = book.status === 'paused' ? snowMasks.get(book.id) : undefined
 
-        // 산 본체
-        for (let row = 0; row < steps; row++) {
-          for (let col = mid - row; col <= mid + row; col++) {
-            const px = baseX + col * PX
-            const py = baseY + row * PX
-            const isTop = row === 0
-            const isEdge = col === mid - row || col === mid + row
-            // 미시작 상태 → 랜덤(고정 시드) 눈 패턴이 edge/fill보다 우선 적용
-            const isSnowPatch = row > 0 && !!snowMask?.has(`${row}:${col}`)
-            const color = isTop || isSnowPatch ? theme.snow : isEdge ? theme.edge : theme.fill
-            drawPixel(ctx, px, py, color)
-          }
-        }
-
-        // 베이스 2행
-        for (let r = 0; r < 2; r++) {
-          for (let col = 0; col < 2 * steps - 1; col++) {
-            drawPixel(ctx, baseX + col * PX, baseY + steps * PX + r * PX, theme.edge)
-          }
-        }
+        // 산 본체 + 베이스 2행 (실루엣별 칼럼 높이맵 기준 — renderCompletedPanorama와
+        // drawMountainBody를 공유해서 PNG 내보내기와 실루엣이 어긋나지 않음)
+        drawMountainBody(ctx, profile, steps, theme, baseX, baseY, snowMask)
 
         // 완등 세레모니 진행 중인지 확인 — 진행 중이면 이번 프레임엔 깃발 대신
         // 정상 댄스 캐릭터 + CLEAR! + 폭죽을 그리고, 지속시간이 지나면 burst를
@@ -1370,11 +1460,11 @@ export default function WorldMap({
         // 완독(유예 시간 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색).
         // 세레모니가 진행 중인 동안엔 깃발 대신 댄스 캐릭터가 그 자리를 대신함.
         if (book.status === 'completed' && !burstActive) {
-          drawFlag(ctx, baseX + mid * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
+          drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
         }
 
         if (burstActive && burst) {
-          const peakX = baseX + mid * PX + PX / 2
+          const peakX = baseX + peakCol * PX + PX / 2
           const s2 = stateRef.current
           const bounce = s2.bounceFrame < 10 ? -(s2.bounceFrame * 0.35) : -((20 - s2.bounceFrame) * 0.35)
           drawDanceChar(ctx, peakX, baseY + bounce, s2.charFrame, theme.char)
@@ -1404,7 +1494,7 @@ export default function WorldMap({
           const charH = CHAR_ROWS_A.length * CPX // 8행 × 3px = 24px (두 프레임 높이 동일)
           const climbRange = mountainBaseY - baseY // 이 산의 전체 높이(지면~정상)
           const travel = Math.max(climbRange - charH, 0) // 발이 실제로 이동하는 거리
-          const charCX = baseX + mid * PX + PX / 2
+          const charCX = baseX + peakCol * PX + PX / 2
           const s2 = stateRef.current
           const bounceY = s2.bounceFrame < 10
             ? -(s2.bounceFrame * 0.35)
