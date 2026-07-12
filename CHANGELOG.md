@@ -3,6 +3,20 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.18 — 2026-07-12 (27)
+
+- **산 높이 계산을 4단계 구간 → 페이지 수 연속 스케일링으로 변경** —
+  `components/worldmap/geometry.ts`, `constants.ts`. 기존 `getLevel()`은
+  200/400/600쪽 경계로만 4단계(5/7/9/11스텝)를 나눠서, 같은 구간에 속하면
+  두께가 달라도(예: 212쪽 vs 304쪽, 둘 다 200~399쪽) 산 높이가 완전히 똑같아
+  보이는 문제가 있었음(사용자 피드백: "산 크기가 별로 차이가 안나네"). `getLevel`을
+  `getSteps(pages)`로 교체 — `PAGES_PER_STEP`(40쪽)마다 스텝 +1인 연속식으로
+  바꿔 `MIN_STEPS`(4)~`MAX_STEPS`(16) 사이로 클램프. 212쪽→9스텝, 304쪽→12스텝
+  (기존엔 둘 다 7스텝)으로 30px(3스텝) 차이가 나도록 함. `STEPS_BY_LEVEL` 상수와
+  `MountainVisual.level` 필드는 제거(다른 곳에서 참조하지 않던 값). `MAX_MTN_W`도
+  새 `MAX_STEPS` 기준으로 재계산해 슬롯 폭 압축·완독맵 파노라마 레이아웃이
+  최대 산 크기와 계속 맞도록 조정.
+
 ## 0.4.17 — 2026-07-12 (26)
 
 - **산책기록 설명문 수정** — `components/books/AddBookBar.tsx`. "읽고 있는 책만

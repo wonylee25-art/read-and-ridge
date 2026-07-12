@@ -13,7 +13,11 @@ import type { WorldMapBook } from './worldmap-utils'
 import { isAuroraBook } from '@/lib/aurora-books'
 import {
   PX,
-  STEPS_BY_LEVEL,
+  STEPS_BASE,
+  MIN_STEPS,
+  MAX_STEPS,
+  PAGES_PER_STEP,
+  DEFAULT_PAGES,
   MAX_MTN_W,
   MIN_SLOT_W,
   MAX_COMPRESS_COUNT,
@@ -93,12 +97,14 @@ export function countByTheme(books: WorldMapBook[]): Record<KdcThemeKey, number>
   return counts
 }
 
-export function getLevel(pages: number | null): 1 | 2 | 3 | 4 {
-  if (!pages) return 2
-  if (pages < 200) return 1
-  if (pages < 400) return 2
-  if (pages < 600) return 3
-  return 4
+// 페이지 수 → 산 스텝(층) 수. PAGES_PER_STEP쪽마다 스텝 +1인 연속식이라, 같은
+// 구간으로 뭉개지던 예전 4단계 방식과 달리 페이지 차이가 조금만 나도(예: 92쪽)
+// 스텝 차이(예: 3스텝=30px)로 드러난다. MIN_STEPS~MAX_STEPS로 클램프해 너무
+// 낮거나(1쪽짜리 산) 너무 높은(초두꺼운 책) 극단값을 방지.
+export function getSteps(pages: number | null): number {
+  const p = pages && pages > 0 ? pages : DEFAULT_PAGES
+  const steps = STEPS_BASE + Math.round(p / PAGES_PER_STEP)
+  return Math.max(MIN_STEPS, Math.min(MAX_STEPS, steps))
 }
 
 // ─── 산 실루엣 다양화 ─────────────────────────────────────────────────────────
@@ -204,7 +210,6 @@ export function isRecentlyCompleted(book: WorldMapBook): boolean {
 // 모아서 모든 렌더 경로(본 렌더 루프·완독맵 파노라마·정상 인증샷·산책기록 캡처·
 // 옆산 렌더)가 동일한 값을 쓰게 한다.
 export type MountainVisual = {
-  level: 1 | 2 | 3 | 4
   steps: number
   theme: { fill: string; edge: string; snow: string; base: string; char: string }
   shape: MountainShape
@@ -216,8 +221,7 @@ export type MountainVisual = {
 }
 
 export function getMountainVisual(book: WorldMapBook): MountainVisual {
-  const level = getLevel(book.total_pages)
-  const steps = STEPS_BY_LEVEL[level]
+  const steps = getSteps(book.total_pages)
   const theme = getTheme(book.kdc, book.id)
   const shape = getMountainShape(book)
   const seed = hashString(book.id)
@@ -225,7 +229,7 @@ export function getMountainVisual(book: WorldMapBook): MountainVisual {
   const mtnW = profile.numCols * PX
   const mtnH = (steps + 2) * PX
   const peakCol = profile.peakCols[profile.peakCols.length - 1]
-  return { level, steps, theme, shape, seed, profile, mtnW, mtnH, peakCol }
+  return { steps, theme, shape, seed, profile, mtnW, mtnH, peakCol }
 }
 
 // 가로 스트립 레이아웃(전경 산이 왼쪽부터 순서대로 늘어선 형태)에서 i번째 산의

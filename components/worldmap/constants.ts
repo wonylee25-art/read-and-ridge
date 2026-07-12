@@ -8,19 +8,25 @@ import type { WorldMapBook } from './worldmap-utils'
 
 export const PX = 10 // 1 "pixel" = 10px on canvas
 
-export const STEPS_BY_LEVEL: Record<1 | 2 | 3 | 4, number> = {
-  1: 5,
-  2: 7,
-  3: 9,
-  4: 11,
-}
+// ─── 산 높이(스텝) 계산 — 페이지 수에 연속적으로 비례 ──────────────────────────
+// 예전엔 200/400/600쪽 4단계 구간(getLevel→STEPS_BY_LEVEL)으로만 나눠서, 같은
+// 구간 안이면(예: 212쪽 vs 304쪽, 둘 다 200~399쪽 구간) 두께 차이가 있어도 산
+// 높이가 완전히 똑같아 보이는 문제가 있었다(2026.07.12 사용자 피드백). PAGES_PER_STEP
+// 쪽마다 스텝이 하나씩 늘어나는 연속식(getSteps, geometry.ts)으로 바꿔서, 페이지
+// 수 차이가 항상 눈에 보이는 높이 차이로 이어지게 함.
+export const STEPS_BASE = 4 // pages=0(=MIN_STEPS)일 때의 스텝
+export const MIN_STEPS = 4
+export const MAX_STEPS = 16
+export const PAGES_PER_STEP = 40 // 이만큼 두꺼워질 때마다 스텝 +1
+export const DEFAULT_PAGES = 250 // 페이지 수를 모를 때 가정하는 평균 두께
 
 export const CANVAS_H = 440
 export const GROUND_H = 52
 export const GAP = 20
-// 실루엣 중 쌍봉(twin)이 가장 넓으므로(폭 +2칸, getMountainProfile 참고) 레벨4
-// 기준 쌍봉 폭을 기준으로 잡는다 — 다른 실루엣은 이보다 좁아서 슬롯 안에서 중앙 정렬됨.
-export const MAX_MTN_W = (2 * STEPS_BY_LEVEL[4] + 1) * PX
+// 실루엣 중 쌍봉(twin)이 가장 넓으므로(폭 +2칸, getMountainProfile 참고) 최대
+// 스텝(MAX_STEPS) 기준 쌍봉 폭을 기준으로 잡는다 — 다른 실루엣은 이보다 좁아서
+// 슬롯 안에서 중앙 정렬됨.
+export const MAX_MTN_W = (2 * MAX_STEPS + 1) * PX
 
 // ─── 산이 많을 때 간격 압축 ───────────────────────────────────────────────────
 // 산이 5개 이상이면 기본 슬롯 폭(MAX_MTN_W + GAP)으로는 화면에 다 안 들어옴.
