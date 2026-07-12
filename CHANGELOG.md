@@ -3,6 +3,16 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.16 — 2026-07-12 (25)
+
+- **비로그인 예시 지형도 TUTORIAL 라벨 모바일 중앙 정렬 수정** —
+  `components/worldmap/WorldMap.tsx`, `drawing.ts`, `app/globals.css`. 캔버스에
+  직접 그리던 방식(`drawTutorialLabel`)은 산이 많아 캔버스가 뷰포트보다 넓어지는
+  모바일 화면에서 캔버스 콘텐츠 중앙과 실제 화면 중앙이 어긋나는 문제가 있었음.
+  스크롤 안 되는 바깥 컨테이너(wrap) 기준 HTML 오버레이로 교체해 스크롤 위치·
+  캔버스 폭과 무관하게 항상 실제 화면 정중앙에 오도록 수정. 반짝이는 효과는
+  CSS `@keyframes tutorial-flicker`로 재현(기존 sin 파형과 유사한 느낌).
+
 ## 0.4.15 — 2026-07-12 (24)
 
 - **회원 탈퇴 경고 문구 보강** — `components/dashboard/DeleteAccountModal.tsx`.

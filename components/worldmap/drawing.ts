@@ -504,36 +504,6 @@ export function drawSideMountain(
   ctx.restore()
 }
 
-// 튜토리얼 라벨 — 비로그인 상태의 예시 지형도(랜딩페이지)에서만 쓰는 깜빡이는 픽셀 글씨.
-// CLEAR! 텍스트와 같은 방식(그림자+본문 이중 fillText)의 픽셀 타이포지만, sin 파형으로
-// 알파값을 부드럽게 오르내려 "반짝이는" 느낌을 준다. 로그인 상태/완등기록에는 노출 안 함.
-export function drawTutorialLabel(ctx: CanvasRenderingContext2D, timestamp: number, cx: number, y: number) {
-  const alpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(timestamp / 450))
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.font = 'bold 42px monospace' // CLEAR! 텍스트(15px)와 같은 서체, 크기만 약 3배
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  ctx.fillStyle = '#7a4a12'
-  ctx.fillText('TUTORIAL', cx + 2, y + 2)
-  ctx.fillStyle = '#ffe27a'
-  ctx.fillText('TUTORIAL', cx, y)
-  ctx.restore()
-
-  // TUTORIAL 바로 아래 안내 문구 — 같은 반짝임(alpha)을 공유해서 한 세트처럼 보이게 함.
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.font = '15px monospace'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  const subtitleY = y + 54 // TUTORIAL(42px) 높이만큼 아래로
-  ctx.fillStyle = '#3a2a0a'
-  ctx.fillText('로그인 후 책을 추가해보세요', cx + 1, subtitleY + 1)
-  ctx.fillStyle = '#fff6df'
-  ctx.fillText('로그인 후 책을 추가해보세요', cx, subtitleY)
-  ctx.restore()
-}
-
 // PNG 우측 하단 워터마크 — drawMountainTitle과 같은 크림색 텍스트(외곽선 없음).
 // 닉네임이 있으면 "산책또산책 | 닉네임" 형식으로 붙여서 "누구의 기록인지" 남긴다.
 export function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, nickname?: string) {

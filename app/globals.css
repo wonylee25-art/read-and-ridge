@@ -25,3 +25,13 @@ body {
     text-wrap: balance;
   }
 }
+
+/* 비로그인 예시 지형도(WorldMap demo)의 "TUTORIAL" 라벨 반짝임 — 예전엔 캔버스에
+   직접 그려서(drawTutorialLabel) 산이 많아 캔버스가 뷰포트보다 넓어지면(모바일)
+   화면 중앙이 아니라 캔버스 콘텐츠 중앙에 그려지는 문제가 있었음. HTML 오버레이로
+   바꾸면서 원래 sin 파형(주기 약 2.83초, 투명도 0.4~1.0)과 동일한 느낌으로 CSS
+   애니메이션으로 재현. */
+@keyframes tutorial-flicker {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}

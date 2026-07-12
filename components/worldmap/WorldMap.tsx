@@ -85,7 +85,6 @@ import {
   drawMemoBubble,
   drawClearPixelText,
   drawBurstParticles,
-  drawTutorialLabel,
 } from './drawing'
 import { renderCompletedPanorama, renderCompletionCapture, todayFileDateKey } from './capture'
 
@@ -615,13 +614,6 @@ export default function WorldMap({
         }
       }
 
-      // ── 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 하늘 중앙에 항상 맨 위로 오버레이 ─
-      // ⚠ "완등한 산이 이곳으로 옮겨옵니다" 문구는 여기(캔버스 안)에 넣으면 예시 산과
-      // 겹쳐서 지저분해 보여 뺐음 — 페이지 하단 캡션으로만 노출(app/dashboard/page.tsx).
-      if (demo) {
-        drawTutorialLabel(ctx, timestamp, W / 2, 40)
-      }
-
       rafRef.current = requestAnimationFrame(draw)
     }
 
@@ -790,6 +782,31 @@ export default function WorldMap({
               </div>
             ))}
         </div>
+
+        {/* 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 캔버스 안에 그리지 않고 HTML로
+            wrap(스크롤 안 되는 바깥 컨테이너) 기준 절대 위치로 띄운다. 예전엔 캔버스에
+            직접 그려서 W/2(캔버스 콘텐츠 폭의 절반)를 중심으로 삼았는데, 산이 많아
+            캔버스가 뷰포트보다 넓어지는 모바일 화면에서는 그 중심이 실제로 보이는
+            화면 중앙과 어긋났음(가로 스크롤 때문에). wrap 기준 `left-1/2`는 스크롤
+            위치·캔버스 폭과 무관하게 항상 실제 보이는 화면의 정중앙에 온다.
+            ⚠ "완등한 산이 이곳으로 옮겨옵니다" 문구는 예시 산과 겹쳐서 지저분해 보여
+            뺐음 — 페이지 하단 캡션으로만 노출(app/dashboard/page.tsx). */}
+        {demo && (
+          <div className="absolute inset-x-0 top-10 z-10 flex flex-col items-center px-4 pointer-events-none">
+            <span
+              className="font-mono font-bold text-3xl sm:text-4xl md:text-[42px] tracking-wider text-center"
+              style={{ color: '#ffe27a', textShadow: '2px 2px 0 #7a4a12', animation: 'tutorial-flicker 2.83s ease-in-out infinite' }}
+            >
+              TUTORIAL
+            </span>
+            <span
+              className="mt-3 font-mono text-xs sm:text-sm md:text-[15px] tracking-wide text-center"
+              style={{ color: '#fff6df', textShadow: '1px 1px 0 #3a2a0a', animation: 'tutorial-flicker 2.83s ease-in-out infinite' }}
+            >
+              로그인 후 책을 추가해보세요
+            </span>
+          </div>
+        )}
 
         {/* 오로라 이스터에그 — WorldMap 컨테이너(wrap) 안에만 갇히도록 여기(캔버스를
             스크롤시키는 내부 div 바깥, wrap 바로 안쪽)에 둔다. wrap의 overflow-hidden
