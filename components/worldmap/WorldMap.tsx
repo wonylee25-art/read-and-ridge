@@ -220,7 +220,7 @@ export default function WorldMap({
     if (!ctx) return
 
     const mountainBaseY = canvas.height - GROUND_H
-    const slotW = computeSlotW(foreground.length, wrapRef.current?.clientWidth ?? canvas.width)
+    const slotW = computeSlotW(foreground, wrapRef.current?.clientWidth ?? canvas.width)
     foreground.forEach((book, i) => {
       const { mtnW, mtnH, peakCol } = getMountainVisual(book)
       const baseX = getStripBaseX(i, slotW, mtnW)
@@ -402,7 +402,7 @@ export default function WorldMap({
       const W = canvas!.width
       const H = canvas!.height
       // 컨테이너 실제 폭 기준으로 슬롯 폭 계산 (전경 산이 많으면 좁아지거나 겹침)
-      const slotW = computeSlotW(foreground.length, wrapRef.current?.clientWidth ?? W)
+      const slotW = computeSlotW(foreground, wrapRef.current?.clientWidth ?? W)
 
       // 구름 초기화 / 폭 변경 시 재배치
       if (!s.clouds || s.cloudsForW !== W) {
@@ -708,7 +708,7 @@ export default function WorldMap({
       if (!wrap || !canvas) return
       const cw = wrap.clientWidth
       setContainerW(cw)
-      const slotW = computeSlotW(foreground.length, cw)
+      const slotW = computeSlotW(foreground, cw)
       const contentW = foreground.length * slotW + 64
       canvas.width = Math.max(contentW, cw)
       canvas.height = CANVAS_H

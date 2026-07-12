@@ -59,11 +59,19 @@ export function mulberry32(seed: number) {
   }
 }
 
-export function computeSlotW(count: number, containerW: number): number {
+export function computeSlotW(books: WorldMapBook[], containerW: number): number {
+  const count = books.length
   const comfortable = MAX_MTN_W + GAP
   if (count <= 0 || count > MAX_COMPRESS_COUNT) return comfortable
+  // 압축 하한: 예전엔 산 폭과 무관한 고정값(MIN_SLOT_W)만 하한으로 써서, 폭이 넓은
+  // 산(쌍봉·큰 스텝)이 섞인 상태로 컨테이너가 좁아지면 압축된 슬롯 폭이 실제 산 폭보다
+  // 작아져 옆 산과 몸통이 겹쳐 보이는 문제가 있었다(2026.07.12 피드백 — "겹치는 게
+  // 너무 커"). 지금 그릴 세트의 실제 최대 산 폭 + 최소 여백(PX 1칸)도 하한에 같이
+  // 반영해서 겹침 자체를 막고, 그래도 안 맞으면 압축을 포기하고 가로 스크롤로 넘긴다.
+  const widestMtnW = Math.max(...books.map((b) => getMountainVisual(b).mtnW))
+  const noOverlapFloor = Math.max(MIN_SLOT_W, widestMtnW + PX)
   const fitAll = (containerW - 48) / count
-  return Math.max(MIN_SLOT_W, Math.min(comfortable, fitAll))
+  return Math.max(noOverlapFloor, Math.min(comfortable, fitAll))
 }
 
 // ⚠ 예전엔 kdc가 없는 책의 색을 foreground 배열 안에서의 순번(index)으로 정했는데,
@@ -250,7 +258,7 @@ export function getStripBaseX(index: number, slotW: number, mtnW: number): numbe
 
 export function getMountainRects(books: WorldMapBook[], canvasH: number, containerW: number) {
   const mountainBaseY = canvasH - GROUND_H
-  const slotW = computeSlotW(books.length, containerW)
+  const slotW = computeSlotW(books, containerW)
   return books.map((book, i) => {
     const v = getMountainVisual(book)
     const baseX = getStripBaseX(i, slotW, v.mtnW)

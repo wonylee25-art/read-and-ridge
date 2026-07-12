@@ -3,6 +3,20 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.20 — 2026-07-12 (29)
+
+- **완등기록 산 겹침 방지** — `components/worldmap/geometry.ts`, `WorldMap.tsx`.
+  `computeSlotW`가 산 개수만 보고 슬롯 폭을 압축해서, 폭이 넓은 산(쌍봉·큰 스텝)이
+  섞인 채로 컨테이너가 좁으면 압축된 슬롯 폭이 실제 산 폭보다 작아져 옆 산과 몸통이
+  겹쳐 보이는 문제가 있었음(피드백: "겹치는 게 너무 커"). `computeSlotW`가 이제
+  `count` 대신 `books` 배열을 받아, 이번에 그릴 산들 중 실제 최대 산 폭 + 최소
+  여백(PX 1칸)을 압축 하한에 반영 — 겹침 자체를 막고, 그래도 안 맞으면 압축을
+  포기하고 가로 스크롤로 넘김. 호출부 4곳(`WorldMap.tsx` 3곳, `getMountainRects`)
+  전부 갱신.
+- **산 전체 크기 배율 추가 축소 (0.75 → 0.6)** — `components/worldmap/constants.ts`.
+  v0.4.19의 0.75배로도 여전히 크다는 피드백 — `SIZE_SCALE`을 0.6으로 낮춰 기존
+  대비 약 20% 추가 축소. `MAX_STEPS`도 12 → 10으로 같이 줄어듦.
+
 ## 0.4.19 — 2026-07-12 (28)
 
 - **산 전체 크기 0.75배 축소** — `components/worldmap/constants.ts`, `geometry.ts`.

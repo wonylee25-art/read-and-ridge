@@ -22,9 +22,11 @@ export const RAW_MAX_STEPS = 16
 // v0.4.18 배포 후) — raw 스텝을 구한 뒤 이 배율만큼 한 번 더 줄인다. 높이(steps)를
 // 줄이면 폭(numCols = 2*steps±1)도 같은 비율로 같이 줄어들어서 산 전체(높이+폭)가
 // 비율 그대로 축소된다.
-export const SIZE_SCALE = 0.75
+// ⚠ 0.75로도 여전히 크다는 추가 피드백(2026.07.12, 완등기록 겹침 수정 직후) —
+// 0.75 → 0.6으로 더 낮춤(기존 대비 약 20% 추가 축소).
+export const SIZE_SCALE = 0.6
 export const MIN_STEPS = 4
-export const MAX_STEPS = Math.round(RAW_MAX_STEPS * SIZE_SCALE) // 16*0.75=12
+export const MAX_STEPS = Math.round(RAW_MAX_STEPS * SIZE_SCALE) // 16*0.6=10 (예전 0.75일 땐 12)
 export const DEFAULT_PAGES = 250 // 페이지 수를 모를 때 가정하는 평균 두께
 
 export const CANVAS_H = 440
@@ -37,9 +39,11 @@ export const MAX_MTN_W = (2 * MAX_STEPS + 1) * PX
 
 // ─── 산이 많을 때 간격 압축 ───────────────────────────────────────────────────
 // 산이 5개 이상이면 기본 슬롯 폭(MAX_MTN_W + GAP)으로는 화면에 다 안 들어옴.
-// MAX_COMPRESS_COUNT개까지는 컨테이너 폭에 맞춰 슬롯을 좁혀서(필요하면 서로 겹쳐서)
-// 최대한 많이 한 화면에 보이게 하고, 그보다 많으면 압축을 포기하고 기존처럼 가로 스크롤.
-export const MIN_SLOT_W = 140 // 이보다 좁아지면 산이 서로 너무 뭉개져서 알아보기 힘듦
+// MAX_COMPRESS_COUNT개까지는 컨테이너 폭에 맞춰 슬롯을 좁히되, 실제 산이 겹쳐 보이진
+// 않게(computeSlotW가 "이번 세트의 최대 산 폭 + 여백"을 하한으로 같이 반영, 2026.07.12
+// 겹침 피드백 반영) 최대한 많이 한 화면에 보이게 하고, 그래도 안 맞으면 압축을 포기하고
+// 기존처럼 가로 스크롤.
+export const MIN_SLOT_W = 140 // 산 폭 하한과 별개로 두는 기본 바닥값(작은 산들만 있을 때 너무 다닥다닥 붙지 않도록)
 export const MAX_COMPRESS_COUNT = 10
 
 // ─── 전경/배경 분리 ───────────────────────────────────────────────────────────
