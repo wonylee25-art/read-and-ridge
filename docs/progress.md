@@ -4,6 +4,84 @@
 
 ---
 
+## 🆕 최근 작업 (2026.07.12, Claude와 진행) — v0.3.0 배포
+
+### 배경
+"진입 페이지가 제목 + 로그인 버튼뿐이라 어떤 서비스인지 모른 채 로그인부터 해야
+한다"는 피드백에서 시작. 여러 차례 방향을 조율한 끝에 "메인 화면(예시 지형도)을
+먼저 보여주고, 실제 쓰기 액션에서만 로그인을 요구"하는 구조로 확정.
+
+### 진입 플로우 개편
+- [x] `app/page.tsx` — 로그인 여부와 무관하게 항상 `/dashboard`로 리다이렉트 (기존:
+  비로그인이면 `/login`으로 보냄)
+- [x] `middleware.ts` — `protectedPaths`에서 `/dashboard` 제거. 실제 데이터 접근
+  제어는 각 페이지(`app/dashboard/page.tsx`, `app/dashboard/hikes/page.tsx`) 내부에서
+  `user` 유무로 직접 분기
+- [x] `lib/demo-books.ts` 신규 — 비로그인 산책기록에 보여줄 예시 책 4권
+  (`DEMO_HOME_BOOKS`, 여러 KDC 분야에 미시작/독서중 섞음)
+- [x] `app/dashboard/page.tsx` — `user`가 없으면 실제 DB 조회 없이 `DEMO_HOME_BOOKS`로
+  월드맵 렌더링. 계정 데이터를 직접 다루는(삭제·메모 등) 하단 책 목록(`BookCard`)은
+  비로그인일 땐 아예 안 보여줌
+- [x] `app/dashboard/hikes/page.tsx` — 처음엔 가짜 완독 예시(`DEMO_TROPHY_BOOKS`)를
+  만들었다가, "완등한 책이 이곳에 없는데 있는 것처럼 보이면 안 된다"는 피드백으로
+  폐기. 최종적으로는 로그인 유저가 완독 0권일 때 보는 것과 **완전히 동일한 빈 상태
+  화면**(지도 안내 문구 + `EmptyState`)을 그대로 재사용하는 방식으로 정리 —
+  `DEMO_TROPHY_BOOKS`는 사용처가 없어져 `lib/demo-books.ts`에서 삭제
+
+### 로그인 유도 (책 추가 / 게이지 저장 / CSV / 회원 탈퇴)
+- [x] `lib/auth/signInWithGoogle.ts` 신규 — `app/login/page.tsx`의 구글 로그인 로직을
+  공용 함수로 분리
+- [x] `WorldMapClient`/`AddBookBar`/`AddBookForm`에 `authenticated` prop 체인 추가 —
+  비로그인 상태에서 "책 추가" 버튼(하단 버튼 + 하늘 해/별 버튼 둘 다)을 누르면 폼을
+  열지 않고 바로 구글 로그인 트리거
+- [x] `ProgressModal`도 `authenticated` prop 추가 — 비로그인이어도 게이지 드래그
+  체험은 되지만, "저장" 버튼을 누르면 실제 저장 대신 구글 로그인으로 유도
+- [x] `Sidebar`의 CSV 내려받기 / 회원 탈퇴도 같은 패턴 — 비로그인이면 클릭 시
+  구글 로그인
+- [x] `LogoutButton`/`DeleteAccountModal` — 로그아웃·탈퇴 후 이동 경로를 `/login`
+  대신 예시 지형도가 있는 `/dashboard`로 변경 (처음엔 `/login`으로 보내서, 로그아웃하면
+  다시 옛날 진입 화면이 보이는 버그가 있었음)
+
+### 사이드바 메뉴 개편
+- [x] 순서를 "산책또산책에 대하여 → 로그인/로그아웃 → CSV 내려받기 →
+  개인정보처리방침·이용약관 → 회원 탈퇴"로 재배열, 항목 사이 구분선 전부 제거
+  (하단 버전 정보 위 구분선도 함께 제거)
+- [x] 비로그인 상태에선 로그아웃 버튼 자리에 "로그인" 버튼 노출(클릭 시 바로 구글
+  로그인)
+
+### 월드맵 TUTORIAL 라벨
+- [x] `WorldMap.tsx`에 `demo` prop 추가 — true면 하늘 중앙에 sin 파형으로 부드럽게
+  반짝이는 "TUTORIAL" 픽셀 글씨(CLEAR! 텍스트와 같은 서체, 크기는 3배인 42px) +
+  그 아래 "로그인 후 책을 추가해보세요" 안내를 오버레이로 그림
+- [x] `WorldMapClient`가 `!authenticated`일 때만 `demo=true`로 전달 — 로그인
+  상태/완등기록에는 노출 안 됨
+- [x] 시행착오: "완등한 산이 이곳으로 옮겨옵니다" 문구를 캔버스 안(지도 하단)과
+  페이지 하단 둘 다에 넣어봤다가, 산책기록 지도에는 예시 산이 이미 차 있어서 산과
+  겹쳐 지저분해 보이는 문제로 **둘 다 제거** — 결과적으로 산책기록 화면엔 TUTORIAL
+  라벨만 남음
+
+### 문구 교체
+- [x] 완등기록 빈 상태 문구 — "완독하면 여기에 정상석이 생겨요" →
+  "완등한 산이 이곳으로 옮겨옵니다"로 교체 (`WorldMap.tsx`의 캔버스 안내문,
+  `hikes/page.tsx`의 `EmptyState` subtitle 둘 다)
+- [x] 예시 지형도 책 제목을 실제 도서 제목으로 교체 — 데미안→압록강은 흐른다,
+  사피엔스→망고와 수류탄, 논어→제자리에 있다는 것, 침묵의 봄→랩걸,
+  어린 왕자→소년이 온다 (완등기록 예시가 빈 상태 화면으로 바뀌며 이 제목들은
+  현재 산책기록 예시에만 남음)
+
+### 배포 관련 이슈
+- ⚠️ **이 세션이 진행된 로컬(Claude Cowork) 샌드박스는 Linux(arm64)인데 프로젝트
+  `node_modules`는 macOS용 `@next/swc-darwin-arm64`만 설치돼 있어 `next build`가
+  아예 진행되지 않고 멈춤** — 로컬 검증은 `npx tsc --noEmit` + `npx eslint`로 대체
+  (둘 다 타입/린트 오류 없음 확인). 실제 프로덕션 빌드는 Vercel(Linux)에서 정상 수행됨
+- ⚠️ **GitHub push는 됐는데 Vercel이 한 번 웹훅을 놓쳐서 배포가 안 된 적 있었음** —
+  다른 커밋들과 달리 GitHub 커밋 옆에 상태 체크(✓)가 안 붙어 있는 걸로 확인.
+  빈 커밋(`git commit --allow-empty`)으로 재push해서 웹훅을 재트리거해 해결
+- 관련 커밋: `54da006`, `248e89c`, `cc13f66`, `2127d8b`, `f6c64e7`(웹훅 재트리거),
+  `eefff77`, `cf84a90`, `d4dc430`, `e28d3a3`, `9642287`, `b324434`, `d0f64fb`
+
+---
+
 ## 🆕 최근 작업 (2026.07.12) — v0.2.1 배포
 
 ### KDC 필드 매핑 (`app/api/books/search/route.ts`, `AddBookForm.tsx`, `actions.ts`)
