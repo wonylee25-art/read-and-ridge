@@ -64,12 +64,17 @@ export default async function DashboardLayout({
     <div className="flex flex-col md:flex-row h-screen bg-gray-50">
       <Sidebar authenticated={!!user} />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        {user && nickname && stats && (
-          <div className="max-w-5xl mx-auto mb-2">
-            <ProfileTrigger nickname={nickname} stats={stats} />
-          </div>
-        )}
-        {children}
+        <div className="max-w-5xl mx-auto relative">
+          {/* 페이지 제목(children 최상단 h2)과 같은 줄에 보이도록 절대 위치로 겹쳐
+              배치. children도 동일한 max-w-5xl mx-auto라 좌우 기준선이 일치하고,
+              둘 다 이 relative 컨테이너의 top: 0에서 시작해 같은 줄에 정렬된다. */}
+          {user && nickname && stats && (
+            <div className="absolute top-0 right-0">
+              <ProfileTrigger nickname={nickname} stats={stats} />
+            </div>
+          )}
+          {children}
+        </div>
       </main>
     </div>
   )
