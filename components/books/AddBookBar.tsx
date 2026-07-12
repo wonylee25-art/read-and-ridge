@@ -34,7 +34,8 @@ export default function AddBookBar({ open: openProp, onOpenChange, variant = 'ho
                   <span className="mr-1">⛰️</span>
                   제목을 검색하거나 ISBN 바코드를 스캔하면<br />
                   책 정보가 자동으로 입력돼요. 페이지는 산의 크기가<br />
-                  돼요. 읽고 있는 책만 지도에 산으로 솟아나요.
+                  돼요. 추가한 책은 지도에 산으로 솟아나요. 잠시 멈춘<br />
+                  책은 설산이 됩니다.
                 </p>
                 <p>
                   <span className="mr-1">🚶</span>
