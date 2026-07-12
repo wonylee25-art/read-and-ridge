@@ -1117,6 +1117,47 @@ const CAPTURE_SIZE = 640
 // 안 떨어진 순간. CLEAR! 텍스트도 260ms 안에 다 나타나 있어 문제없음(2026.07.12 결정).
 const CAPTURE_BURST_PEAK_MS = 2000
 
+// 주인공 산 옆에 곁들이는 "다른 책들" — 축소 비율/투명도/간격. 흐릿한 배경 설산
+// (drawBackgroundRange)과 달리 실제 실루엣·색을 그대로 축소해서 보여줘, 어떤 책들이
+// 옆에 있는지 알아볼 수 있게 한다(2026.07.12, 사용자 피드백 반영).
+const SIDE_MOUNTAIN_SCALE = 0.7
+const SIDE_MOUNTAIN_OPACITY = 0.6
+const SIDE_MOUNTAIN_GAP = 14
+
+function sideMountainNumCols(book: WorldMapBook): number {
+  const steps = STEPS_BY_LEVEL[getLevel(book.total_pages)]
+  const shape = getMountainShape(book)
+  return getMountainProfile(shape, steps, hashString(book.id)).numCols
+}
+
+function sideMountainWidth(book: WorldMapBook): number {
+  return sideMountainNumCols(book) * PX * SIDE_MOUNTAIN_SCALE
+}
+
+// x는 축소 후 기준 "왼쪽 끝" 좌표. (x, mountainBaseY) 지점을 고정점으로 축소해서
+// 그리므로, 산이 작아져도 밑동이 항상 지면(mountainBaseY)과 왼쪽 끝(x)에 붙어 있다.
+function drawSideMountain(
+  ctx: CanvasRenderingContext2D,
+  book: WorldMapBook,
+  mountainBaseY: number,
+  x: number
+) {
+  const steps = STEPS_BY_LEVEL[getLevel(book.total_pages)]
+  const theme = getTheme(book.kdc, book.id)
+  const shape = getMountainShape(book)
+  const seed = hashString(book.id)
+  const profile = getMountainProfile(shape, steps, seed)
+  const baseY = mountainBaseY - (steps + 2) * PX
+
+  ctx.save()
+  ctx.globalAlpha = SIDE_MOUNTAIN_OPACITY
+  ctx.translate(x, mountainBaseY)
+  ctx.scale(SIDE_MOUNTAIN_SCALE, SIDE_MOUNTAIN_SCALE)
+  ctx.translate(-x, -mountainBaseY)
+  drawMountainBody(ctx, profile, steps, theme, x, baseY)
+  ctx.restore()
+}
+
 function renderCompletionCapture(
   book: WorldMapBook,
   allBooks: WorldMapBook[],
@@ -1158,11 +1199,6 @@ function renderCompletionCapture(
 
   const mountainBaseY = groundTopY
 
-  // 배경 산맥 — 방금 완독한 산을 뺀 나머지 책들을 흐릿한 능선으로(기존 배경 설산
-  // 로직 재사용 — design-style.md "브랜드 일관성" 원칙: 새 스타일을 만들지 않음).
-  const others = allBooks.filter((b) => b.id !== book.id && b.status !== 'completed')
-  drawBackgroundRange(ctx, others, size, mountainBaseY)
-
   const level = getLevel(book.total_pages)
   const steps = STEPS_BY_LEVEL[level]
   const theme = getTheme(book.kdc, book.id)
@@ -1174,6 +1210,31 @@ function renderCompletionCapture(
   const baseX = size / 2 - mtnW / 2
   const baseY = mountainBaseY - (steps + 2) * PX
   const peakX = baseX + peakCol * PX + PX / 2
+
+  // 주인공 산 옆에 다른 책들도 실제 산으로(축소·반투명) 보여줘서 "혼자가 아니라
+  // 책장 전체의 맥락 속 완독"이라는 느낌을 준다 — 흐릿한 실루엣 대신 진짜 실루엣/
+  // 색을 축소해서 보여주는 쪽이 "다른 책도 옆에 나온다"는 걸 알아보기 쉬움.
+  // 최대 3권, 왼쪽에 더 많이 배치. 캔버스 폭을 벗어나면 그 이후는 그리지 않는다.
+  const others = allBooks.filter((b) => b.id !== book.id && b.status !== 'completed').slice(0, 3)
+  const leftSideBooks = others.filter((_, i) => i % 2 === 0)
+  const rightSideBooks = others.filter((_, i) => i % 2 === 1)
+
+  let cursorRight = baseX + mtnW + SIDE_MOUNTAIN_GAP
+  rightSideBooks.forEach((b) => {
+    const w = sideMountainWidth(b)
+    if (cursorRight + w > size - 8) return
+    drawSideMountain(ctx, b, mountainBaseY, cursorRight)
+    cursorRight += w + SIDE_MOUNTAIN_GAP
+  })
+
+  let cursorLeft = baseX - SIDE_MOUNTAIN_GAP
+  leftSideBooks.forEach((b) => {
+    const w = sideMountainWidth(b)
+    const x = cursorLeft - w
+    if (x < 8) return
+    drawSideMountain(ctx, b, mountainBaseY, x)
+    cursorLeft = x - SIDE_MOUNTAIN_GAP
+  })
 
   // 주인공 산 좌우로 나무 장식
   const decoBlock = 6
@@ -1305,8 +1366,10 @@ export default function WorldMap({
   const [containerW, setContainerW] = useState(0)
 
   // 산책기록 캡처(정상 인증샷) — 방금 completed로 바뀐 책 id를 잠깐(COMPLETION_GRACE_MS
-  // 동안) 들고 있어서 그 산 위에 "인증샷 찍기" 버튼을 띄운다. mode='home'에서만 쓰임
-  // (viral-capture.md "산책기록 캡처" 트리거 = 세레모니 유예시간 중 버튼, 2026.07.12 결정).
+  // 동안) 들고 있어서 좌하단 카메라 버튼이 "인증샷 찍기"로 동작하게 한다. mode='home'
+  // 에서만 쓰임(viral-capture.md "산책기록 캡처" 트리거 = 세레모니 유예시간 중 버튼,
+  // 2026.07.12 결정. 처음엔 산 위에 따로 버튼을 띄웠으나 메모 말풍선과 겹쳐 보기
+  // 불편하다는 피드백으로 기존 카메라 버튼에 합침).
   const [justCompletedId, setJustCompletedId] = useState<string | null>(null)
   const captureHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -1419,16 +1482,15 @@ export default function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW])
 
-  // "인증샷 찍기" 버튼 위치 — 방금 완독한 산 바로 위(memoBubbles와 같은 방식으로
-  // getMountainRects에서 좌표를 구함). 세레모니 유예시간이 끝나 justCompletedId가
-  // 지워지거나 그 산이 전경에서 사라지면 자동으로 null이 되어 버튼도 사라진다.
+  // 방금 완독한 책 — 있으면 좌하단 카메라 버튼이 "완독 맵 저장" 대신 "인증샷 찍기"로
+  // 동작한다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는 버튼은 메모 말풍선과
+  // 겹쳐 보기 불편하다는 피드백으로 기존 카메라 버튼에 합침, 2026.07.12).
+  // 세레모니 유예시간이 끝나 justCompletedId가 지워지면 자동으로 null이 되어
+  // 버튼도 원래(완독 맵 저장) 동작으로 돌아간다.
   const captureButtonTarget = useMemo(() => {
-    if (mode !== 'home' || !justCompletedId || containerW === 0) return null
-    const rects = getMountainRects(foreground, CANVAS_H, containerW)
-    const rect = rects.find((r) => r.book.id === justCompletedId)
-    if (!rect) return null
-    return { book: rect.book, x: rect.x + rect.w / 2, y: rect.y }
-  }, [mode, justCompletedId, foreground, containerW])
+    if (mode !== 'home' || !justCompletedId) return null
+    return foreground.find((b) => b.id === justCompletedId) ?? null
+  }, [mode, justCompletedId, foreground])
 
   const handleCaptureCompletionShot = useCallback(
     (book: WorldMapBook) => {
@@ -1439,13 +1501,23 @@ export default function WorldMap({
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      // 찍고 나면 버튼을 바로 닫아 같은 산을 두 번 세 번 반복 캡처하는 걸 막지는 않되
-      // (원하면 다시 눌러도 됨), 유예시간이 남아있어도 목적을 이미 달성했으니 정리한다.
+      // 찍고 나면 버튼을 원래(완독 맵 저장) 동작으로 되돌린다 — 다시 인증샷이 필요하면
+      // 좌하단 "완독 맵 저장" 버튼으로 언제든 전체 완독 맵은 받을 수 있음.
       if (captureHintTimeoutRef.current) clearTimeout(captureHintTimeoutRef.current)
       setJustCompletedId(null)
     },
     [books, nickname, fixedHour]
   )
+
+  // 좌하단 카메라 버튼 클릭 — 방금 완독한 책이 있으면 그 산의 인증샷을, 없으면
+  // 기존처럼 전체 완독 맵 파노라마를 찍는다(한 버튼, 상황에 따라 다른 동작).
+  const handleCameraClick = useCallback(() => {
+    if (captureButtonTarget) {
+      handleCaptureCompletionShot(captureButtonTarget)
+    } else {
+      handleCaptureCompletedMap()
+    }
+  }, [captureButtonTarget, handleCaptureCompletionShot, handleCaptureCompletedMap])
 
   const stateRef = useRef({
     hour: fixedHour ?? new Date().getHours(),
@@ -1930,20 +2002,6 @@ export default function WorldMap({
                 <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-amber-50 border-r border-b border-amber-200" />
               </div>
             ))}
-
-          {/* "인증샷 찍기" — 완독 세레모니 유예시간 동안만, 방금 완독한 산 위에 뜸
-              (viral-capture.md 산책기록 캡처 트리거: 자동 팝업 대신 버튼, 2026.07.12 결정) */}
-          {captureButtonTarget && (
-            <button
-              type="button"
-              onClick={() => handleCaptureCompletionShot(captureButtonTarget.book)}
-              className="absolute z-10 flex items-center gap-1 whitespace-nowrap rounded-full bg-white/95 hover:bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 shadow-md active:scale-95 transition-all"
-              style={{ left: captureButtonTarget.x, top: captureButtonTarget.y, transform: 'translate(-50%, calc(-100% - 10px))' }}
-            >
-              <Camera size={13} />
-              인증샷 찍기
-            </button>
-          )}
         </div>
 
         {/* 오로라 이스터에그 — WorldMap 컨테이너(wrap) 안에만 갇히도록 여기(캔버스를
@@ -1951,20 +2009,24 @@ export default function WorldMap({
             덕분에 화면 전체가 아니라 정확히 이 지도 영역 안에서만 보인다. */}
         {auroraActive && <AuroraOverlay onDone={() => setAuroraActive(false)} />}
 
-        {/* 완독 맵 공유 — 왼쪽 하단 카메라 버튼. 스크롤되는 내부 div가 아니라
-            바깥 wrap(고정 크기) 기준으로 둬서, 산이 많아 가로 스크롤이 생겨도
-            버튼은 항상 화면 왼쪽 아래 같은 자리에 고정된다("+ 책 추가" 버튼과 동일한 원칙).
-            별도 미리보기 없이 클릭 즉시 완독한 산만 모은 파노라마 PNG를 다운로드하고,
-            완독한 책이 하나도 없으면 공유할 게 없으니 버튼 자체를 숨긴다. */}
+        {/* 캡처 버튼 — 왼쪽 하단 카메라 버튼 하나로 통일. 스크롤되는 내부 div가 아니라
+            바깥 wrap(고정 크기) 기준으로 둬서, 산이 많아 가로 스크롤이 생겨도 버튼은
+            항상 화면 왼쪽 아래 같은 자리에 고정된다("+ 책 추가" 버튼과 동일한 원칙).
+            방금 완독한 책이 있으면(captureButtonTarget) "인증샷 찍기"로 강조 표시되고,
+            없으면 평소처럼 "완독 맵 저장"(전체 파노라마) 동작 — 산 위에 따로 뜨는
+            버튼은 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로 여기 합침(2026.07.12).
+            완독한 책이 하나도 없으면 찍을 게 없으니 버튼 자체를 숨긴다. */}
         {completedBooks.length > 0 && (
           <button
             type="button"
-            onClick={handleCaptureCompletedMap}
-            title="완독 맵 PNG로 저장"
-            aria-label="완독 맵 PNG로 저장"
-            className="absolute left-3 bottom-3 z-20 flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow-md hover:bg-white active:scale-95 transition-all"
+            onClick={handleCameraClick}
+            title={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
+            aria-label={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
+            className={`absolute left-3 bottom-3 z-20 flex items-center justify-center w-10 h-10 rounded-full shadow-md active:scale-95 transition-all ${
+              captureButtonTarget ? 'bg-amber-400 hover:bg-amber-300 animate-pulse' : 'bg-white/90 hover:bg-white'
+            }`}
           >
-            <Camera size={18} className="text-gray-700" />
+            <Camera size={18} className={captureButtonTarget ? 'text-white' : 'text-gray-700'} />
           </button>
         )}
       </div>
