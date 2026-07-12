@@ -537,8 +537,8 @@ function drawCloud(
 }
 
 // 픽셀 스타일 태양 (원형+글로우 → 사각 블록으로 교체, 데모와 동일)
-function drawPixelSun(ctx: CanvasRenderingContext2D, x: number, y: number) {
-  const b = 6
+function drawPixelSun(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number = 1) {
+  const b = 6 * scale
   // 광선 (연노랑)
   ctx.fillStyle = '#ffe27a'
   const rays: [number, number][] = [
@@ -1131,8 +1131,11 @@ function sideMountainNumCols(book: WorldMapBook): number {
   return getMountainProfile(shape, steps, hashString(book.id)).numCols
 }
 
-function sideMountainWidth(book: WorldMapBook): number {
-  return sideMountainNumCols(book) * PX * SIDE_MOUNTAIN_SCALE
+// zoom — 주인공 산이 커지는 배율에 맞춰 옆산도 함께 커지도록 하는 배수(기본 1 =
+// 기존 SIDE_MOUNTAIN_SCALE 그대로). 2026.07.12 "다른 산이나 해도 같이 커지는
+// 방식은 어려워?" 피드백 반영.
+function sideMountainWidth(book: WorldMapBook, zoom: number = 1): number {
+  return sideMountainNumCols(book) * PX * SIDE_MOUNTAIN_SCALE * zoom
 }
 
 // x는 축소 후 기준 "왼쪽 끝" 좌표. (x, mountainBaseY) 지점을 고정점으로 축소해서
@@ -1141,7 +1144,8 @@ function drawSideMountain(
   ctx: CanvasRenderingContext2D,
   book: WorldMapBook,
   mountainBaseY: number,
-  x: number
+  x: number,
+  zoom: number = 1
 ) {
   const steps = STEPS_BY_LEVEL[getLevel(book.total_pages)]
   const theme = getTheme(book.kdc, book.id)
@@ -1149,11 +1153,12 @@ function drawSideMountain(
   const seed = hashString(book.id)
   const profile = getMountainProfile(shape, steps, seed)
   const baseY = mountainBaseY - (steps + 2) * PX
+  const scale = SIDE_MOUNTAIN_SCALE * zoom
 
   ctx.save()
   ctx.globalAlpha = SIDE_MOUNTAIN_OPACITY
   ctx.translate(x, mountainBaseY)
-  ctx.scale(SIDE_MOUNTAIN_SCALE, SIDE_MOUNTAIN_SCALE)
+  ctx.scale(scale, scale)
   ctx.translate(-x, -mountainBaseY)
   drawMountainBody(ctx, profile, steps, theme, x, baseY)
   ctx.restore()
@@ -1180,14 +1185,6 @@ function renderCompletionCapture(
   skyGrad.addColorStop(1, sky.bottomColor)
   ctx.fillStyle = skyGrad
   ctx.fillRect(0, 0, size, groundTopY)
-
-  if (sky.daytime) {
-    drawPixelSun(ctx, size - 64, 28)
-  } else if (sky.stars) {
-    makeStars(40).forEach((st) => {
-      drawStar(ctx, st.xRatio * size, st.yRatio * groundTopY, st.r, st.opacity)
-    })
-  }
 
   // 지면
   const groundGrad = ctx.createLinearGradient(0, groundTopY, 0, size)
@@ -1216,21 +1213,36 @@ function renderCompletionCapture(
 
   // 주인공 산 확대 — 원래 페이지수 기반 크기 그대로 그리면 하늘 여백이 너무 커서
   // (사용자 피드백 2026.07.12: "하늘 여백이 너무 많은데 산을 더 키워서 2/3 정도
-  // 위치하도록") 캔버스 중심(heroCenterX, mountainBaseY)을 고정점으로 확대해
-  // 프레임의 대략 절반~2/3를 채우도록 한다. 세로로만 늘리면 픽셀이 찌그러지므로
-  // 가로세로 동일 배율(ctx.scale(S,S))로 확대하되, 옆산/캔버스 밖으로 넘치지
-  // 않게 가로 폭 상한도 함께 걸어 둘 중 더 작은 배율을 쓴다.
+  // 위치하도록") 캔버스 중심(heroCenterX, mountainBaseY)을 고정점으로 확대한다.
+  // 세로로만 늘리면 픽셀이 찌그러지므로 가로세로 동일 배율(ctx.scale(S,S))로
+  // 확대하되, 옆산/캔버스 밖으로 넘치지 않게 가로 폭 상한도 함께 건다.
+  // → 이렇게 계산한 값이 "너무 크다"는 후속 피드백(2026.07.12)으로 최종 배율은
+  // 그 절반만 적용(zoom). 대신 이 zoom을 옆산·해에도 그대로 나눠줘서 주인공 산
+  // 혼자만 커지는 게 아니라 장면 전체가 함께 확대되도록 한다("다른 산이나 해도
+  // 같이 커지는 방식은 어려워?").
   const HERO_TARGET_HEIGHT = size * 0.59 // 목표: 산이 세로 프레임의 약 2/3 지점까지 닿도록
   const HERO_MAX_WIDTH = size * 0.75 // 옆산이 그려질 여백을 남기기 위한 가로 상한
   const HERO_MAX_SCALE = 4.5 // 너무 작은 책(steps 적음)이 과하게 블록져 보이지 않게 상한
-  const heroScale = Math.min(
+  const rawHeroScale = Math.min(
     Math.max(HERO_TARGET_HEIGHT / naturalHeight, 1),
     Math.max(HERO_MAX_WIDTH / mtnW, 1),
     HERO_MAX_SCALE
   )
+  const HERO_SCALE_ADJUST = 0.5 // "여기서 1/2 정도면 좋겠어" 반영
+  const heroScale = Math.max(rawHeroScale * HERO_SCALE_ADJUST, 1)
+  const zoom = heroScale // 옆산·해와 공유하는 장면 공통 확대 배율
   const scaledMtnW = mtnW * heroScale
   const scaledLeft = heroCenterX - scaledMtnW / 2
   const scaledRight = heroCenterX + scaledMtnW / 2
+
+  // 하늘의 해/별 — 산이 커진 만큼(zoom) 같은 비율로 함께 키운다.
+  if (sky.daytime) {
+    drawPixelSun(ctx, size - 64, 28, zoom)
+  } else if (sky.stars) {
+    makeStars(40).forEach((st) => {
+      drawStar(ctx, st.xRatio * size, st.yRatio * groundTopY, st.r, st.opacity)
+    })
+  }
 
   // 주인공 산 옆에 다른 책들도 실제 산으로(축소·반투명) 보여줘서 "혼자가 아니라
   // 책장 전체의 맥락 속 완독"이라는 느낌을 준다 — 흐릿한 실루엣 대신 진짜 실루엣/
@@ -1243,18 +1255,18 @@ function renderCompletionCapture(
 
   let cursorRight = scaledRight + SIDE_MOUNTAIN_GAP
   rightSideBooks.forEach((b) => {
-    const w = sideMountainWidth(b)
+    const w = sideMountainWidth(b, zoom)
     if (cursorRight + w > size - 8) return
-    drawSideMountain(ctx, b, mountainBaseY, cursorRight)
+    drawSideMountain(ctx, b, mountainBaseY, cursorRight, zoom)
     cursorRight += w + SIDE_MOUNTAIN_GAP
   })
 
   let cursorLeft = scaledLeft - SIDE_MOUNTAIN_GAP
   leftSideBooks.forEach((b) => {
-    const w = sideMountainWidth(b)
+    const w = sideMountainWidth(b, zoom)
     const x = cursorLeft - w
     if (x < 8) return
-    drawSideMountain(ctx, b, mountainBaseY, x)
+    drawSideMountain(ctx, b, mountainBaseY, x, zoom)
     cursorLeft = x - SIDE_MOUNTAIN_GAP
   })
 

@@ -3,6 +3,15 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.8 — 2026-07-12 (17)
+
+- **정상 인증샷 산 크기 재조정 + 옆산·해도 함께 확대** — `components/worldmap/WorldMap.tsx`
+  `renderCompletionCapture()`. 직전 확대(2/3 지점 목표)가 너무 크다는 피드백으로 최종
+  배율을 그 절반만 적용(`HERO_SCALE_ADJUST = 0.5`, 최소 1배 보장). 대신 이 배율(`zoom`)을
+  주인공 산 혼자만이 아니라 옆산(`drawSideMountain`/`sideMountainWidth`에 `zoom` 인자
+  추가)과 해(`drawPixelSun`에 `scale` 인자 추가)에도 함께 적용해 장면 전체가 조화롭게
+  커지도록 함.
+
 ## 0.4.7 — 2026-07-12 (16)
 
 - **"인증샷 찍기" 라벨 재축소** — `components/worldmap/SlideToCapture.tsx`. 직전에
