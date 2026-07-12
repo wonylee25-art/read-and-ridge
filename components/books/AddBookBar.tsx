@@ -55,7 +55,7 @@ export default function AddBookBar({ open: openProp, onOpenChange, variant = 'ho
                 <p>
                   <span className="mr-1">🚩</span>
                   완독하면 정상에 깃발이 꽂혀요.<br />
-                  완등기록은 지도 아래 차곡차곡 쌓입니다.
+                  완등기록은 지도 위에 차곡차곡 쌓입니다.
                 </p>
                 <p>
                   <span className="mr-1">⛰️</span>
