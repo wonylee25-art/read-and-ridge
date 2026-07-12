@@ -73,28 +73,42 @@ const KDC_THEME: Record<string, { fill: string; edge: string; snow: string; base
   default: { fill: '#3aac6e', edge: '#1a6640', snow: '#d6f5e6', base: '#0e4228', char: '#c04a8a' },
 }
 
-const INDEX_THEMES = [
-  KDC_THEME.fantasy,
-  KDC_THEME.earth,
-  KDC_THEME.nature,
-  KDC_THEME.mystery,
-]
+type KdcThemeKey = 'mystery' | 'earth' | 'nature' | 'fantasy'
+
+const INDEX_THEME_KEYS: KdcThemeKey[] = ['fantasy', 'earth', 'nature', 'mystery']
 
 // ⚠ 예전엔 kdc가 없는 책의 색을 foreground 배열 안에서의 순번(index)으로 정했는데,
 // 같은 책이라도 산책기록/완등기록에서 배열 구성·순서가 서로 달라서(등록순 vs
 // 완독순, 개수도 다름) 페이지를 옮겨 다니면 색이 바뀌어 보이는 문제가 있었음.
 // book.id를 시드로 쓰는 결정론적 해시로 바꿔서, kdc가 없어도 그 책은 어디서
 // 봐도 항상 같은 색이 나오게 함(깃발 색과 동일한 방식 — getFlagColor 참고).
-function getTheme(kdc: string | null | undefined, bookId: string) {
+// 키(문자열)로 먼저 결정하고 getTheme()이 그 위에서 실제 색 객체를 반환하는 얇은
+// wrapper인 이유는, 바이럴 캡처의 KDC 뱃지(countByTheme)가 색 객체가 아니라
+// "어느 테마인지"만 필요해서 — 색 4종의 참조 동일성 비교보다 키 비교가 안전함.
+function getThemeKey(kdc: string | null | undefined, bookId: string): KdcThemeKey {
   if (kdc) {
     const d = kdc[0]
-    if ('012'.includes(d)) return KDC_THEME.mystery
-    if ('379'.includes(d)) return KDC_THEME.earth
-    if ('45'.includes(d))  return KDC_THEME.nature
-    if ('68'.includes(d))  return KDC_THEME.fantasy
+    if ('012'.includes(d)) return 'mystery'
+    if ('379'.includes(d)) return 'earth'
+    if ('45'.includes(d))  return 'nature'
+    if ('68'.includes(d))  return 'fantasy'
   }
-  const idx = Math.abs(hashString(bookId)) % INDEX_THEMES.length
-  return INDEX_THEMES[idx]
+  const idx = Math.abs(hashString(bookId)) % INDEX_THEME_KEYS.length
+  return INDEX_THEME_KEYS[idx]
+}
+
+function getTheme(kdc: string | null | undefined, bookId: string) {
+  return KDC_THEME[getThemeKey(kdc, bookId)]
+}
+
+// 책 목록을 KDC 테마별 개수로 집계 — 바이럴 캡처 왼쪽 상단 컬러 뱃지용
+// (viral-capture.md "왼쪽 상단 컬러 뱃지" 참고. 라벨 없이 색+숫자만 노출).
+function countByTheme(books: WorldMapBook[]): Record<KdcThemeKey, number> {
+  const counts: Record<KdcThemeKey, number> = { mystery: 0, earth: 0, nature: 0, fantasy: 0 }
+  books.forEach((b) => {
+    counts[getThemeKey(b.kdc, b.id)]++
+  })
+  return counts
 }
 
 const STATUS_LABEL: Record<WorldMapBook['status'], string> = {
@@ -438,6 +452,33 @@ function drawMountainBody(
       drawPixel(ctx, baseX + col * PX, baseY + steps * PX + r * PX, theme.edge)
     }
   }
+}
+
+const KDC_BADGE_ORDER: KdcThemeKey[] = ['mystery', 'earth', 'nature', 'fantasy']
+
+// 왼쪽 상단 KDC 색 구성 뱃지 — 바이럴 캡처(PNG) 전용. "문학 5권" 같은 라벨 없이
+// 산 색 스와치 + 개수만 노출한다(design-style.md "KDC 값은 텍스트로 절대 노출하지
+// 않는다" 원칙). 0권인 색은 뱃지 자체를 생략해 정보를 절제한다.
+function drawKdcBadge(
+  ctx: CanvasRenderingContext2D,
+  counts: Record<KdcThemeKey, number>,
+  x: number,
+  y: number
+) {
+  let cx = x
+  KDC_BADGE_ORDER.forEach((key) => {
+    const n = counts[key]
+    if (n <= 0) return
+    const theme = KDC_THEME[key]
+    drawPixel(ctx, cx, y, theme.fill, 10)
+    ctx.font = 'bold 11px monospace'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#fdf6e3'
+    const label = String(n)
+    ctx.fillText(label, cx + 14, y + 6)
+    cx += 14 + ctx.measureText(label).width + 10
+  })
 }
 
 // drawChar/drawDanceChar가 공유하는 렌더링 로직 — 프레임에 따라 A/B 두 포즈 중
@@ -957,7 +998,11 @@ function drawMemoBubble(
 // 산 사이 간격 — 화면 표시용 GAP(20)보다 좁게 잡아 PNG에서는 산끼리 더 붙어 보이게 함
 const PANO_GAP = 8
 
-function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): HTMLCanvasElement {
+function renderCompletedPanorama(
+  completedBooks: WorldMapBook[],
+  hour: number,
+  nickname?: string
+): HTMLCanvasElement {
   // completedBooks는 호출 측에서 이미 최근 완독순(내림차순)으로 정렬해서 넘겨줌.
   const front = completedBooks.slice(0, TARGET_TROPHY)
   const back = completedBooks.slice(TARGET_TROPHY)
@@ -1048,7 +1093,123 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
     }
   })
 
-  drawWatermark(ctx, canvasW, canvasH)
+  // 왼쪽 상단 KDC 뱃지 — 완등기록 캡처는 "완독한 산만" 기준으로 집계(viral-capture.md).
+  // 화면(전경 front)엔 TARGET_TROPHY개만 그려지지만, 뱃지 숫자는 캡과 무관하게
+  // completedBooks(호출 측이 넘겨준 전체 완독 목록) 전부를 기준으로 해야
+  // "화면에 그려진 것만 세면 다독자일수록 숫자가 작아지는" 역설을 피할 수 있다.
+  drawKdcBadge(ctx, countByTheme(completedBooks), 16, 16)
+
+  drawWatermark(ctx, canvasW, canvasH, nickname)
+
+  return canvas
+}
+
+// ─── 산책기록 캡처 (정상 인증샷, 1:1 정사각형) ────────────────────────────────
+// viral-capture.md "두 가지 캡처 모드" 중 산책기록 쪽. 완독 세레모니 유예시간
+// (COMPLETION_GRACE_MS) 동안 뜨는 "인증샷 찍기" 버튼을 누르면 호출된다.
+// 라이브 화면(rAF 루프)의 burst는 Math.random() 기반이라 매번 다르게 퍼지지만,
+// 이 캡처는 다시 눌러도 항상 같은 사진이 나오도록 book.id로 시드 고정한 별도
+// 파티클 세트를 새로 만든다(산 실루엣·눈 패턴 등 다른 요소와 같은 원칙).
+const CAPTURE_SIZE = 640
+
+// "피크 프레임" 고정 시점 — drawBurstParticles 물리식 기준 outward(퍼짐)가 1.0에
+// 도달하고 fade는 아직 0.8, drift(낙하)는 0.04뿐이라 폭죽이 가장 화려하고 아직
+// 안 떨어진 순간. CLEAR! 텍스트도 260ms 안에 다 나타나 있어 문제없음(2026.07.12 결정).
+const CAPTURE_BURST_PEAK_MS = 2000
+
+function renderCompletionCapture(
+  book: WorldMapBook,
+  allBooks: WorldMapBook[],
+  nickname: string,
+  hour: number
+): HTMLCanvasElement {
+  const size = CAPTURE_SIZE
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = false
+
+  // 하늘 — 캡처 버튼을 누른 시점의 실제 시각(hour)을 그대로 반영.
+  const sky = getSky(hour)
+  const groundTopY = size - GROUND_H
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, groundTopY)
+  skyGrad.addColorStop(0, sky.topColor)
+  skyGrad.addColorStop(1, sky.bottomColor)
+  ctx.fillStyle = skyGrad
+  ctx.fillRect(0, 0, size, groundTopY)
+
+  if (sky.daytime) {
+    drawPixelSun(ctx, size - 64, 28)
+  } else if (sky.stars) {
+    makeStars(40).forEach((st) => {
+      drawStar(ctx, st.xRatio * size, st.yRatio * groundTopY, st.r, st.opacity)
+    })
+  }
+
+  // 지면
+  const groundGrad = ctx.createLinearGradient(0, groundTopY, 0, size)
+  groundGrad.addColorStop(0, '#2c5423')
+  groundGrad.addColorStop(1, '#1d3a18')
+  ctx.fillStyle = groundGrad
+  ctx.fillRect(0, groundTopY, size, GROUND_H)
+  ctx.fillStyle = '#55a141'
+  ctx.fillRect(0, groundTopY, size, 6)
+
+  const mountainBaseY = groundTopY
+
+  // 배경 산맥 — 방금 완독한 산을 뺀 나머지 책들을 흐릿한 능선으로(기존 배경 설산
+  // 로직 재사용 — design-style.md "브랜드 일관성" 원칙: 새 스타일을 만들지 않음).
+  const others = allBooks.filter((b) => b.id !== book.id && b.status !== 'completed')
+  drawBackgroundRange(ctx, others, size, mountainBaseY)
+
+  const level = getLevel(book.total_pages)
+  const steps = STEPS_BY_LEVEL[level]
+  const theme = getTheme(book.kdc, book.id)
+  const shape = getMountainShape(book)
+  const seed = hashString(book.id)
+  const profile = getMountainProfile(shape, steps, seed)
+  const mtnW = profile.numCols * PX
+  const peakCol = profile.peakCols[profile.peakCols.length - 1]
+  const baseX = size / 2 - mtnW / 2
+  const baseY = mountainBaseY - (steps + 2) * PX
+  const peakX = baseX + peakCol * PX + PX / 2
+
+  // 주인공 산 좌우로 나무 장식
+  const decoBlock = 6
+  drawSprite(ctx, TREE_ROWS, TREE_COLORS, baseX - 44, mountainBaseY, decoBlock)
+  drawSprite(ctx, TREE_ROWS, TREE_COLORS, baseX + mtnW + 8, mountainBaseY, decoBlock)
+
+  // 산 본체 — 실제 라이브 화면과 동일한 실루엣 계산(getMountainShape/getMountainProfile)
+  drawMountainBody(ctx, profile, steps, theme, baseX, baseY)
+
+  // 완등 세레모니 "피크 프레임" — 책 id로 시드 고정한 파티클로 항상 같은 구도 재현
+  const burstRand = mulberry32(seed)
+  const particles = Array.from({ length: BURST_PARTICLE_COUNT }, () => ({
+    angle: burstRand() * Math.PI * 2,
+    speed: 0.7 + burstRand() * 1.5,
+    color: BURST_COLORS[Math.floor(burstRand() * BURST_COLORS.length)],
+    size: 3 + Math.floor(burstRand() * 3),
+  }))
+  drawDanceChar(ctx, peakX, baseY, 0, theme.char)
+  drawClearPixelText(ctx, CAPTURE_BURST_PEAK_MS, peakX, baseY - 26)
+  drawBurstParticles(ctx, { startedAt: 0, particles }, CAPTURE_BURST_PEAK_MS, peakX, baseY)
+
+  // 책 제목 + 완독일만 최소 노출 (진행률 %, 페이지 수 등은 넣지 않음 — "정보 절제" 원칙)
+  drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, Math.max(mtnW, 160))
+  if (book.completed_at) {
+    const dateLabel = new Date(book.completed_at).toISOString().slice(0, 10).replaceAll('-', '.')
+    ctx.font = '10px monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = 'rgba(253,246,227,0.75)'
+    ctx.fillText(dateLabel, baseX + mtnW / 2, mountainBaseY + 20)
+  }
+
+  // 왼쪽 상단 KDC 뱃지 — 산책기록 캡처는 "책장 전체(읽는 중+완독+미시작)" 기준
+  drawKdcBadge(ctx, countByTheme(allBooks), 16, 16)
+
+  drawWatermark(ctx, size, size, nickname)
 
   return canvas
 }
@@ -1084,8 +1245,9 @@ function drawTutorialLabel(ctx: CanvasRenderingContext2D, timestamp: number, cx:
 }
 
 // PNG 우측 하단 워터마크 — drawMountainTitle과 같은 크림색 텍스트(외곽선 없음).
-function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number) {
-  const text = '산책또산책'
+// 닉네임이 있으면 "산책또산책 | 닉네임" 형식으로 붙여서 "누구의 기록인지" 남긴다.
+function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, nickname?: string) {
+  const text = nickname ? `산책또산책 | ${nickname}` : '산책또산책'
   ctx.font = '12px monospace'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
@@ -1118,6 +1280,7 @@ export default function WorldMap({
   mode = 'home',       // 'home' = 전경/배경 분리 + 읽는 중 캐릭터. 'trophy' = 완등기록용 —
                         // 넘어온 책 전부를 그대로 보여주고(배경 없음), 산/나무/모닥불/깃발만
   demo = false,        // 비로그인 예시 지형도(랜딩페이지)에서만 true — 깜빡이는 TUTORIAL 라벨 노출
+  nickname,            // PNG 캡처(완독 맵/정상 인증샷) 워터마크용. 없으면 앱 이름만 찍힘.
 }: {
   books?: WorldMapBook[]
   onBookClick?: (book: WorldMapBook) => void
@@ -1125,6 +1288,7 @@ export default function WorldMap({
   fixedHour?: number | null
   mode?: 'home' | 'trophy'
   demo?: boolean
+  nickname?: string
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -1140,6 +1304,12 @@ export default function WorldMap({
   // 메모 말풍선 위치 계산용 — 캔버스와 별개로 컨테이너 실측 폭을 상태로도 들고 있음
   const [containerW, setContainerW] = useState(0)
 
+  // 산책기록 캡처(정상 인증샷) — 방금 completed로 바뀐 책 id를 잠깐(COMPLETION_GRACE_MS
+  // 동안) 들고 있어서 그 산 위에 "인증샷 찍기" 버튼을 띄운다. mode='home'에서만 쓰임
+  // (viral-capture.md "산책기록 캡처" 트리거 = 세레모니 유예시간 중 버튼, 2026.07.12 결정).
+  const [justCompletedId, setJustCompletedId] = useState<string | null>(null)
+  const captureHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // 완독 맵 공유(PNG) — foreground/background로 나뉘기 전의 books 원본에서 완독한
   // 책만 골라 최근 완독순(내림차순)으로 정렬해둔다. 호출 측(dashboard/hikes) 쿼리 정렬이
   // 서로 달라(하나는 created_at, 하나는 completed_at) 여기서 직접 정렬해야 안전함.
@@ -1154,14 +1324,14 @@ export default function WorldMap({
     if (completedBooks.length === 0) return
     // fixedHour가 지정돼 있으면 그 값을, 아니면 저장 버튼을 누른 실제 현재 시각을 사용 —
     // 지금 화면에 보이는 하늘(낮/밤)과 항상 같은 모습으로 저장되도록.
-    const panorama = renderCompletedPanorama(completedBooks, fixedHour ?? new Date().getHours())
+    const panorama = renderCompletedPanorama(completedBooks, fixedHour ?? new Date().getHours(), nickname)
     const link = document.createElement('a')
     link.href = panorama.toDataURL('image/png')
     link.download = `산책또산책_완독맵_${todayFileDateKey()}.png`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  }, [completedBooks, fixedHour])
+  }, [completedBooks, fixedHour, nickname])
 
   useEffect(() => {
     setTooltip(null)
@@ -1249,6 +1419,34 @@ export default function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW])
 
+  // "인증샷 찍기" 버튼 위치 — 방금 완독한 산 바로 위(memoBubbles와 같은 방식으로
+  // getMountainRects에서 좌표를 구함). 세레모니 유예시간이 끝나 justCompletedId가
+  // 지워지거나 그 산이 전경에서 사라지면 자동으로 null이 되어 버튼도 사라진다.
+  const captureButtonTarget = useMemo(() => {
+    if (mode !== 'home' || !justCompletedId || containerW === 0) return null
+    const rects = getMountainRects(foreground, CANVAS_H, containerW)
+    const rect = rects.find((r) => r.book.id === justCompletedId)
+    if (!rect) return null
+    return { book: rect.book, x: rect.x + rect.w / 2, y: rect.y }
+  }, [mode, justCompletedId, foreground, containerW])
+
+  const handleCaptureCompletionShot = useCallback(
+    (book: WorldMapBook) => {
+      const shot = renderCompletionCapture(book, books, nickname ?? '산책자', fixedHour ?? new Date().getHours())
+      const link = document.createElement('a')
+      link.href = shot.toDataURL('image/png')
+      link.download = `산책또산책_정상인증샷_${todayFileDateKey()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      // 찍고 나면 버튼을 바로 닫아 같은 산을 두 번 세 번 반복 캡처하는 걸 막지는 않되
+      // (원하면 다시 눌러도 됨), 유예시간이 남아있어도 목적을 이미 달성했으니 정리한다.
+      if (captureHintTimeoutRef.current) clearTimeout(captureHintTimeoutRef.current)
+      setJustCompletedId(null)
+    },
+    [books, nickname, fixedHour]
+  )
+
   const stateRef = useRef({
     hour: fixedHour ?? new Date().getHours(),
     bounceFrame: 0,
@@ -1278,11 +1476,24 @@ export default function WorldMap({
         const prevStatus = prev.get(b.id)
         if (b.status === 'completed' && prevStatus && prevStatus !== 'completed') {
           stateRef.current.bursts.set(b.id, { startedAt: performance.now(), particles: makeBurstParticles() })
+          // 산책기록(home)에서만 "인증샷 찍기" 버튼을 세레모니 유예시간만큼 띄워둔다.
+          if (mode === 'home') {
+            if (captureHintTimeoutRef.current) clearTimeout(captureHintTimeoutRef.current)
+            setJustCompletedId(b.id)
+            captureHintTimeoutRef.current = setTimeout(() => setJustCompletedId(null), COMPLETION_GRACE_MS)
+          }
         }
       })
     }
     prevStatusRef.current = new Map(books.map((b) => [b.id, b.status]))
-  }, [books])
+  }, [books, mode])
+
+  // 언마운트 시 캡처 버튼 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (captureHintTimeoutRef.current) clearTimeout(captureHintTimeoutRef.current)
+    }
+  }, [])
 
   // 오로라 이스터에그 트리거 — books prop이 갱신될 때마다 "이번에 새로 나타난 책 id"를
   // 찾아, 그중에 개발자 지정 오로라 책(lib/aurora-books.ts)이 있으면 WorldMap 안에서만
@@ -1719,6 +1930,20 @@ export default function WorldMap({
                 <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-amber-50 border-r border-b border-amber-200" />
               </div>
             ))}
+
+          {/* "인증샷 찍기" — 완독 세레모니 유예시간 동안만, 방금 완독한 산 위에 뜸
+              (viral-capture.md 산책기록 캡처 트리거: 자동 팝업 대신 버튼, 2026.07.12 결정) */}
+          {captureButtonTarget && (
+            <button
+              type="button"
+              onClick={() => handleCaptureCompletionShot(captureButtonTarget.book)}
+              className="absolute z-10 flex items-center gap-1 whitespace-nowrap rounded-full bg-white/95 hover:bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 shadow-md active:scale-95 transition-all"
+              style={{ left: captureButtonTarget.x, top: captureButtonTarget.y, transform: 'translate(-50%, calc(-100% - 10px))' }}
+            >
+              <Camera size={13} />
+              인증샷 찍기
+            </button>
+          )}
         </div>
 
         {/* 오로라 이스터에그 — WorldMap 컨테이너(wrap) 안에만 갇히도록 여기(캔버스를

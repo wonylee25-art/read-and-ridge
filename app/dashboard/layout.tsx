@@ -2,6 +2,7 @@ import Sidebar from '@/components/dashboard/Sidebar'
 import ProfileTrigger from '@/components/dashboard/ProfileTrigger'
 import { createClient } from '@/lib/supabase/server'
 import { DISTANCE_PER_PAGE_M } from '@/components/worldmap/worldmap-utils'
+import { getNicknameFromUser } from '@/lib/nickname'
 
 export default async function DashboardLayout({
   children,
@@ -27,11 +28,7 @@ export default async function DashboardLayout({
   } | null = null
 
   if (user) {
-    nickname =
-      (user.user_metadata?.nickname as string | undefined) ||
-      (user.user_metadata?.full_name as string | undefined) ||
-      (user.user_metadata?.name as string | undefined) ||
-      '산책자'
+    nickname = getNicknameFromUser(user)
 
     const { data: books } = await supabase
       .from('books')

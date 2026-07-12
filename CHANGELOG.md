@@ -3,6 +3,23 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.0 — 2026-07-12 (9)
+
+- **바이럴 캡처(정상 인증샷) 구현** — `components/worldmap/WorldMap.tsx`. 그동안 기획만
+  있고 코드는 없던 `docs/features/viral-capture.md` 기능을 실제로 붙임. 열린 질문 3개를
+  결정하고 반영: (1) 트리거는 완독 순간 자동 팝업 대신 세레모니 유예시간 중 뜨는
+  "인증샷 찍기" 버튼, (2) 폭죽 피크 프레임은 elapsed=2000ms 고정(퍼짐 최대·아직
+  안 흐려짐 시점), (3) 워터마크는 "산책또산책 | 닉네임" 형식.
+  - `renderCompletionCapture()` — 산책기록 캡처(1:1 정사각형). 방금 완독한 산을 중심에
+    크게, 나머지 책은 흐린 배경 능선으로, CLEAR!+폭죽+정상 댄스 캐릭터를 책 id로
+    시드 고정한 파티클로 재현 가능하게 그림. 책 제목+완독일만 노출(정보 절제 원칙).
+  - `drawKdcBadge()`/`countByTheme()` — 왼쪽 상단 KDC 색 구성 뱃지(라벨 없이 색+숫자만).
+    산책기록 캡처는 책장 전체, 완등기록 캡처(`renderCompletedPanorama`)는 완독한 산
+    전체(화면 표시 캡(`TARGET_TROPHY`)과 무관) 기준으로 집계.
+  - `drawWatermark()`가 `nickname` 인자를 받아 "산책또산책 | {닉네임}" 형식으로 표시.
+    `lib/nickname.ts`(신규, `getNicknameFromUser()`)로 닉네임 도출 로직을 `layout.tsx`·
+    `dashboard/page.tsx`·`hikes/page.tsx` 세 곳이 공유하도록 정리(중복 제거).
+
 ## 0.3.5 — 2026-07-12 (8)
 
 - **시간대별 인사 문구 추가** — `components/dashboard/ProfileTrigger.tsx`. "{닉네임}님,

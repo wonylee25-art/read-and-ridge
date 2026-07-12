@@ -8,6 +8,7 @@ import StatCard from '@/components/dashboard/StatCard'
 import EmptyState from '@/components/dashboard/EmptyState'
 import { toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { DEMO_HOME_BOOKS } from '@/lib/demo-books'
+import { getNicknameFromUser } from '@/lib/nickname'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -78,6 +79,7 @@ export default async function DashboardPage() {
     .reduce((sum, b) => sum + (b.current_page ?? 0), 0)
 
   const worldMapBooks = toWorldMapBooks(books)
+  const nickname = getNicknameFromUser(user) // WorldMap PNG 캡처(정상 인증샷/완독 맵) 워터마크용
 
   const stats = [
     { label: '내가 산 책', value: myBooksCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
@@ -92,7 +94,7 @@ export default async function DashboardPage() {
 
       {/* 상단 — 예전 홈: WorldMap + 통계 */}
       <div className="space-y-6 mb-10">
-        <WorldMapClient books={worldMapBooks} />
+        <WorldMapClient books={worldMapBooks} nickname={nickname} />
 
         <div className="grid grid-cols-2 gap-3">
           {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}

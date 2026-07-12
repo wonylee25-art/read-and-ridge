@@ -10,11 +10,13 @@ import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
 export default function WorldMapClient({
   books,
   authenticated = true,
+  nickname,
 }: {
   books: WorldMapBook[]
   // 비로그인(예시 지형도) 상태 — 산 클릭으로 게이지를 만져볼 순 있지만
   // 저장하려 하거나 책을 추가하려 하면 구글 로그인으로 유도한다.
   authenticated?: boolean
+  nickname?: string // WorldMap PNG 캡처(정상 인증샷/완독 맵) 워터마크용
 }) {
   const [selectedBook, setSelectedBook] = useState<WorldMapBook | null>(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -45,7 +47,7 @@ export default function WorldMapClient({
           바 자체(버튼/폼/설명문)는 AddBookBar로 공용화 — 완등기록 페이지에서도 재사용. */}
       <AddBookBar open={addOpen} onOpenChange={setAddOpen} authenticated={authenticated} />
 
-      <WorldMap books={books} onBookClick={handleBookClick} onAddBook={handleAddBookTrigger} demo={!authenticated} />
+      <WorldMap books={books} onBookClick={handleBookClick} onAddBook={handleAddBookTrigger} demo={!authenticated} nickname={nickname} />
       {selectedBook && (
         <ProgressModal
           book={selectedBook}
