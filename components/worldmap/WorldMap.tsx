@@ -922,7 +922,9 @@ function drawMountainTitle(
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
   const text = truncateToWidth(ctx, title, maxWidth + 14)
-  const y = groundTopY + 7
+  // 산 밑동(groundTopY)과 제목 사이 여백 — 너무 붙어 보인다는 피드백(2026.07.12)으로
+  // 7px → 12px로 살짝 띄움(닿지 않을 정도로만).
+  const y = groundTopY + 12
   ctx.fillStyle = '#fdf6e3'
   ctx.fillText(text, cx, y)
 }
@@ -1302,7 +1304,7 @@ function renderCompletionCapture(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.fillStyle = 'rgba(253,246,227,0.75)'
-    ctx.fillText(dateLabel, heroCenterX, mountainBaseY + 20)
+    ctx.fillText(dateLabel, heroCenterX, mountainBaseY + 25)
   }
 
   // 왼쪽 상단 KDC 뱃지 — 산책기록 캡처는 "책장 전체(읽는 중+완독+미시작)" 기준

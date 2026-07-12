@@ -3,6 +3,14 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.11 — 2026-07-12 (20)
+
+- **산-책 제목 간격 확보** — `components/worldmap/WorldMap.tsx`의 `drawMountainTitle()`.
+  산 밑동(지면 시작선)과 책 제목 텍스트가 너무 붙어 보인다는 피드백으로 y 오프셋을
+  7px → 12px로 소폭 확대(닿지 않을 정도로만). 산책기록 인증샷의 완독일 텍스트도
+  같은 간격을 유지하도록 20px → 25px로 함께 밀어냄. 완등기록 파노라마(같은 함수 공유)에도
+  동일하게 반영됨.
+
 ## 0.4.10 — 2026-07-12 (19)
 
 - **정상 인증샷 산 크기 3/4로 축소** — `components/worldmap/WorldMap.tsx`
