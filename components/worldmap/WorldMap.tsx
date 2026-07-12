@@ -1211,25 +1211,15 @@ function renderCompletionCapture(
   const baseY = mountainBaseY - naturalHeight
   const peakX = baseX + peakCol * PX + PX / 2
 
-  // 주인공 산 확대 — 원래 페이지수 기반 크기 그대로 그리면 하늘 여백이 너무 커서
-  // (사용자 피드백 2026.07.12: "하늘 여백이 너무 많은데 산을 더 키워서 2/3 정도
-  // 위치하도록") 캔버스 중심(heroCenterX, mountainBaseY)을 고정점으로 확대한다.
-  // 세로로만 늘리면 픽셀이 찌그러지므로 가로세로 동일 배율(ctx.scale(S,S))로
-  // 확대하되, 옆산/캔버스 밖으로 넘치지 않게 가로 폭 상한도 함께 건다.
-  // → 이렇게 계산한 값이 "너무 크다"는 후속 피드백(2026.07.12)으로 최종 배율은
-  // 그 절반만 적용(zoom). 대신 이 zoom을 옆산·해에도 그대로 나눠줘서 주인공 산
-  // 혼자만 커지는 게 아니라 장면 전체가 함께 확대되도록 한다("다른 산이나 해도
-  // 같이 커지는 방식은 어려워?").
-  const HERO_TARGET_HEIGHT = size * 0.59 // 목표: 산이 세로 프레임의 약 2/3 지점까지 닿도록
-  const HERO_MAX_WIDTH = size * 0.75 // 옆산이 그려질 여백을 남기기 위한 가로 상한
+  // 주인공 산 확대 — "산 정상이 캔버스 세로 1/2 지점까지 올라오고, 옆산은 화면
+  // 밖으로 넘치면 그대로 잘려도 된다"는 피드백(2026.07.12)으로, 목표를 "산이
+  // 세로 절반까지 닿는 높이"로 직접 계산한다. 옆산을 위한 가로 폭 상한은 더 이상
+  // 두지 않는다 — 옆산이 캔버스 밖으로 나가면 캔버스가 자동으로 잘라내는 걸
+  // 그대로 활용(잘리는 구도를 의도적으로 허용). 세로로만 늘리면 픽셀이
+  // 찌그러지므로 가로세로 동일 배율(ctx.scale(S,S))로 확대한다.
+  const HERO_TARGET_HEIGHT = mountainBaseY - size * 0.5 // 산 정상이 캔버스 세로 1/2 지점(y=size/2)까지 닿는 높이
   const HERO_MAX_SCALE = 4.5 // 너무 작은 책(steps 적음)이 과하게 블록져 보이지 않게 상한
-  const rawHeroScale = Math.min(
-    Math.max(HERO_TARGET_HEIGHT / naturalHeight, 1),
-    Math.max(HERO_MAX_WIDTH / mtnW, 1),
-    HERO_MAX_SCALE
-  )
-  const HERO_SCALE_ADJUST = 0.5 // "여기서 1/2 정도면 좋겠어" 반영
-  const heroScale = Math.max(rawHeroScale * HERO_SCALE_ADJUST, 1)
+  const heroScale = Math.min(Math.max(HERO_TARGET_HEIGHT / naturalHeight, 1), HERO_MAX_SCALE)
   const zoom = heroScale // 옆산·해와 공유하는 장면 공통 확대 배율
   const scaledMtnW = mtnW * heroScale
   const scaledLeft = heroCenterX - scaledMtnW / 2
@@ -1248,7 +1238,8 @@ function renderCompletionCapture(
   // 책장 전체의 맥락 속 완독"이라는 느낌을 준다 — 흐릿한 실루엣 대신 진짜 실루엣/
   // 색을 축소해서 보여주는 쪽이 "다른 책도 옆에 나온다"는 걸 알아보기 쉬움.
   // 최대 3권, 왼쪽에 더 많이 배치. 주인공 산이 커진 만큼(scaledLeft/scaledRight)
-  // 자리를 비켜서 배치하고, 캔버스 폭을 벗어나면 그 이후는 그리지 않는다.
+  // 자리를 비켜서 배치하되, 캔버스 폭을 벗어나도 그리는 걸 멈추지 않는다 — 캔버스
+  // 밖으로 나간 부분은 자동으로 잘려서 "옆산이 화면 끝에서 잘리는" 구도가 된다.
   const others = allBooks.filter((b) => b.id !== book.id && b.status !== 'completed').slice(0, 3)
   const leftSideBooks = others.filter((_, i) => i % 2 === 0)
   const rightSideBooks = others.filter((_, i) => i % 2 === 1)
@@ -1256,7 +1247,6 @@ function renderCompletionCapture(
   let cursorRight = scaledRight + SIDE_MOUNTAIN_GAP
   rightSideBooks.forEach((b) => {
     const w = sideMountainWidth(b, zoom)
-    if (cursorRight + w > size - 8) return
     drawSideMountain(ctx, b, mountainBaseY, cursorRight, zoom)
     cursorRight += w + SIDE_MOUNTAIN_GAP
   })
@@ -1265,7 +1255,6 @@ function renderCompletionCapture(
   leftSideBooks.forEach((b) => {
     const w = sideMountainWidth(b, zoom)
     const x = cursorLeft - w
-    if (x < 8) return
     drawSideMountain(ctx, b, mountainBaseY, x, zoom)
     cursorLeft = x - SIDE_MOUNTAIN_GAP
   })

@@ -3,6 +3,15 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.9 — 2026-07-12 (18)
+
+- **정상 인증샷 산 정상 = 캔버스 1/2 지점 목표 + 옆산 잘림 허용** — `components/worldmap/WorldMap.tsx`
+  `renderCompletionCapture()`. 여전히 하늘 여백이 크게 느껴진다는 피드백으로, 목표를
+  "산 정상이 세로 캔버스 절반 지점까지 닿는 높이"로 직접 계산하도록 변경(`HERO_TARGET_HEIGHT
+  = mountainBaseY - size * 0.5`). 옆산이 겹치지 않게 하던 가로 폭 상한(`HERO_MAX_WIDTH`)은
+  제거하고, 옆산이 캔버스 밖으로 나가도 그리기를 멈추지 않게 해 화면 끝에서 자연스럽게
+  잘리는 구도를 허용함("양옆에 산은 잘리도록").
+
 ## 0.4.8 — 2026-07-12 (17)
 
 - **정상 인증샷 산 크기 재조정 + 옆산·해도 함께 확대** — `components/worldmap/WorldMap.tsx`
