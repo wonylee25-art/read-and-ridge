@@ -45,7 +45,7 @@ export default function WorldMapClient({
           바 자체(버튼/폼/설명문)는 AddBookBar로 공용화 — 완등기록 페이지에서도 재사용. */}
       <AddBookBar open={addOpen} onOpenChange={setAddOpen} authenticated={authenticated} />
 
-      <WorldMap books={books} onBookClick={handleBookClick} onAddBook={handleAddBookTrigger} />
+      <WorldMap books={books} onBookClick={handleBookClick} onAddBook={handleAddBookTrigger} demo={!authenticated} />
       {selectedBook && (
         <ProgressModal
           book={selectedBook}

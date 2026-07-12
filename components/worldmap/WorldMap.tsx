@@ -951,6 +951,23 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
   return canvas
 }
 
+// 튜토리얼 라벨 — 비로그인 상태의 예시 지형도(랜딩페이지)에서만 쓰는 깜빡이는 픽셀 글씨.
+// CLEAR! 텍스트와 같은 방식(그림자+본문 이중 fillText)의 픽셀 타이포지만, sin 파형으로
+// 알파값을 부드럽게 오르내려 "반짝이는" 느낌을 준다. 로그인 상태/완등기록에는 노출 안 함.
+function drawTutorialLabel(ctx: CanvasRenderingContext2D, timestamp: number, x: number, y: number) {
+  const alpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(timestamp / 450))
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.font = 'bold 14px monospace'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = '#7a4a12'
+  ctx.fillText('TUTORIAL', x + 1, y + 1)
+  ctx.fillStyle = '#ffe27a'
+  ctx.fillText('TUTORIAL', x, y)
+  ctx.restore()
+}
+
 // PNG 우측 하단 워터마크 — drawMountainTitle과 같은 크림색 텍스트(외곽선 없음).
 function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number) {
   const text = '산책또산책'
@@ -985,12 +1002,14 @@ export default function WorldMap({
   fixedHour = null,   // null = 실제 시각 사용. 데모 스크린샷이 필요하면 10 등 특정 시각을 넘길 것.
   mode = 'home',       // 'home' = 전경/배경 분리 + 읽는 중 캐릭터. 'trophy' = 완등기록용 —
                         // 넘어온 책 전부를 그대로 보여주고(배경 없음), 산/나무/모닥불/깃발만
+  demo = false,        // 비로그인 예시 지형도(랜딩페이지)에서만 true — 깜빡이는 TUTORIAL 라벨 노출
 }: {
   books?: WorldMapBook[]
   onBookClick?: (book: WorldMapBook) => void
   onAddBook?: () => void
   fixedHour?: number | null
   mode?: 'home' | 'trophy'
+  demo?: boolean
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -1423,6 +1442,11 @@ export default function WorldMap({
         }
       }
 
+      // ── 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 항상 맨 위에 오버레이 ─────
+      if (demo) {
+        drawTutorialLabel(ctx, timestamp, 16, 14)
+      }
+
       rafRef.current = requestAnimationFrame(draw)
     }
 
@@ -1504,7 +1528,7 @@ export default function WorldMap({
       canvasEl.removeEventListener('mouseleave', handleMouseLeave)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground, background, stars, snowMasks, onBookClick, onAddBook, fixedHour, mode, weather])
+  }, [foreground, background, stars, snowMasks, onBookClick, onAddBook, fixedHour, mode, weather, demo])
 
   // ── 캔버스 크기: 컨테이너 폭 측정 후 동기화 (전경 산 개수 기준) ────────────
 
