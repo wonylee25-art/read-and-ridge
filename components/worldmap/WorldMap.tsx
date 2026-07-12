@@ -1488,9 +1488,13 @@ export default function WorldMap({
 
   // 메모 있는 책 중 오늘(날짜 기준) 랜덤 2~3개만 뽑아 산 위에 말풍선으로 항상 띄운다.
   // 모두 다 띄우면 번잡스러우니 개수를 제한하고, 날짜를 시드로 써서 하루 동안은
-  // 같은 책이 뽑히고 다음날엔 다시 섞이게 한다.
+  // 같은 책이 뽑히고 다음날엔 다시 섞이게 한다. 방금 완독해 폭죽(세레모니)이 터지는
+  // 중인 산은 CLEAR!/댄스 캐릭터와 겹쳐 보기 어수선해지므로 후보에서 제외한다
+  // (2026.07.12, 사용자 피드백 — "폭죽이 터질 때 메모는 없어지도록").
   const memoBubbles = useMemo(() => {
-    const candidates = foreground.filter((b) => b.memo && b.memo.trim())
+    const candidates = foreground.filter(
+      (b) => b.memo && b.memo.trim() && b.id !== justCompletedId
+    )
     if (candidates.length === 0 || containerW === 0) return []
 
     const todayKey = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
@@ -1513,7 +1517,7 @@ export default function WorldMap({
       })
       .filter((v): v is { book: WorldMapBook; x: number; y: number } => v !== null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW])
+  }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW, justCompletedId])
 
   // 방금 완독한 책 — 있으면 좌하단 카메라 버튼이 "완독 맵 저장" 대신 "인증샷 찍기"로
   // 동작한다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는 버튼은 메모 말풍선과

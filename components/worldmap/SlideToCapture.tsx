@@ -9,13 +9,15 @@ import { Camera } from 'lucide-react'
 // 썸이 끝까지 스르륵 미끄러지는 애니메이션만 재생해 "슬라이드" 느낌을 낸다.
 //
 // 라벨 글씨를 메뉴바 제목("산책기록" 등, text-2xl font-bold)과 같은 크기로 키우고
-// 양옆 여백은 기존의 약 1/3로 좁혀달라는 요청(2026.07.12)으로, 트랙을 고정 폭
-// (TRACK_WIDTH) 대신 라벨 내용에 맞춰 자연스럽게 늘어나는 구조로 바꿨다. 슬라이드
-// 거리(MAX_X)는 클릭 시점에 실제 렌더된 버튼 폭을 측정해서 계산한다.
+// 양옆 여백은 기존의 약 1/3로 좁혔었으나(2026.07.12), 다시 너무 크다는 피드백으로
+// 그 크기의 약 절반(text-2xl(24px) → text-xs(12px))으로 줄이고 여백도 그에 맞춰
+// 절반으로 축소(2026.07.12). 트랙은 고정 폭 대신 라벨 내용에 맞춰 자연스럽게
+// 늘어나는 구조 유지. 슬라이드 거리(MAX_X)는 클릭 시점에 실제 렌더된 버튼 폭을
+// 측정해서 계산한다.
 const THUMB_SIZE = 40
 const TRACK_PAD = 2
-const THUMB_TEXT_GAP = 9 // 썸-텍스트 사이 여백 — 기존 대비 약 1/3
-const TEXT_RIGHT_PAD = 22 // 텍스트-오른쪽 끝 여백 — 기존 대비 약 1/3
+const THUMB_TEXT_GAP = 5 // 썸-텍스트 사이 여백 — 직전 값의 약 1/2
+const TEXT_RIGHT_PAD = 11 // 텍스트-오른쪽 끝 여백 — 직전 값의 약 1/2
 
 export default function SlideToCapture({
   label,
@@ -51,7 +53,7 @@ export default function SlideToCapture({
       }}
     >
       <span
-        className="text-2xl font-bold text-amber-800 whitespace-nowrap pointer-events-none"
+        className="text-xs font-bold text-amber-800 whitespace-nowrap pointer-events-none"
         style={{ opacity: confirmed ? 0 : 1, transition: 'opacity 300ms ease-out' }}
       >
         {label}

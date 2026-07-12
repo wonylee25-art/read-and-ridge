@@ -3,6 +3,16 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.7 — 2026-07-12 (16)
+
+- **"인증샷 찍기" 라벨 재축소** — `components/worldmap/SlideToCapture.tsx`. 직전에
+  키운 `text-2xl`(24px)이 너무 크다는 피드백으로 그 절반인 `text-xs`(12px)로
+  줄이고, 썸-텍스트 여백(9px→5px)·텍스트-오른쪽 여백(22px→11px)도 함께 절반으로 축소.
+- **폭죽 터지는 산은 메모 말풍선 숨김** — `components/worldmap/WorldMap.tsx`.
+  완독 세레모니(CLEAR!+폭죽+댄스 캐릭터)가 진행 중인 산 위에 메모 말풍선까지
+  겹쳐 어수선해 보인다는 피드백으로, `justCompletedId`인 책은 `memoBubbles` 후보에서
+  제외하도록 수정. 세레모니 유예시간이 끝나 `justCompletedId`가 지워지면 다시 노출.
+
 ## 0.4.6 — 2026-07-12 (15)
 
 - **모바일 인사 문구 겹침 수정** — `components/dashboard/ProfileTrigger.tsx`. 좁은
