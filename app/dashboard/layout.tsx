@@ -49,7 +49,9 @@ export default async function DashboardLayout({
     stats = {
       createdAt: user.created_at,
       lastActiveAt,
-      myBooksCount: readingOrPaused.length,
+      // 내가 산 책 = 상태와 무관하게 등록된 책 전부(읽는 중+잠시 멈춤+완독) — 산책기록
+      // 페이지(app/dashboard/page.tsx)와 동일한 기준으로 통일 (2026.07.12).
+      myBooksCount: all.length,
       stepsWalked: readingOrPaused.reduce((sum, b) => sum + (b.current_page ?? 0), 0),
       completedCount: completed.length,
       completedKm:

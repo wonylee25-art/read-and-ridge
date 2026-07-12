@@ -21,12 +21,13 @@ export default async function DashboardPage() {
   // 아래 "읽는 중/잠시 멈춤" 카드 목록(BookCard)은 삭제·메모 등 계정 데이터를 직접
   // 다루는 액션이 많아 비로그인에서는 아예 보여주지 않는다.
   if (!user) {
-    const readingCount = DEMO_HOME_BOOKS.filter((b) => b.status === 'reading').length
-    const pausedCount = DEMO_HOME_BOOKS.filter((b) => b.status === 'paused').length
+    // 내가 산 책 = 상태와 무관하게 등록된 책 전부(읽는 중+잠시 멈춤+완독) (2026.07.12 변경 —
+    // 예전엔 완독 통계가 완등기록 페이지로 옮겨가면서 여기서도 완독을 제외했는데,
+    // "내가 산 책"은 등록한 책 전체를 세는 게 맞다는 피드백으로 다시 전체로 되돌림.
     const stepsWalked = DEMO_HOME_BOOKS.reduce((sum, b) => sum + (b.current_page ?? 0), 0)
 
     const demoStats = [
-      { label: '내가 산 책', value: readingCount + pausedCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
+      { label: '내가 산 책', value: DEMO_HOME_BOOKS.length, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
       { label: '발걸음 수', value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
     ]
 
@@ -69,9 +70,10 @@ export default async function DashboardPage() {
   const readingBooks = (books?.filter((b) => b.status === 'reading') ?? []).slice().sort(byRecentStatusChange)
   const pausedBooks = (books?.filter((b) => b.status === 'paused') ?? []).slice().sort(byRecentStatusChange)
 
-  // 산책기록 페이지의 통계는 완독은 제외하고 '읽는 중 + 잠시 멈춤'만 대상으로 함
-  // (완독 통계는 완등기록 페이지로 이동했음).
-  const myBooksCount = readingBooks.length + pausedBooks.length
+  // 내가 산 책 = 상태와 무관하게 등록된 책 전부(읽는 중+잠시 멈춤+완독) (2026.07.12 변경 —
+  // 예전엔 완독 통계가 완등기록 페이지로 옮겨가면서 여기서도 완독을 제외했는데,
+  // "내가 산 책"은 등록한 책 전체를 세는 게 맞다는 피드백으로 다시 전체로 되돌림.
+  const myBooksCount = books?.length ?? 0
 
   // 발걸음 수: 1페이지 = 1걸음으로 환산. 읽는 중/잠시 멈춤 책의 현재까지 읽은 페이지(current_page) 합산.
   const stepsWalked = readingBooks

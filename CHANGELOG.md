@@ -3,6 +3,23 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.14 — 2026-07-12 (23)
+
+- **"내가 산 책" 통계를 등록된 책 전체 기준으로 변경** — `app/dashboard/page.tsx`,
+  `app/dashboard/layout.tsx`. 예전엔 완독 통계가 완등기록 페이지로 옮겨가면서
+  "내가 산 책"도 읽는 중+잠시 멈춤만 세고 완독을 제외했는데, "내가 산 책"은 등록한
+  책 전체를 세는 게 맞다는 피드백으로 완독 포함 전체 등록 책 수로 되돌림(산책기록
+  페이지 상단 통계 카드·"산책자 증표" 팝업 통계 둘 다 동일 기준으로 통일).
+- **`WorldMap.tsx` 리팩토링(동작 변경 없음)** — 2,128줄 한 파일에 있던 상수·좌표
+  계산·캔버스 드로잉·날씨·PNG 캡처 로직을 역할별로 분리: `constants.ts`(상수·픽셀
+  데이터), `geometry.ts`(좌표/크기/시드 계산), `sky-weather.ts`(하늘·날씨 상태),
+  `drawing.ts`(캔버스 드로잉 함수), `capture.ts`(PNG 내보내기). `WorldMap.tsx`엔
+  이제 컴포넌트(상태 관리 + 애니메이션 루프 + JSX)만 남음(834줄). 특히
+  `baseX = 24 + i*slotW + (MAX_MTN_W-mtnW)/2` 좌표 공식이 4곳 넘게 복붙돼 있던 걸
+  `getMountainVisual()`/`getStripBaseX()` 두 함수로 통합(`docs/verification.md`
+  "🔧 리팩토링 대상" 항목 처리). 값·로직은 전부 원본 그대로 옮겨왔고 화면 결과는
+  동일함 — `npx tsc --noEmit`, `npx eslint .` 전체 통과 확인.
+
 ## 0.4.13 — 2026-07-12 (22)
 
 - **산책기록 월드맵 저장 시 책 제목·메모 함께 출력** — `components/worldmap/WorldMap.tsx`
