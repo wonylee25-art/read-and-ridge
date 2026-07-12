@@ -8,7 +8,6 @@ import EmptyState from '@/components/dashboard/EmptyState'
 import WorldMap from '@/components/worldmap/WorldMap'
 import { TARGET_TROPHY, toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { Mountain, TrendingUp } from 'lucide-react'
-import { DEMO_TROPHY_BOOKS } from '@/lib/demo-books'
 
 const DISTANCE_PER_PAGE_M = 0.225
 
@@ -18,12 +17,10 @@ export default async function HikesPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // 비로그인 — 완등기록은 정적 예시 이미지 성격으로만 보여준다. 실제 데이터 조회도,
-  // 책 추가 바도, 클릭 인터랙션도 전혀 없음(WorldMap에 onBookClick/onAddBook을 넘기지 않음).
+  // 비로그인 — 완등기록은 정적 예시로만 보여준다. 가짜 완독 산을 보여주는 대신,
+  // 로그인 후 실제로 완독했을 때 보게 될 "빈 완등기록" 화면(지도 안내 문구 + 아래
+  // EmptyState)을 그대로 재사용 — 로그인한 사용자가 책이 0권일 때와 완전히 동일한 모습.
   if (!user) {
-    const totalKm =
-      (DEMO_TROPHY_BOOKS.reduce((sum, b) => sum + (b.total_pages ?? 0), 0) * DISTANCE_PER_PAGE_M) / 1000
-
     return (
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
@@ -31,13 +28,15 @@ export default async function HikesPage() {
         </div>
 
         <div className="space-y-6 mb-10">
-          <WorldMap books={DEMO_TROPHY_BOOKS} mode="trophy" />
+          <WorldMap books={[]} mode="trophy" />
 
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="완등 기록" value={DEMO_TROPHY_BOOKS.length} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
-            <StatCard label="완등 거리 km" value={totalKm.toFixed(1)} icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
+            <StatCard label="완등 기록" value={0} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
+            <StatCard label="완등 거리 km" value="0.0" icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
           </div>
         </div>
+
+        <EmptyState title="아직 완등기록이 없어요" subtitle="완등한 산이 이곳으로 옮겨옵니다 🚩" />
       </div>
     )
   }
