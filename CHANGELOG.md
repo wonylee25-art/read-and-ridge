@@ -3,6 +3,14 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.3.5 — 2026-07-12 (8)
+
+- **시간대별 인사 문구 추가** — `components/dashboard/ProfileTrigger.tsx`. "{닉네임}님,
+  반가워요" 고정 문구 대신, 2시간 단위 12구간(0~24시)마다 후보 2개 중 하나를 랜덤으로
+  보여줌(`GREETING_PHRASES`/`pickGreetingPhrase`). 브라우저 로컬 시각 기준으로 계산해야
+  해서(서버 시각을 쓰면 사용자 시간대와 어긋남) 마운트 후 `useEffect`에서 교체하는 방식 —
+  서버 렌더 시점엔 기본값 "반가워요"만 잠깐 보임(WorldMap 하늘 시각 계산과 동일한 원칙).
+
 ## 0.3.4 — 2026-07-12 (7)
 
 - **산 실루엣 다양화 구현** — `components/worldmap/WorldMap.tsx`. `design-style.md`에
