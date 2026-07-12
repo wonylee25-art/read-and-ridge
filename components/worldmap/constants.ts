@@ -14,10 +14,17 @@ export const PX = 10 // 1 "pixel" = 10px on canvas
 // 높이가 완전히 똑같아 보이는 문제가 있었다(2026.07.12 사용자 피드백). PAGES_PER_STEP
 // 쪽마다 스텝이 하나씩 늘어나는 연속식(getSteps, geometry.ts)으로 바꿔서, 페이지
 // 수 차이가 항상 눈에 보이는 높이 차이로 이어지게 함.
-export const STEPS_BASE = 4 // pages=0(=MIN_STEPS)일 때의 스텝
+export const STEPS_BASE = 4 // pages=0(=MIN_STEPS)일 때의 스텝(스케일 전 원값)
+export const PAGES_PER_STEP = 40 // 이만큼 두꺼워질 때마다 스텝 +1(스케일 전 원값)
+export const RAW_MIN_STEPS = 4
+export const RAW_MAX_STEPS = 16
+// 위 raw 공식 그대로 쓰니 산이 전체적으로 너무 커 보인다는 피드백(2026.07.12,
+// v0.4.18 배포 후) — raw 스텝을 구한 뒤 이 배율만큼 한 번 더 줄인다. 높이(steps)를
+// 줄이면 폭(numCols = 2*steps±1)도 같은 비율로 같이 줄어들어서 산 전체(높이+폭)가
+// 비율 그대로 축소된다.
+export const SIZE_SCALE = 0.75
 export const MIN_STEPS = 4
-export const MAX_STEPS = 16
-export const PAGES_PER_STEP = 40 // 이만큼 두꺼워질 때마다 스텝 +1
+export const MAX_STEPS = Math.round(RAW_MAX_STEPS * SIZE_SCALE) // 16*0.75=12
 export const DEFAULT_PAGES = 250 // 페이지 수를 모를 때 가정하는 평균 두께
 
 export const CANVAS_H = 440

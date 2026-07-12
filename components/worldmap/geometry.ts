@@ -16,6 +16,9 @@ import {
   STEPS_BASE,
   MIN_STEPS,
   MAX_STEPS,
+  RAW_MIN_STEPS,
+  RAW_MAX_STEPS,
+  SIZE_SCALE,
   PAGES_PER_STEP,
   DEFAULT_PAGES,
   MAX_MTN_W,
@@ -99,12 +102,16 @@ export function countByTheme(books: WorldMapBook[]): Record<KdcThemeKey, number>
 
 // 페이지 수 → 산 스텝(층) 수. PAGES_PER_STEP쪽마다 스텝 +1인 연속식이라, 같은
 // 구간으로 뭉개지던 예전 4단계 방식과 달리 페이지 차이가 조금만 나도(예: 92쪽)
-// 스텝 차이(예: 3스텝=30px)로 드러난다. MIN_STEPS~MAX_STEPS로 클램프해 너무
-// 낮거나(1쪽짜리 산) 너무 높은(초두꺼운 책) 극단값을 방지.
+// 스텝 차이로 드러난다. raw 값을 RAW_MIN_STEPS~RAW_MAX_STEPS로 먼저 클램프해 너무
+// 낮거나(1쪽짜리 산) 너무 높은(초두꺼운 책) 극단값을 막은 뒤, SIZE_SCALE(전체 산
+// 크기가 너무 커 보인다는 2026.07.12 피드백)만큼 한 번 더 축소하고 MIN_STEPS~
+// MAX_STEPS로 다시 클램프한다.
 export function getSteps(pages: number | null): number {
   const p = pages && pages > 0 ? pages : DEFAULT_PAGES
-  const steps = STEPS_BASE + Math.round(p / PAGES_PER_STEP)
-  return Math.max(MIN_STEPS, Math.min(MAX_STEPS, steps))
+  const raw = STEPS_BASE + Math.round(p / PAGES_PER_STEP)
+  const rawClamped = Math.max(RAW_MIN_STEPS, Math.min(RAW_MAX_STEPS, raw))
+  const scaled = Math.round(rawClamped * SIZE_SCALE)
+  return Math.max(MIN_STEPS, Math.min(MAX_STEPS, scaled))
 }
 
 // ─── 산 실루엣 다양화 ─────────────────────────────────────────────────────────
