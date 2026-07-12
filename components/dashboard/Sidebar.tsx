@@ -158,7 +158,7 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
       </div>
 
       {/* 버전/업데이트 정보 — 메뉴 하단에 늘 고정되도록 별도 블록으로 분리 (mt-auto) */}
-      <div className="mt-auto pt-3 border-t border-gray-100">
+      <div className="mt-auto pt-3">
         <p className="text-xs text-gray-300">© 2026 산책또산책</p>
         <p className="text-[11px] text-gray-300">v{APP_VERSION} · {LAST_UPDATED} 업데이트</p>
       </div>
