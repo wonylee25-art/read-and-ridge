@@ -24,7 +24,8 @@ export default function DeleteAccountModal({
     try {
       await onConfirm()
       // 로그아웃 버튼과 동일한 방식 — 서버 액션은 삭제만 하고, 이동은 여기서 처리.
-      router.push('/login')
+      // 탈퇴 후에도 로그인 페이지 대신 예시 지형도가 있는 /dashboard로 이동.
+      router.push('/dashboard')
       router.refresh()
     } catch (e) {
       setDeleting(false)

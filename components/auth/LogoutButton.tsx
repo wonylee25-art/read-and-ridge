@@ -9,7 +9,8 @@ export default function LogoutButton() {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    // 로그아웃 후에도 로그인 페이지 대신 예시 지형도가 있는 /dashboard로 이동.
+    router.push('/dashboard')
     router.refresh()
   }
 
