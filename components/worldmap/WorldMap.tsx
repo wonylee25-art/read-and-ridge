@@ -966,6 +966,19 @@ function drawTutorialLabel(ctx: CanvasRenderingContext2D, timestamp: number, cx:
   ctx.fillStyle = '#ffe27a'
   ctx.fillText('TUTORIAL', cx, y)
   ctx.restore()
+
+  // TUTORIAL 바로 아래 안내 문구 — 같은 반짝임(alpha)을 공유해서 한 세트처럼 보이게 함.
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.font = '15px monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  const subtitleY = y + 54 // TUTORIAL(42px) 높이만큼 아래로
+  ctx.fillStyle = '#3a2a0a'
+  ctx.fillText('로그인 후 책을 추가해보세요', cx + 1, subtitleY + 1)
+  ctx.fillStyle = '#fff6df'
+  ctx.fillText('로그인 후 책을 추가해보세요', cx, subtitleY)
+  ctx.restore()
 }
 
 // PNG 우측 하단 워터마크 — drawMountainTitle과 같은 크림색 텍스트(외곽선 없음).
