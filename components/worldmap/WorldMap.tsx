@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 import { type WorldMapBook, toWorldMapBooks, TARGET_TROPHY } from './worldmap-utils'
 import { isAuroraBook } from '@/lib/aurora-books'
 import AuroraOverlay from '@/components/effects/AuroraOverlay'
+import SlideToCapture from './SlideToCapture'
 import { Camera } from 'lucide-react'
 
 export type { WorldMapBook }
@@ -1501,23 +1502,14 @@ export default function WorldMap({
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      // 찍고 나면 버튼을 원래(완독 맵 저장) 동작으로 되돌린다 — 다시 인증샷이 필요하면
-      // 좌하단 "완독 맵 저장" 버튼으로 언제든 전체 완독 맵은 받을 수 있음.
+      // 슬라이드가 끝까지 밀린 모습을 잠깐 보여준 뒤 원래(완독 맵 저장) 버튼으로
+      // 되돌린다 — 바로 지워버리면 다 밀었다는 확인 없이 버튼이 훅 바뀌어 버림.
+      // 다시 인증샷이 필요하면 좌하단 "완독 맵 저장" 버튼으로 전체 완독 맵은 언제든 받을 수 있음.
       if (captureHintTimeoutRef.current) clearTimeout(captureHintTimeoutRef.current)
-      setJustCompletedId(null)
+      captureHintTimeoutRef.current = setTimeout(() => setJustCompletedId(null), 500)
     },
     [books, nickname, fixedHour]
   )
-
-  // 좌하단 카메라 버튼 클릭 — 방금 완독한 책이 있으면 그 산의 인증샷을, 없으면
-  // 기존처럼 전체 완독 맵 파노라마를 찍는다(한 버튼, 상황에 따라 다른 동작).
-  const handleCameraClick = useCallback(() => {
-    if (captureButtonTarget) {
-      handleCaptureCompletionShot(captureButtonTarget)
-    } else {
-      handleCaptureCompletedMap()
-    }
-  }, [captureButtonTarget, handleCaptureCompletionShot, handleCaptureCompletedMap])
 
   const stateRef = useRef({
     hour: fixedHour ?? new Date().getHours(),
@@ -2009,32 +2001,32 @@ export default function WorldMap({
             덕분에 화면 전체가 아니라 정확히 이 지도 영역 안에서만 보인다. */}
         {auroraActive && <AuroraOverlay onDone={() => setAuroraActive(false)} />}
 
-        {/* 캡처 버튼 — 왼쪽 하단 카메라 버튼 하나로 통일. 스크롤되는 내부 div가 아니라
-            바깥 wrap(고정 크기) 기준으로 둬서, 산이 많아 가로 스크롤이 생겨도 버튼은
-            항상 화면 왼쪽 아래 같은 자리에 고정된다("+ 책 추가" 버튼과 동일한 원칙).
-            방금 완독한 책이 있으면(captureButtonTarget) "인증샷 찍기"로 강조 표시되고,
-            없으면 평소처럼 "완독 맵 저장"(전체 파노라마) 동작 — 산 위에 따로 뜨는
-            버튼은 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로 여기 합침(2026.07.12).
-            색만 바뀌면 hover 전엔 무슨 버튼인지 안 보인다는 피드백으로, 강조 상태일 땐
-            버튼 오른쪽에 "인증샷 찍기" 라벨을 hover 없이 항상 띄운다.
-            완독한 책이 하나도 없으면 찍을 게 없으니 통째로 숨긴다. */}
+        {/* 캡처 — 왼쪽 하단, 스크롤되는 내부 div가 아니라 바깥 wrap(고정 크기) 기준으로
+            둬서 산이 많아 가로 스크롤이 생겨도 항상 화면 왼쪽 아래 같은 자리에
+            고정된다("+ 책 추가" 버튼과 동일한 원칙). 방금 완독한 책이 있으면
+            (captureButtonTarget) 아이폰 "밀어서 잠금해제" 알약 모양 SlideToCapture로,
+            없으면 평소처럼 탭 한 번으로 "완독 맵 저장"(전체 파노라마) — 산 위에 따로
+            뜨는 버튼은 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로 여기로 합쳤음
+            (2026.07.12). SlideToCapture는 비주얼만 슬라이드 스타일이고 실제 조작은
+            트랙 전체를 한 번 누르면 바로 확정(정확히 썸을 잡고 드래그해야 하는 방식은
+            번거롭다는 후속 피드백으로 단순화). 완독한 책이 없으면 찍을 게 없으니 숨긴다. */}
         {completedBooks.length > 0 && (
-          <div className="absolute left-3 bottom-3 z-20 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCameraClick}
-              title={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
-              aria-label={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
-              className={`flex items-center justify-center w-10 h-10 rounded-full shadow-md active:scale-95 transition-all shrink-0 ${
-                captureButtonTarget ? 'bg-amber-400 hover:bg-amber-300 animate-pulse' : 'bg-white/90 hover:bg-white'
-              }`}
-            >
-              <Camera size={18} className={captureButtonTarget ? 'text-white' : 'text-gray-700'} />
-            </button>
-            {captureButtonTarget && (
-              <span className="whitespace-nowrap rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-white shadow-md pointer-events-none animate-pulse">
-                인증샷 찍기
-              </span>
+          <div className="absolute left-3 bottom-3 z-20">
+            {captureButtonTarget ? (
+              <SlideToCapture
+                label="인증샷 찍기"
+                onConfirm={() => handleCaptureCompletionShot(captureButtonTarget)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleCaptureCompletedMap}
+                title="완독 맵 PNG로 저장"
+                aria-label="완독 맵 PNG로 저장"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow-md hover:bg-white active:scale-95 transition-all"
+              >
+                <Camera size={18} className="text-gray-700" />
+              </button>
             )}
           </div>
         )}
