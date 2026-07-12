@@ -3,6 +3,20 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.3.2 — 2026-07-12 (5)
+
+- **산책자 증표(프로필) 팝업 추가** — 오른쪽 상단 "{닉네임}님, 반가워요" + 사람 아이콘
+  버튼(`ProfileTrigger.tsx`) 클릭 시 팝업(`ProfileModal.tsx`) 오픈. 닉네임 입력/저장,
+  산책 시작일(`user.created_at`), 최근 산책일(`status_changed_at` 최댓값), 통계 카드
+  4개(내가 산 책/발걸음 수/완등기록/완등거리)를 함께 보여줌. 산책기록·완등기록 양쪽
+  레이아웃(`app/dashboard/layout.tsx`)에 공통 배치. 이전의 시간대별 인사말 +
+  인라인 연필 편집(`Greeting.tsx`)은 폐기하고 이 팝업으로 통합(`docs/features/profile.md`).
+- **최근 산책일 정확도 개선** — `updateProgress()`가 상태 변화 없이 페이지만 저장해도
+  `status_changed_at`을 매번 갱신하도록 확장. 읽는 중/잠시 멈춤 목록 정렬도 함께 더
+  정확해짐.
+- **완등거리 환산 비율 공유** — `DISTANCE_PER_PAGE_M`을 `worldmap-utils.ts`로 이동해
+  완등기록 페이지와 프로필 팝업의 거리 숫자가 어긋나지 않도록 함.
+
 ## 0.3.1 — 2026-07-12 (4)
 
 - **닉네임 & 인사말 추가** — `auth.users.user_metadata.nickname`에 저장(새 테이블 없음).

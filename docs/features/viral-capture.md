@@ -57,7 +57,7 @@
 ## 선행 조건 (블로커)
 
 - ~~**KDC 필드 매핑 미완성**~~ — **완료 (2026.07.12)**. `/api/books/search`가 SEOJI `KDC`/`SUBJECT`를 추출해 `books.kdc`에 저장. 상세: `docs/verification.md` ✅ 해소 6.
-- ~~**닉네임 설정 미구현**~~ — **완료 (2026.07.12)**. `auth.users.user_metadata.nickname`에 저장(`updateNickname()`, `app/dashboard/account-actions.ts`), 산책기록(`/dashboard`) 상단에 시간대별 인사말 + 인라인 수정(`components/dashboard/Greeting.tsx`)으로 노출. 워터마크 자체는 아직 미구현이지만, 필요한 닉네임 데이터는 이제 준비됨 — 워터마크 구현 시 `user.user_metadata.nickname` 그대로 읽어 쓰면 됨.
+- ~~**닉네임 설정 미구현**~~ — **완료 (2026.07.12)**. `auth.users.user_metadata.nickname`에 저장(`updateNickname()`, `app/dashboard/account-actions.ts`), 산책기록·완등기록 레이아웃 상단 "산책자 증표" 팝업(`docs/features/profile.md`)에서 수정 가능. 워터마크 자체는 아직 미구현이지만, 필요한 닉네임 데이터는 이제 준비됨 — 워터마크 구현 시 `user.user_metadata.nickname` 그대로 읽어 쓰면 됨.
 - **산 실루엣 다양화 미반영**: `design-style.md`에 설계는 있으나 코드(`getMountainGeometry`, hit-test 로직)에 아직 반영 안 됨.
 
 ---

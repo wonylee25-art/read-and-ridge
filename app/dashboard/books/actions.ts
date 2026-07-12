@@ -115,14 +115,18 @@ export async function updateProgress(bookId: string, currentPage: number) {
     .eq('id', bookId)
     .single()
 
-  const updates: Record<string, unknown> = { current_page: currentPage }
+  // status_changed_at을 "상태가 바뀐 시각"뿐 아니라 "마지막으로 이 책을 만진 시각"으로도
+  // 쓴다 (2026.07.12부터 — 산책자 증표의 "최근 산책일" 계산용). 완독이 아닌 단순 페이지
+  // 저장에서도 매번 갱신해야 진짜 최근 활동을 반영함 — 예전엔 상태 변경 때만 갱신해서,
+  // 상태는 그대로 두고 페이지만 계속 업데이트하면 이 값이 오래된 채로 멈춰 있었음.
+  const now = new Date().toISOString()
+  const updates: Record<string, unknown> = { current_page: currentPage, status_changed_at: now }
   let justCompleted = false
 
   if (book?.total_pages && currentPage >= book.total_pages) {
     updates.status = 'completed'
     updates.current_page = book.total_pages // 초과 입력 방지
-    updates.completed_at = new Date().toISOString()
-    updates.status_changed_at = updates.completed_at
+    updates.completed_at = now
     justCompleted = book.status !== 'completed'
   }
 

@@ -5,21 +5,16 @@ import { useRouter } from 'next/navigation'
 import WorldMap, { type WorldMapBook } from './WorldMap'
 import ProgressModal from './ProgressModal'
 import AddBookBar from '@/components/books/AddBookBar'
-import Greeting from '@/components/dashboard/Greeting'
 import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
 
 export default function WorldMapClient({
   books,
   authenticated = true,
-  nickname,
 }: {
   books: WorldMapBook[]
   // 비로그인(예시 지형도) 상태 — 산 클릭으로 게이지를 만져볼 순 있지만
   // 저장하려 하거나 책을 추가하려 하면 구글 로그인으로 유도한다.
   authenticated?: boolean
-  // 산책기록(/dashboard)에서만 사용 — 완등기록 페이지는 이 prop을 안 넘기므로
-  // 자동으로 인사말이 안 뜬다.
-  nickname?: string
 }) {
   const [selectedBook, setSelectedBook] = useState<WorldMapBook | null>(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -48,7 +43,6 @@ export default function WorldMapClient({
       {/* 눈에 띄는 책 추가 버튼 — 닫혀 있을 땐 버튼만, 열리면 검색/스캔 폼 + 왼쪽 설명문으로 확장.
           해/별을 눌러도(onAddBook) 같은 상태를 열어서 동일한 폼이 뜸.
           바 자체(버튼/폼/설명문)는 AddBookBar로 공용화 — 완등기록 페이지에서도 재사용. */}
-      {authenticated && nickname && <Greeting nickname={nickname} />}
       <AddBookBar open={addOpen} onOpenChange={setAddOpen} authenticated={authenticated} />
 
       <WorldMap books={books} onBookClick={handleBookClick} onAddBook={handleAddBookTrigger} demo={!authenticated} />

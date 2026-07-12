@@ -54,3 +54,7 @@ export function toWorldMapBooks(books: BookRow[] | null | undefined): WorldMapBo
 // 무한정 길어지는 걸 막기 위함 (호출 측이 completed_at 내림차순으로 넘겨준다는 전제).
 // hikes/page.tsx에서 안내 문구에 쓸 수 있도록 export.
 export const TARGET_TROPHY = 5
+
+// 완독 페이지 수 → "완등 거리(km)" 환산 비율. hikes/page.tsx와 산책자 증표(프로필)
+// 모달이 동일한 값을 써야 두 곳의 거리 숫자가 어긋나지 않아 여기로 공유.
+export const DISTANCE_PER_PAGE_M = 0.225

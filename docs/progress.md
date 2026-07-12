@@ -4,6 +4,29 @@
 
 ---
 
+## 🆕 최근 작업 (2026.07.12, Claude와 진행 (3)) — v0.3.2 배포
+
+### 산책자 증표 (프로필)
+"구글 이름만 보여주는 인사말이면 수정할 방법이 있어야 하지 않냐"는 질문에서
+시작 — 논의 끝에 인라인 편집 대신 별도 팝업으로 구조를 바꿈. 상세: `docs/features/profile.md`
+
+- [x] 트리거: 오른쪽 상단 "{닉네임}님, 반가워요" + 사람 아이콘 버튼
+  (`components/dashboard/ProfileTrigger.tsx`)
+- [x] 팝업(`components/dashboard/ProfileModal.tsx`, 공용 `Modal.tsx` 재사용): 닉네임
+  입력/저장(`updateNickname()`), 산책 시작일(`user.created_at`), 최근 산책일
+  (`status_changed_at` 최댓값), 통계 카드 4개(내가 산 책/발걸음 수/완등기록/완등거리)
+- [x] 산책기록·완등기록 데이터를 모두 보여줘야 해서 `app/dashboard/layout.tsx`에서
+  공통 렌더링(양쪽 페이지 모두 노출)
+- [x] `updateProgress()` 확장 — 상태 변화 없이 페이지만 저장해도 `status_changed_at`
+  갱신하도록 바꿔서 "최근 산책일" 정확도 확보 (부수 효과: 목록 정렬도 더 정확해짐)
+- [x] `DISTANCE_PER_PAGE_M`을 `worldmap-utils.ts`로 이동 — 완등기록 페이지·프로필
+  팝업의 거리 숫자 통일
+- [x] 명칭: "프로필"(딱딱함) → "산책자 증표"로 확정. "가입일" → "산책 시작일"로 문구 조정
+- [x] 기존 `Greeting.tsx`(시간대별 인사말 + 연필 아이콘 인라인 편집)는 폐기 —
+  `docs/features/nickname.md`에 대체 안내 남김
+
+---
+
 ## 🆕 최근 작업 (2026.07.12, Claude와 진행 (2)) — v0.3.1 배포
 
 ### 닉네임 & 인사말

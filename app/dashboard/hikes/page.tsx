@@ -6,10 +6,8 @@ import AddBookBar from '@/components/books/AddBookBar'
 import StatCard from '@/components/dashboard/StatCard'
 import EmptyState from '@/components/dashboard/EmptyState'
 import WorldMap from '@/components/worldmap/WorldMap'
-import { TARGET_TROPHY, toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
+import { TARGET_TROPHY, DISTANCE_PER_PAGE_M, toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { Mountain, TrendingUp } from 'lucide-react'
-
-const DISTANCE_PER_PAGE_M = 0.225
 
 export default async function HikesPage() {
   const supabase = await createClient()
