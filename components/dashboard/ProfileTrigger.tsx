@@ -48,8 +48,13 @@ export default function ProfileTrigger({
 
   return (
     <>
-      <div className="flex justify-end items-center gap-2">
-        <span className="text-sm text-gray-500">{nickname}님, {phrase}</span>
+      <div className="flex justify-end items-center gap-2 min-w-0">
+        {/* 모바일 좁은 화면에서는 페이지 제목과 같은 줄에서 겹쳐 보인다는 피드백
+            (2026.07.12)으로, 인사 문구는 생략하고 닉네임만 노출한다. */}
+        <span className="text-sm text-gray-500 truncate">
+          <span className="sm:hidden">{nickname}님</span>
+          <span className="hidden sm:inline">{nickname}님, {phrase}</span>
+        </span>
         <button
           onClick={() => setOpen(true)}
           className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
