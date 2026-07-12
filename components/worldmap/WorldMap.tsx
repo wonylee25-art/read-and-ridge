@@ -1436,6 +1436,24 @@ export default function WorldMap({
     document.body.removeChild(link)
   }, [completedBooks, fixedHour, nickname])
 
+  // 산책기록(home) 페이지의 기본 카메라 동작 — 예전엔 이 버튼도 "완독한 책만" 그리는
+  // 완독맵(renderCompletedPanorama)을 저장해서, 산책기록 화면에서 눌러도 완독맵이
+  // 나오는 게 혼란스럽다는 피드백(2026.07.12)을 받음. 완독맵은 완등기록(trophy)
+  // 페이지 전용으로 남기고, 산책기록에서는 지금 화면에 보이는 월드맵(읽는 중+완독+
+  // 배경 산 전부, 날씨·전경 구성까지 그대로)을 캔버스 그대로 캡처해서 저장한다 —
+  // 별도 정적 렌더러를 새로 만들 필요 없이 실제 캔버스가 이미 그 화면 그 자체이므로
+  // canvas.toDataURL()로 지금 보이는 그대로를 내보내는 게 가장 정확하다.
+  const handleCaptureHomeWorldMap = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const link = document.createElement('a')
+    link.href = canvas.toDataURL('image/png')
+    link.download = `산책또산책_산책기록월드맵_${todayFileDateKey()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [])
+
   useEffect(() => {
     setTooltip(null)
     setAddHint(null)
@@ -1526,11 +1544,11 @@ export default function WorldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW, justCompletedId])
 
-  // 방금 완독한 책 — 있으면 좌하단 카메라 버튼이 "완독 맵 저장" 대신 "인증샷 찍기"로
-  // 동작한다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는 버튼은 메모 말풍선과
-  // 겹쳐 보기 불편하다는 피드백으로 기존 카메라 버튼에 합침, 2026.07.12).
-  // 세레모니 유예시간이 끝나 justCompletedId가 지워지면 자동으로 null이 되어
-  // 버튼도 원래(완독 맵 저장) 동작으로 돌아간다.
+  // 방금 완독한 책 — 있으면(산책기록/home에서만) 좌하단 카메라 버튼이 평소 동작
+  // 대신 "인증샷 찍기"로 바뀐다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는
+  // 버튼은 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로 기존 카메라 버튼에 합침,
+  // 2026.07.12). 세레모니 유예시간이 끝나 justCompletedId가 지워지면 자동으로
+  // null이 되어 버튼도 원래(산책기록 월드맵 저장) 동작으로 돌아간다.
   const captureButtonTarget = useMemo(() => {
     if (mode !== 'home' || !justCompletedId) return null
     return foreground.find((b) => b.id === justCompletedId) ?? null
@@ -2048,12 +2066,15 @@ export default function WorldMap({
             둬서 산이 많아 가로 스크롤이 생겨도 항상 화면 왼쪽 아래 같은 자리에
             고정된다("+ 책 추가" 버튼과 동일한 원칙). 방금 완독한 책이 있으면
             (captureButtonTarget) 아이폰 "밀어서 잠금해제" 알약 모양 SlideToCapture로,
-            없으면 평소처럼 탭 한 번으로 "완독 맵 저장"(전체 파노라마) — 산 위에 따로
-            뜨는 버튼은 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로 여기로 합쳤음
-            (2026.07.12). SlideToCapture는 비주얼만 슬라이드 스타일이고 실제 조작은
-            트랙 전체를 한 번 누르면 바로 확정(정확히 썸을 잡고 드래그해야 하는 방식은
-            번거롭다는 후속 피드백으로 단순화). 완독한 책이 없으면 찍을 게 없으니 숨긴다. */}
-        {completedBooks.length > 0 && (
+            없으면 평소처럼 탭 한 번으로 저장 — 산 위에 따로 뜨는 버튼은 메모 말풍선과
+            겹쳐 보기 불편하다는 피드백으로 여기로 합쳤음(2026.07.12). SlideToCapture는
+            비주얼만 슬라이드 스타일이고 실제 조작은 트랙 전체를 한 번 누르면 바로
+            확정(정확히 썸을 잡고 드래그해야 하는 방식은 번거롭다는 후속 피드백으로 단순화).
+            평소 탭 동작은 모드별로 다름 — 완등기록(trophy)은 "완독 맵"(완독한 책만
+            모은 파노라마), 산책기록(home)은 "산책기록 월드맵"(지금 화면 그대로, 읽는
+            중+완독+배경 산 전부)을 저장한다. 산책기록에서 눌러도 완독맵만 나온다는
+            피드백(2026.07.12)으로 분리함. */}
+        {(mode === 'trophy' ? completedBooks.length > 0 : books.length > 0) && (
           <div className="absolute left-3 bottom-3 z-20">
             {captureButtonTarget ? (
               <SlideToCapture
@@ -2063,9 +2084,9 @@ export default function WorldMap({
             ) : (
               <button
                 type="button"
-                onClick={handleCaptureCompletedMap}
-                title="완독 맵 PNG로 저장"
-                aria-label="완독 맵 PNG로 저장"
+                onClick={mode === 'trophy' ? handleCaptureCompletedMap : handleCaptureHomeWorldMap}
+                title={mode === 'trophy' ? '완독 맵 PNG로 저장' : '산책기록 월드맵 PNG로 저장'}
+                aria-label={mode === 'trophy' ? '완독 맵 PNG로 저장' : '산책기록 월드맵 PNG로 저장'}
                 className="flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow-md hover:bg-white active:scale-95 transition-all"
               >
                 <Camera size={18} className="text-gray-700" />

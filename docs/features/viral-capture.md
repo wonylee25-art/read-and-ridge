@@ -3,12 +3,17 @@
 > 상태: ✅ 구현 완료 (2026.07.12). `docs/progress.md`의 "바이럴 캡처" 항목 상세 스펙.
 > 관련 문서: `docs/design-style.md`(무드/색상 원칙), `docs/product-direction.md`(원안 — 정사각형/파노라마 캡처, 워터마크)
 >
-> 구현 위치: `components/worldmap/WorldMap.tsx` — 산책기록 캡처는 `renderCompletionCapture()`,
-> 완등기록 캡처는 기존 `renderCompletedPanorama()`. 두 캡처 모두 좌하단 카메라 버튼
-> 하나로 트리거(방금 완독한 책이 있으면 "인증샷 찍기", 없으면 "완독 맵 저장" —
-> 산 위에 따로 버튼을 띄웠더니 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로
-> 2026.07.12 수정). 왼쪽 상단 뱃지는 `drawKdcBadge()`/`countByTheme()`. 산책기록 캡처는
-> 주인공 산 옆에 다른 책 최대 3권을 축소·반투명 실제 산으로 곁들임(`drawSideMountain()`).
+> 구현 위치: `components/worldmap/WorldMap.tsx` — 산책기록의 "정상 인증샷"(방금 완독한
+> 순간) 캡처는 `renderCompletionCapture()`, 완등기록 캡처는 `renderCompletedPanorama()`.
+> 좌하단 카메라 버튼 하나로 트리거하되(산 위에 따로 버튼을 띄웠더니 메모 말풍선과
+> 겹쳐 보기 불편하다는 피드백으로 2026.07.12 수정), 평소(방금 완독한 책이 없을 때)
+> 탭 동작은 모드별로 다르다 — 완등기록(trophy)은 `handleCaptureCompletedMap`으로
+> "완독 맵"(완독한 책만 모은 파노라마), 산책기록(home)은 `handleCaptureHomeWorldMap`
+> 으로 지금 화면의 캔버스를 그대로 `canvas.toDataURL()`로 저장하는 "산책기록 월드맵"
+> (읽는 중+완독+배경 산 전부, 별도 정적 렌더러 없이 실제 화면 그대로). 산책기록에서
+> 눌러도 완독맵만 나온다는 피드백(2026.07.12)으로 분리함. 왼쪽 상단 뱃지는
+> `drawKdcBadge()`/`countByTheme()`. 정상 인증샷은 주인공 산 옆에 다른 책 최대 3권을
+> 축소·반투명 실제 산으로 곁들임(`drawSideMountain()`).
 
 ---
 

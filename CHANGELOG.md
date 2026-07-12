@@ -3,6 +3,18 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.12 — 2026-07-12 (21)
+
+- **산책기록 카메라 기본 동작 분리** — `components/worldmap/WorldMap.tsx`. 좌하단
+  카메라 버튼의 평소(방금 완독한 책이 없을 때) 탭 동작이 모드와 무관하게 항상
+  "완독 맵"(완독한 책만 모은 파노라마, `handleCaptureCompletedMap`)이라, 산책기록
+  (home) 페이지에서 눌러도 완독맵만 나와 혼란스럽다는 피드백. 완등기록(trophy)은
+  기존 동작을 유지하고, 산책기록에서는 새 `handleCaptureHomeWorldMap`이 지금 화면의
+  캔버스를 `canvas.toDataURL()`로 그대로 저장하도록 분리(읽는 중+완독+배경 산·날씨
+  전부, 파일명 `산책또산책_산책기록월드맵_...`). 버튼 노출 조건도 trophy는
+  `completedBooks.length > 0`, home은 `books.length > 0`으로 나눔(완독한 책이 없어도
+  산책기록 월드맵은 저장할 수 있어야 하므로). 버튼 title/aria-label도 모드별로 분기.
+
 ## 0.4.11 — 2026-07-12 (20)
 
 - **산-책 제목 간격 확보** — `components/worldmap/WorldMap.tsx`의 `drawMountainTitle()`.
