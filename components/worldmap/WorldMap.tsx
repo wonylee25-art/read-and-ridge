@@ -954,17 +954,17 @@ function renderCompletedPanorama(completedBooks: WorldMapBook[], hour: number): 
 // 튜토리얼 라벨 — 비로그인 상태의 예시 지형도(랜딩페이지)에서만 쓰는 깜빡이는 픽셀 글씨.
 // CLEAR! 텍스트와 같은 방식(그림자+본문 이중 fillText)의 픽셀 타이포지만, sin 파형으로
 // 알파값을 부드럽게 오르내려 "반짝이는" 느낌을 준다. 로그인 상태/완등기록에는 노출 안 함.
-function drawTutorialLabel(ctx: CanvasRenderingContext2D, timestamp: number, x: number, y: number) {
+function drawTutorialLabel(ctx: CanvasRenderingContext2D, timestamp: number, cx: number, y: number) {
   const alpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(timestamp / 450))
   ctx.save()
   ctx.globalAlpha = alpha
-  ctx.font = 'bold 14px monospace'
-  ctx.textAlign = 'left'
+  ctx.font = 'bold 42px monospace' // CLEAR! 텍스트(15px)와 같은 서체, 크기만 약 3배
+  ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
   ctx.fillStyle = '#7a4a12'
-  ctx.fillText('TUTORIAL', x + 1, y + 1)
+  ctx.fillText('TUTORIAL', cx + 2, y + 2)
   ctx.fillStyle = '#ffe27a'
-  ctx.fillText('TUTORIAL', x, y)
+  ctx.fillText('TUTORIAL', cx, y)
   ctx.restore()
 }
 
@@ -1442,9 +1442,9 @@ export default function WorldMap({
         }
       }
 
-      // ── 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 항상 맨 위에 오버레이 ─────
+      // ── 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 하늘 중앙에 항상 맨 위로 오버레이 ─
       if (demo) {
-        drawTutorialLabel(ctx, timestamp, 16, 14)
+        drawTutorialLabel(ctx, timestamp, W / 2, 40)
       }
 
       rafRef.current = requestAnimationFrame(draw)
