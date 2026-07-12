@@ -4,6 +4,21 @@
 
 ---
 
+## 🆕 최근 작업 (2026.07.12, Claude와 진행 (2)) — v0.3.1 배포
+
+### 닉네임 & 인사말
+`docs/features/viral-capture.md`의 "닉네임 설정 미구현" 블로커 해소. 상세: `docs/features/nickname.md`
+
+- [x] 저장 위치: `auth.users.user_metadata.nickname` (새 테이블 없음, `updateNickname()`
+  서버 액션 — `app/dashboard/account-actions.ts`)
+- [x] 기본값: 직접 설정한 닉네임 → 구글 프로필 이름(`full_name`/`name`) → `'산책자'`
+- [x] UI: `components/dashboard/Greeting.tsx` — 산책기록(`/dashboard`)에서만 `AddBookBar`
+  위에 시간대별 인사말(새벽/주간/황혼/야간, `WorldMap` 하늘 구간과 동일 경계) 노출.
+  편집은 `BookCard`와 동일한 연필 아이콘 인라인 패턴(별도 모달 없음)
+- [x] 완등기록 페이지에는 `nickname` prop을 안 넘겨서 자연스럽게 인사말 미노출
+
+---
+
 ## 🆕 최근 작업 (2026.07.12, Claude와 진행) — v0.3.0 배포
 
 ### 배경

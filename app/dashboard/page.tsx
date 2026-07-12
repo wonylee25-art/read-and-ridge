@@ -79,6 +79,14 @@ export default async function DashboardPage() {
 
   const worldMapBooks = toWorldMapBooks(books)
 
+  // 인사말용 닉네임 — 직접 설정한 값이 있으면 우선, 없으면 구글 프로필 이름으로
+  // 자동 채움, 그것도 없으면 마지막 기본값.
+  const nickname =
+    (user.user_metadata?.nickname as string | undefined) ||
+    (user.user_metadata?.full_name as string | undefined) ||
+    (user.user_metadata?.name as string | undefined) ||
+    '산책자'
+
   const stats = [
     { label: '내가 산 책', value: myBooksCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
     { label: '발걸음 수', value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
@@ -92,7 +100,7 @@ export default async function DashboardPage() {
 
       {/* 상단 — 예전 홈: WorldMap + 통계 */}
       <div className="space-y-6 mb-10">
-        <WorldMapClient books={worldMapBooks} />
+        <WorldMapClient books={worldMapBooks} nickname={nickname} />
 
         <div className="grid grid-cols-2 gap-3">
           {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}

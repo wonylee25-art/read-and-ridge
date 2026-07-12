@@ -2,6 +2,26 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { revalidatePath } from 'next/cache'
+
+// 닉네임 저장 — 별도 profiles 테이블 없이 auth.users의 user_metadata에 저장한다.
+// 다른 유저에게 보여줄 일이 없는 "본인 전용" 값(인사말, 나중에 캡처 워터마크)이라
+// RLS·새 테이블 없이 supabase.auth.updateUser()로 충분함. 나중에 다른 유저에게도
+// 닉네임을 보여주는 소셜 기능이 생기면 그때 profiles 테이블로 옮기면 됨.
+export async function updateNickname(nickname: string) {
+  const supabase = await createClient()
+  const trimmed = nickname.trim()
+  if (!trimmed) return { error: 'empty' as const }
+
+  const { error } = await supabase.auth.updateUser({ data: { nickname: trimmed } })
+  if (error) {
+    console.error('updateNickname failed:', error.message)
+    return { error: 'failed' as const }
+  }
+
+  revalidatePath('/dashboard')
+  return { error: null }
+}
 
 // 회원 탈퇴 — 이용자 데이터(books, 레거시 hikes)를 전부 지우고, Supabase Auth
 // 계정 자체도 완전히 삭제한다(재로그인 시 새 계정으로 취급됨). 개인정보처리방침/

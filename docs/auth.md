@@ -44,6 +44,11 @@ Supabase Auth + Google OAuth 2.0.
 - `deleteAccount()`가 하는 일: (1) `books`/레거시 `hikes` 행 삭제 (2) `signOut()` (3) `lib/supabase/admin.ts`의 서비스 롤 클라이언트로 `auth.admin.deleteUser()` 호출해 Supabase Auth 계정 자체를 완전 삭제
 - 이동 처리는 `LogoutButton`과 동일하게 클라이언트에서 `router.push('/login')` — 서버 액션 안에서 `redirect()`를 쓰면 실패 시 에러를 보여주는 try/catch가 그 특수 예외까지 삼켜버릴 수 있어 일부러 피함
 
+### 닉네임 (2026.07.12 추가)
+
+- `user.user_metadata.nickname`에 저장 — 별도 `profiles` 테이블 없음. 상세: `docs/features/nickname.md`
+- `updateNickname()` 서버 액션(`app/dashboard/account-actions.ts`)이 `supabase.auth.updateUser({ data: { nickname } })` 호출
+
 ---
 
 ## Supabase 클라이언트

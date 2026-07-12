@@ -56,8 +56,8 @@
 
 ## 선행 조건 (블로커)
 
-- **KDC 필드 매핑 미완성**: `docs/progress.md` 기준 국립중앙도서관 API 응답에서 KDC 값을 아직 추출하지 않고 있어, 현재 산 색은 실제 도서 분류가 아니라 `book.id` 해시 순환으로 배정된다. 컬러 뱃지가 "진짜 취향"을 반영하려면 KDC 매핑 작업이 먼저 끝나야 한다. 그전에 뱃지부터 만들면 무작위 색 분포를 "취향"이라고 보여주는 셈이라 의미가 없다.
-- **닉네임 설정 미구현**: PRD 원안의 워터마크(`[ Read & Ridge | Climber. 닉네임 ]`)를 넣으려면 유저 닉네임 필드가 먼저 필요.
+- ~~**KDC 필드 매핑 미완성**~~ — **완료 (2026.07.12)**. `/api/books/search`가 SEOJI `KDC`/`SUBJECT`를 추출해 `books.kdc`에 저장. 상세: `docs/verification.md` ✅ 해소 6.
+- ~~**닉네임 설정 미구현**~~ — **완료 (2026.07.12)**. `auth.users.user_metadata.nickname`에 저장(`updateNickname()`, `app/dashboard/account-actions.ts`), 산책기록(`/dashboard`) 상단에 시간대별 인사말 + 인라인 수정(`components/dashboard/Greeting.tsx`)으로 노출. 워터마크 자체는 아직 미구현이지만, 필요한 닉네임 데이터는 이제 준비됨 — 워터마크 구현 시 `user.user_metadata.nickname` 그대로 읽어 쓰면 됨.
 - **산 실루엣 다양화 미반영**: `design-style.md`에 설계는 있으나 코드(`getMountainGeometry`, hit-test 로직)에 아직 반영 안 됨.
 
 ---
