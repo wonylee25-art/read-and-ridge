@@ -52,13 +52,15 @@ function computeSlotW(count: number, containerW: number): number {
 }
 
 // ─── KDC 색상 — 데모 스크린샷 기준 팔레트 ──────────────────────────────────────
-// ⚠ 총류/철학/종교는 데모와 동일하게 "회색" (이전 버전의 파란색 아님)
+// ⚠ 총류/철학/종교는 한때 "그냥 회색"으로 의도적으로 바꾼 적이 있으나(데모 화면과
+// 맞추기 위함), 채도가 너무 낮아 화면에서 청회색 의도가 안 읽힌다는 피드백으로
+// 2026.07.12 다시 파란기가 또렷한 청회색/슬레이트 톤으로 조정함.
 
 // char: 산 색상의 보색 계열로 지정 — fill/edge와 같은 계통 색이면 캐릭터가
 // 산 표면에 파묻혀 안 보이므로, 항상 산과 대비되는 색으로 골라야 함.
 const KDC_THEME: Record<string, { fill: string; edge: string; snow: string; base: string; char: string }> = {
-  // 총류/철학/종교 (KDC 0,1,2) — 회색/실버 산 → 따뜻한 주황 옷
-  mystery: { fill: '#b9bdc1', edge: '#8b9095', snow: '#f4f6f8', base: '#6d7378', char: '#e0752f' },
+  // 총류/철학/종교 (KDC 0,1,2) — 청회색/슬레이트 산 → 따뜻한 주황 옷
+  mystery: { fill: '#8fa4c4', edge: '#526a89', snow: '#eaf2fb', base: '#2d3f54', char: '#e0752f' },
   // 사회/예술/역사 (KDC 3,7,9) — 황토/머스터드 산 → 파란 옷
   earth:   { fill: '#c9992e', edge: '#8a6312', snow: '#ffefc2', base: '#5f430a', char: '#2f6fe0' },
   // 과학/기술 (KDC 4,5) — 청록 그린 산 → 핑크/레드 옷

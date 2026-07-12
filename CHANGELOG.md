@@ -3,6 +3,12 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.2.2 — 2026-07-12
+
+- **mystery 테마 색상 조정** (`WorldMap.tsx`) — 총류/철학/종교(KDC 0,1,2) 산 색이 저채도라
+  화면에서 "그냥 회색"으로 보인다는 피드백으로, 청회색/슬레이트 톤이 또렷이 보이도록 조정
+  (`#b9bdc1` → `#8fa4c4` 등). `docs/design-style.md` 색상표도 함께 동기화.
+
 ## 0.2.1 — 2026-07-12 (2)
 
 - **KDC 백필 스크립트 추가** (`scripts/backfill-kdc.mjs`, `npm run backfill:kdc`) — 이미
