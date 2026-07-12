@@ -1436,24 +1436,6 @@ export default function WorldMap({
     document.body.removeChild(link)
   }, [completedBooks, fixedHour, nickname])
 
-  // 산책기록(home) 페이지의 기본 카메라 동작 — 예전엔 이 버튼도 "완독한 책만" 그리는
-  // 완독맵(renderCompletedPanorama)을 저장해서, 산책기록 화면에서 눌러도 완독맵이
-  // 나오는 게 혼란스럽다는 피드백(2026.07.12)을 받음. 완독맵은 완등기록(trophy)
-  // 페이지 전용으로 남기고, 산책기록에서는 지금 화면에 보이는 월드맵(읽는 중+완독+
-  // 배경 산 전부, 날씨·전경 구성까지 그대로)을 캔버스 그대로 캡처해서 저장한다 —
-  // 별도 정적 렌더러를 새로 만들 필요 없이 실제 캔버스가 이미 그 화면 그 자체이므로
-  // canvas.toDataURL()로 지금 보이는 그대로를 내보내는 게 가장 정확하다.
-  const handleCaptureHomeWorldMap = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const link = document.createElement('a')
-    link.href = canvas.toDataURL('image/png')
-    link.download = `산책또산책_산책기록월드맵_${todayFileDateKey()}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }, [])
-
   useEffect(() => {
     setTooltip(null)
     setAddHint(null)
@@ -1497,6 +1479,52 @@ export default function WorldMap({
     return { foreground: fg, background: bg }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [books, mode])
+
+  // 산책기록(home) 페이지의 기본 카메라 동작 — 예전엔 이 버튼도 "완독한 책만" 그리는
+  // 완독맵(renderCompletedPanorama)을 저장해서, 산책기록 화면에서 눌러도 완독맵이
+  // 나오는 게 혼란스럽다는 피드백(2026.07.12)을 받음. 완독맵은 완등기록(trophy)
+  // 페이지 전용으로 남기고, 산책기록에서는 지금 화면에 보이는 월드맵(읽는 중+완독+
+  // 배경 산 전부, 날씨·전경 구성까지 그대로)을 캔버스 그대로 캡처해서 저장한다.
+  //
+  // 다만 라이브 화면(rAF 루프)은 일부러 책 제목·메모를 항상 그리지 않는다(탭해야
+  // 뜨는 툴팁/오늘의 랜덤 말풍선으로만 노출 — "텍스트 정보 밀도 최소화" 원칙).
+  // 그런데 저장한 PNG에는 책 제목/메모가 아예 안 보인다는 피드백(2026.07.12)으로,
+  // 내보내기 순간에만 캔버스 위에 각 전경 산의 제목(항상)+메모(있는 책만)를 라이브
+  // 루프와 동일한 위치 계산(computeSlotW/MAX_MTN_W)으로 한 번 덧그린 뒤 캡처한다.
+  // toDataURL()까지 동기적으로 이어지므로 다음 rAF 프레임이 끼어들 틈 없이 안전하고,
+  // 화면(라이브 캔버스)은 바로 다음 프레임에 평소 모습으로 다시 그려져 깜빡임도 없다.
+  const handleCaptureHomeWorldMap = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const mountainBaseY = canvas.height - GROUND_H
+    const slotW = computeSlotW(foreground.length, wrapRef.current?.clientWidth ?? canvas.width)
+    foreground.forEach((book, i) => {
+      const level = getLevel(book.total_pages)
+      const steps = STEPS_BY_LEVEL[level]
+      const shape = getMountainShape(book)
+      const seed = hashString(book.id)
+      const profile = getMountainProfile(shape, steps, seed)
+      const mtnW = profile.numCols * PX
+      const peakCol = profile.peakCols[profile.peakCols.length - 1]
+      const baseX = 24 + i * slotW + (MAX_MTN_W - mtnW) / 2
+      const baseY = mountainBaseY - (steps + 2) * PX
+
+      drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)
+      if (book.memo && book.memo.trim()) {
+        drawMemoBubble(ctx, book.memo, baseX + peakCol * PX + PX / 2, baseY, mtnW)
+      }
+    })
+
+    const link = document.createElement('a')
+    link.href = canvas.toDataURL('image/png')
+    link.download = `산책또산책_산책기록월드맵_${todayFileDateKey()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [foreground])
 
   // 책마다 고정된 눈 패턴 (id + total_pages가 바뀔 때만 재계산 — 그 외엔 항상 동일)
   const snowMasks = useMemo(() => {

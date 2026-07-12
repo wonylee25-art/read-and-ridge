@@ -3,6 +3,16 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.13 — 2026-07-12 (22)
+
+- **산책기록 월드맵 저장 시 책 제목·메모 함께 출력** — `components/worldmap/WorldMap.tsx`
+  `handleCaptureHomeWorldMap`. 라이브 화면은 일부러 제목·메모를 늘 그리지 않는데(탭
+  툴팁/오늘의 랜덤 말풍선으로만 노출), 저장한 PNG에도 그대로 안 보여 아쉽다는 피드백.
+  내보내기 순간에만 라이브 루프와 동일한 위치 계산(`computeSlotW`/`MAX_MTN_W`)으로
+  각 전경 산에 제목(항상)+메모(있는 책만)를 한 번 덧그린 뒤 캡처하도록 수정 —
+  `toDataURL()`까지 동기 처리라 다음 rAF 프레임이 끼어들지 않고, 화면 자체는 다음
+  프레임에 평소 모습으로 복귀해 깜빡임 없음.
+
 ## 0.4.12 — 2026-07-12 (21)
 
 - **산책기록 카메라 기본 동작 분리** — `components/worldmap/WorldMap.tsx`. 좌하단
