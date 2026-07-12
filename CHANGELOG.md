@@ -3,6 +3,13 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.2 — 2026-07-12 (11)
+
+- **"인증샷 찍기" 버튼 라벨 상시 노출** — `components/worldmap/WorldMap.tsx`. 좌하단
+  카메라 버튼이 강조 상태(호박색+펄스)로만 바뀌면 hover하기 전엔 무슨 버튼인지
+  알아보기 어렵다는 피드백으로, 강조 상태일 때 버튼 오른쪽에 "인증샷 찍기" 텍스트
+  라벨을 hover 없이 항상 띄우도록 수정.
+
 ## 0.4.1 — 2026-07-12 (10)
 
 - **바이럴 캡처 UX 개선** — `components/worldmap/WorldMap.tsx`. 사용자 피드백 반영.

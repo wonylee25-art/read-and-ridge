@@ -2015,19 +2015,28 @@ export default function WorldMap({
             방금 완독한 책이 있으면(captureButtonTarget) "인증샷 찍기"로 강조 표시되고,
             없으면 평소처럼 "완독 맵 저장"(전체 파노라마) 동작 — 산 위에 따로 뜨는
             버튼은 메모 말풍선과 겹쳐 보기 불편하다는 피드백으로 여기 합침(2026.07.12).
-            완독한 책이 하나도 없으면 찍을 게 없으니 버튼 자체를 숨긴다. */}
+            색만 바뀌면 hover 전엔 무슨 버튼인지 안 보인다는 피드백으로, 강조 상태일 땐
+            버튼 오른쪽에 "인증샷 찍기" 라벨을 hover 없이 항상 띄운다.
+            완독한 책이 하나도 없으면 찍을 게 없으니 통째로 숨긴다. */}
         {completedBooks.length > 0 && (
-          <button
-            type="button"
-            onClick={handleCameraClick}
-            title={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
-            aria-label={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
-            className={`absolute left-3 bottom-3 z-20 flex items-center justify-center w-10 h-10 rounded-full shadow-md active:scale-95 transition-all ${
-              captureButtonTarget ? 'bg-amber-400 hover:bg-amber-300 animate-pulse' : 'bg-white/90 hover:bg-white'
-            }`}
-          >
-            <Camera size={18} className={captureButtonTarget ? 'text-white' : 'text-gray-700'} />
-          </button>
+          <div className="absolute left-3 bottom-3 z-20 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCameraClick}
+              title={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
+              aria-label={captureButtonTarget ? '인증샷 찍기' : '완독 맵 PNG로 저장'}
+              className={`flex items-center justify-center w-10 h-10 rounded-full shadow-md active:scale-95 transition-all shrink-0 ${
+                captureButtonTarget ? 'bg-amber-400 hover:bg-amber-300 animate-pulse' : 'bg-white/90 hover:bg-white'
+              }`}
+            >
+              <Camera size={18} className={captureButtonTarget ? 'text-white' : 'text-gray-700'} />
+            </button>
+            {captureButtonTarget && (
+              <span className="whitespace-nowrap rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-white shadow-md pointer-events-none animate-pulse">
+                인증샷 찍기
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>
