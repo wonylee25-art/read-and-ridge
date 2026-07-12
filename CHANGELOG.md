@@ -3,6 +3,13 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.10 — 2026-07-12 (19)
+
+- **정상 인증샷 산 크기 3/4로 축소** — `components/worldmap/WorldMap.tsx`
+  `renderCompletionCapture()`. "정상이 세로 절반까지" 목표치도 여전히 크다는 피드백으로,
+  최종 배율에 `HERO_SCALE_ADJUST = 0.75`를 곱해 그 목표치의 3/4만 적용(최소 1배는
+  유지). 옆산·해도 같은 `zoom` 값을 공유하므로 함께 줄어듦.
+
 ## 0.4.9 — 2026-07-12 (18)
 
 - **정상 인증샷 산 정상 = 캔버스 1/2 지점 목표 + 옆산 잘림 허용** — `components/worldmap/WorldMap.tsx`

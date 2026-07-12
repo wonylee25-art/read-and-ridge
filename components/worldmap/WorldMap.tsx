@@ -1219,7 +1219,11 @@ function renderCompletionCapture(
   // 찌그러지므로 가로세로 동일 배율(ctx.scale(S,S))로 확대한다.
   const HERO_TARGET_HEIGHT = mountainBaseY - size * 0.5 // 산 정상이 캔버스 세로 1/2 지점(y=size/2)까지 닿는 높이
   const HERO_MAX_SCALE = 4.5 // 너무 작은 책(steps 적음)이 과하게 블록져 보이지 않게 상한
-  const heroScale = Math.min(Math.max(HERO_TARGET_HEIGHT / naturalHeight, 1), HERO_MAX_SCALE)
+  const rawHeroScale = Math.min(Math.max(HERO_TARGET_HEIGHT / naturalHeight, 1), HERO_MAX_SCALE)
+  // "지금 여기서 3/4 정도 크기로만 줄여줄래?" 피드백(2026.07.12) — 위 목표치(정상이
+  // 세로 절반까지)를 그대로 쓰면 너무 크므로, 최종 배율은 그 값의 3/4만 적용한다.
+  const HERO_SCALE_ADJUST = 0.75
+  const heroScale = Math.max(rawHeroScale * HERO_SCALE_ADJUST, 1)
   const zoom = heroScale // 옆산·해와 공유하는 장면 공통 확대 배율
   const scaledMtnW = mtnW * heroScale
   const scaledLeft = heroCenterX - scaledMtnW / 2
