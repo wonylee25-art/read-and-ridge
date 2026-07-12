@@ -41,6 +41,8 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             {demoStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
           </div>
+
+          <p className="text-center text-sm text-gray-400">완등한 산이 이곳으로 옮겨옵니다 🚩</p>
         </div>
       </div>
     )

@@ -1458,6 +1458,14 @@ export default function WorldMap({
       // ── 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 하늘 중앙에 항상 맨 위로 오버레이 ─
       if (demo) {
         drawTutorialLabel(ctx, timestamp, W / 2, 40)
+
+        // "책 없음" 안내(mode==='trophy')와 같은 스타일·위치로, 완독하면 지도에서
+        // 완등기록으로 옮겨간다는 걸 미리 알려주는 문구 — 예시 지형도는 항상 책이
+        // 있는 상태라 위 "책 없음" 안내 분기는 안 타므로 별도로 그림.
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'
+        ctx.font = '13px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillText('완등한 산이 이곳으로 옮겨옵니다 🚩', W / 2, H - 80)
       }
 
       rafRef.current = requestAnimationFrame(draw)
