@@ -10,6 +10,7 @@
 // 여기에 이스터에그를 걸고 싶은 책의 ISBN을 추가하면 됨 (13자리 또는 10자리 모두 가능).
 export const AURORA_ISBNS: ReadonlySet<string> = new Set([
   '9788937450006', // 『세계문학전집 이야기』, 민음사
+  '9788937492556', // 『래퍼와 공원』(땅 시리즈 3), 송재홍, 민음사
 ])
 
 function normalizeIsbn(isbn: string): string {

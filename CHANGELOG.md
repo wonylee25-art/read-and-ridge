@@ -3,6 +3,13 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.21 — 2026-08-01 (30)
+
+- **오로라 이스터에그 트리거 책 추가** — `lib/aurora-books.ts`. `AURORA_ISBNS`에
+  『래퍼와 공원』(땅 시리즈 3, 송재홍, 민음사, ISBN 9788937492556) 추가. 이 책을
+  갤러리에 등록하면 기존 『세계문학전집 이야기』와 동일하게 10초짜리 오로라 연출이
+  재생되고, 완독 후 정상 깃발도 오로라 팔레트로 고정됨.
+
 ## 0.4.20 — 2026-07-12 (29)
 
 - **완등기록 산 겹침 방지** — `components/worldmap/geometry.ts`, `WorldMap.tsx`.
