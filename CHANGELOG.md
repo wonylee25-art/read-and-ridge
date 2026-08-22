@@ -3,6 +3,20 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.24 — 2026-08-22 (33)
+
+- **모바일에서 진척도 게이지를 끌면 뒤 페이지가 같이 스크롤되던 문제** —
+  `components/worldmap/ProgressModal.tsx`. `touchmove` 리스너가 `{ passive: true }`로
+  등록돼 있어 `preventDefault()`를 할 수 없었고, 브라우저가 같은 손가락 움직임을 페이지
+  스크롤로도 함께 처리했음(피드백: "책 진척도 스크롤을 올렸다 내리면 뒤에 페이지도 같이
+  오르락 내리락해"). 마우스 경로에는 없는 문제라 PC에선 안 보였음. ① 게이지 요소에
+  `touchAction: 'none'`을 줘서 게이지 위에서 시작한 터치를 브라우저가 스크롤로 쓰지
+  않게 하고, ② `touchmove`를 `{ passive: false }`로 바꿔 드래그 중일 때만
+  `preventDefault()` — 손가락이 게이지 밖으로 벗어난 뒤에도 스크롤이 따라붙지 않는다.
+  `touchcancel`도 함께 처리해 터치가 끊겨도 드래그 상태가 남지 않게 함.
+  (모달 바깥 어두운 영역을 끄는 경우는 여전히 뒤 페이지가 움직일 수 있음 — body 스크롤
+  잠금은 iOS에서 스크롤 위치가 튀는 부작용이 있어 이번엔 건드리지 않음.)
+
 ## 0.4.23 — 2026-08-22 (32)
 
 - **지형도 터치 조작 개선** — `components/worldmap/WorldMap.tsx`. 모바일 사용이

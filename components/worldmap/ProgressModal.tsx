@@ -62,11 +62,24 @@ export default function ProgressModal({ book, onClose, onSaved, authenticated = 
   }, [calcPct])
 
   useEffect(() => {
-    function onMove(e: TouchEvent) { if (dragging.current) calcPct(e.touches[0].clientY) }
+    // passive: true 였을 때는 preventDefault를 못 해서, 게이지를 끄는 동안 뒤 페이지가
+    // 같이 스크롤됐다. 드래그 중일 때만 기본 동작을 막는다(게이지의 touchAction: 'none'
+    // 과 이중으로 — touch-action은 터치가 게이지에서 시작한 경우를 막고, 이쪽은 손가락이
+    // 게이지 밖으로 벗어난 뒤에도 스크롤이 따라붙지 않게 한다).
+    function onMove(e: TouchEvent) {
+      if (!dragging.current) return
+      if (e.cancelable) e.preventDefault()
+      calcPct(e.touches[0].clientY)
+    }
     function onUp() { dragging.current = false }
-    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchmove', onMove, { passive: false })
     window.addEventListener('touchend', onUp)
-    return () => { window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onUp) }
+    window.addEventListener('touchcancel', onUp)
+    return () => {
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+      window.removeEventListener('touchcancel', onUp)
+    }
   }, [calcPct])
 
   useEffect(() => {
@@ -146,6 +159,10 @@ export default function ProgressModal({ book, onClose, onSaved, authenticated = 
               borderRadius: 6,
               position: 'relative',
               cursor: 'ns-resize',
+              // 이 게이지 위에서 시작한 터치를 브라우저가 페이지 스크롤로 가져가지
+              // 않게 한다. 없으면 모바일에서 진척도를 끌어올릴 때 뒤 페이지가 같이
+              // 오르락내리락했음(피드백).
+              touchAction: 'none',
             }}
             onMouseDown={(e) => { dragging.current = true; calcPct(e.clientY) }}
             onTouchStart={(e) => { dragging.current = true; calcPct(e.touches[0].clientY) }}
