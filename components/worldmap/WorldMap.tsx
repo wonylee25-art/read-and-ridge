@@ -8,7 +8,7 @@ import { type WorldMapBook, toWorldMapBooks, TARGET_TROPHY } from './worldmap-ut
 import { isAuroraBook } from '@/lib/aurora-books'
 import AuroraOverlay from '@/components/effects/AuroraOverlay'
 import SlideToCapture from './SlideToCapture'
-import { Camera } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // WorldMap 리팩토링(2026.07.12) — 원래 이 파일 하나(2128줄)에 있던 상수/픽셀 드로잉/
 // 좌표 계산/날씨/PNG 캡처 로직을 역할별 모듈로 나눴다(docs/verification.md
@@ -21,6 +21,9 @@ import { Camera } from 'lucide-react'
 //   - capture.ts      — PNG 내보내기(완독 맵/정상 인증샷) 전용 렌더 함수
 import {
   CANVAS_H,
+  CANVAS_H_COMPACT,
+  COMPACT_MAX_W,
+  getSkyRowsLimit,
   GROUND_H,
   GAP,
   TARGET_FOREGROUND,
@@ -124,6 +127,22 @@ export default function WorldMap({
 
   // 메모 말풍선 위치 계산용 — 캔버스와 별개로 컨테이너 실측 폭을 상태로도 들고 있음
   const [containerW, setContainerW] = useState(0)
+
+  // 지도가 보이는 폭보다 넓어서 좌/우로 더 넘길 수 있는지 — 모바일에선 스크롤바를
+  // 숨겨놨기 때문에(아래 scrollbarWidth: 'none') 넘길 수 있다는 표시가 전혀 없었다.
+  // 화면 밖에 산이 더 있으면 해당 방향 가장자리에 그라데이션 + 화살표를 띄운다.
+  const [overflow, setOverflow] = useState({ left: false, right: false })
+
+  // 지형도 높이 — 좁은 화면에서는 빈 하늘을 덜어낸 CANVAS_H_COMPACT를 쓴다.
+  // 서버 렌더와 첫 페인트를 맞추기 위해 초기값은 항상 CANVAS_H(440)로 두고,
+  // 마운트 후 실제 화면 폭을 보고 정한다.
+  const [canvasH, setCanvasH] = useState(CANVAS_H)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // 터치로 지도를 끌면 마지막에 click 이벤트가 따라오면서 손을 뗀 지점의 산/책추가
+  // 버튼이 눌린 것으로 처리되는 문제가 있었다(끌다가 로그인 화면으로 튕김). 드래그
+  // 중이었으면 바로 뒤에 오는 click 한 번을 무시한다.
+  const suppressClickRef = useRef(false)
 
   // 산책기록 캡처(정상 인증샷) — 방금 completed로 바뀐 책 id를 잠깐(COMPLETION_GRACE_MS
   // 동안) 들고 있어서 좌하단 카메라 버튼이 "인증샷 찍기"로 동작하게 한다. mode='home'
@@ -273,7 +292,7 @@ export default function WorldMap({
     const count = Math.min(shuffled.length, 2 + Math.floor(rand() * 2)) // 2~3개
     const picked = shuffled.slice(0, count)
 
-    const rects = getMountainRects(foreground, CANVAS_H, containerW)
+    const rects = getMountainRects(foreground, canvasH, containerW)
     return picked
       .map((book) => {
         const rect = rects.find((r) => r.book.id === book.id)
@@ -282,7 +301,7 @@ export default function WorldMap({
       })
       .filter((v): v is { book: WorldMapBook; x: number; y: number } => v !== null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW, justCompletedId])
+  }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW, justCompletedId, canvasH])
 
   // 방금 완독한 책 — 있으면(산책기록/home에서만) 좌하단 카메라 버튼이 평소 동작
   // 대신 "인증샷 찍기"로 바뀐다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는
@@ -632,7 +651,7 @@ export default function WorldMap({
 
     function hitTestMountain(cx: number, cy: number) {
       const hitTestContainerW = wrapRef.current?.clientWidth ?? canvasEl.width
-      const rects = getMountainRects(foreground, CANVAS_H, hitTestContainerW)
+      const rects = getMountainRects(foreground, canvasH, hitTestContainerW)
       return rects.find((r) => cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h)
     }
 
@@ -642,8 +661,16 @@ export default function WorldMap({
       return cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h
     }
 
-    // 마우스 호버 → 산 위에 마우스만 올려도 "제목 · 상태" 말풍선, 해/별 위에선 "책 추가하기" 힌트
+    // 마우스 호버 → 산 위에 마우스만 올려도 "제목 · 상태" 말풍선, 해/별 위에선 "책 추가하기" 힌트.
+    // 터치 기기에서는 탭할 때 브라우저가 mousemove를 한 번 흉내내서 보내는데, 손을 떼도
+    // mouseleave는 오지 않기 때문에 한 번 뜬 말풍선이 사라지지 않았다. 진짜 마우스가
+    // 있는 환경에서만 호버를 처리하고, 터치는 아래 click 경로로만 다룬다.
+    function hasFinePointer() {
+      return window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    }
+
     function handleMouseMove(e: MouseEvent) {
+      if (!hasFinePointer()) return
       const { cx, cy } = toCanvasPoint(e.clientX, e.clientY)
       const hit = hitTestMountain(cx, cy)
       if (hit) {
@@ -664,8 +691,13 @@ export default function WorldMap({
       setAddHint(null)
     }
 
-    // 탭/클릭 → 터치 기기 대응 + 읽는 중인 산은 진행률 모달을 염
+    // 탭/클릭 → 터치 기기 대응 + 읽는 중인 산은 진행률 모달을 염.
+    // 지도를 끌어서 넘긴 직후에는 click이 한 번 따라오므로 무시한다(아래 드래그 감지).
     function handleClick(e: MouseEvent) {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false
+        return
+      }
       const { cx, cy } = toCanvasPoint(e.clientX, e.clientY)
       const hit = hitTestMountain(cx, cy)
       if (hit) {
@@ -682,9 +714,38 @@ export default function WorldMap({
         onAddBook?.()
       }
     }
+    // ── 드래그(가로로 넘기기) 감지 ────────────────────────────────────────
+    // 가로 스크롤 자체는 컨테이너의 overflow-x가 알아서 처리한다. 여기서는 "끌었는지"
+    // 만 판단해서, 끌었으면 뒤따라오는 click 한 번을 삼킨다.
+    let downX = 0
+    let downY = 0
+    let moved = false
+    const DRAG_SLOP = 8 // px — 이 이상 움직이면 탭이 아니라 드래그로 본다
+
+    function handlePointerDown(e: PointerEvent) {
+      downX = e.clientX
+      downY = e.clientY
+      moved = false
+      suppressClickRef.current = false
+    }
+    function handlePointerMove(e: PointerEvent) {
+      if (moved) return
+      if (Math.abs(e.clientX - downX) > DRAG_SLOP || Math.abs(e.clientY - downY) > DRAG_SLOP) {
+        moved = true
+        suppressClickRef.current = true
+      }
+    }
+    function handlePointerUp() {
+      if (!moved) suppressClickRef.current = false
+    }
+
     canvasEl.addEventListener('click', handleClick)
     canvasEl.addEventListener('mousemove', handleMouseMove)
     canvasEl.addEventListener('mouseleave', handleMouseLeave)
+    canvasEl.addEventListener('pointerdown', handlePointerDown)
+    canvasEl.addEventListener('pointermove', handlePointerMove)
+    canvasEl.addEventListener('pointerup', handlePointerUp)
+    canvasEl.addEventListener('pointercancel', handlePointerUp)
     canvasEl.style.cursor = 'pointer'
 
     return () => {
@@ -693,9 +754,13 @@ export default function WorldMap({
       canvasEl.removeEventListener('click', handleClick)
       canvasEl.removeEventListener('mousemove', handleMouseMove)
       canvasEl.removeEventListener('mouseleave', handleMouseLeave)
+      canvasEl.removeEventListener('pointerdown', handlePointerDown)
+      canvasEl.removeEventListener('pointermove', handlePointerMove)
+      canvasEl.removeEventListener('pointerup', handlePointerUp)
+      canvasEl.removeEventListener('pointercancel', handlePointerUp)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground, background, stars, snowMasks, onBookClick, onAddBook, fixedHour, mode, weather, demo])
+  }, [foreground, background, stars, snowMasks, onBookClick, onAddBook, fixedHour, mode, weather, demo, canvasH])
 
   // ── 캔버스 크기: 컨테이너 폭 측정 후 동기화 (전경 산 개수 기준) ────────────
 
@@ -711,23 +776,71 @@ export default function WorldMap({
       const slotW = computeSlotW(foreground, cw)
       const contentW = foreground.length * slotW + 64
       canvas.width = Math.max(contentW, cw)
-      canvas.height = CANVAS_H
+      canvas.height = canvasH
     }
 
     syncSize()
     const ro = new ResizeObserver(syncSize)
     ro.observe(wrap)
     return () => ro.disconnect()
+  }, [foreground, canvasH])
+
+  // ── 화면 폭에 따라 지형도 높이 결정 ────────────────────────────────────────
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${COMPACT_MAX_W - 1}px)`)
+    const apply = () => setCanvasH(mq.matches ? CANVAS_H_COMPACT : CANVAS_H)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+
+  // ── 좌/우로 더 볼 게 남았는지 (가장자리 그라데이션 표시용) ──────────────────
+  // 모바일에선 캔버스 폭이 화면의 2~3배가 되기 쉬운데 스크롤바를 숨겨둬서 옆으로
+  // 넘길 수 있다는 사실이 보이지 않았다. 스크롤 위치를 따라가며 남은 방향을 알려준다.
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    function update() {
+      if (!el) return
+      const max = el.scrollWidth - el.clientWidth
+      setOverflow({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 })
+    }
+
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
   }, [foreground])
+
+  // 터치에는 mouseleave가 없어서, 산을 탭해 띄운 말풍선이 지도 바깥을 눌러도 남아
+  // 있었다. 지도 밖을 누르면 닫는다. (지도 안을 누르는 경우는 click 핸들러가 처리)
+
+  useEffect(() => {
+    if (!tooltip) return
+    function onDocPointerDown(e: PointerEvent) {
+      if (wrapRef.current?.contains(e.target as Node)) return
+      setTooltip(null)
+    }
+    document.addEventListener('pointerdown', onDocPointerDown)
+    return () => document.removeEventListener('pointerdown', onDocPointerDown)
+  }, [tooltip])
 
   return (
     <div className="w-full">
       <div
         ref={wrapRef}
         className="relative w-full rounded-2xl overflow-hidden select-none"
-        style={{ height: CANVAS_H, background: '#8fccf0' }}
+        style={{ height: canvasH, background: '#8fccf0' }}
       >
         <div
+          ref={scrollRef}
           className="absolute inset-0 overflow-x-auto overflow-y-hidden"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
         >
@@ -783,6 +896,21 @@ export default function WorldMap({
             ))}
         </div>
 
+        {/* 옆으로 더 볼 게 있다는 표시 — 모바일에서 캔버스가 화면보다 훨씬 넓은데
+            스크롤바가 숨겨져 있어 넘길 수 있는지 알 수 없었다. 스크롤 컨테이너 바깥
+            (wrap 기준)에 두어 스크롤과 함께 움직이지 않게 하고, 손가락/클릭을 가리지
+            않도록 pointer-events-none. 끝에 닿으면 해당 방향은 사라진다. */}
+        {overflow.left && (
+          <div className="absolute inset-y-0 left-0 z-10 flex w-10 items-center justify-start pl-1 pointer-events-none bg-gradient-to-r from-black/25 to-transparent">
+            <ChevronLeft size={18} className="text-white/80 drop-shadow" />
+          </div>
+        )}
+        {overflow.right && (
+          <div className="absolute inset-y-0 right-0 z-10 flex w-10 items-center justify-end pr-1 pointer-events-none bg-gradient-to-l from-black/25 to-transparent">
+            <ChevronRight size={18} className="text-white/80 drop-shadow" />
+          </div>
+        )}
+
         {/* 튜토리얼 라벨 (비로그인 예시 지형도 전용) — 캔버스 안에 그리지 않고 HTML로
             wrap(스크롤 안 되는 바깥 컨테이너) 기준 절대 위치로 띄운다. 예전엔 캔버스에
             직접 그려서 W/2(캔버스 콘텐츠 폭의 절반)를 중심으로 삼았는데, 산이 많아
@@ -811,7 +939,9 @@ export default function WorldMap({
         {/* 오로라 이스터에그 — WorldMap 컨테이너(wrap) 안에만 갇히도록 여기(캔버스를
             스크롤시키는 내부 div 바깥, wrap 바로 안쪽)에 둔다. wrap의 overflow-hidden
             덕분에 화면 전체가 아니라 정확히 이 지도 영역 안에서만 보인다. */}
-        {auroraActive && <AuroraOverlay onDone={() => setAuroraActive(false)} />}
+        {auroraActive && (
+          <AuroraOverlay skyRowsLimit={getSkyRowsLimit(canvasH)} onDone={() => setAuroraActive(false)} />
+        )}
 
         {/* 캡처 — 왼쪽 하단, 스크롤되는 내부 div가 아니라 바깥 wrap(고정 크기) 기준으로
             둬서 산이 많아 가로 스크롤이 생겨도 항상 화면 왼쪽 아래 같은 자리에

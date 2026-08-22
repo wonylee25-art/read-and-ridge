@@ -16,12 +16,13 @@ import { useEffect, useRef } from 'react'
 const DURATION_MS = 10000
 const CELL = 10 // WorldMap.tsx의 PX(산 1픽셀 크기)와 동일 — 같은 그리드 느낌
 
-// 오로라가 산/땅을 가로지르지 않도록, WorldMap.tsx의 실제 치수(CANVAS_H=440,
-// GROUND_H=52)와 가장 큰 산(level 4, steps=11 → 높이 (11+2)*PX=130px)을 기준으로
-// "어떤 산 꼭대기보다도 확실히 위"인 행 수만 계산해서 그 이상은 절대 안 그림.
-// 이 값은 WorldMap.tsx의 치수가 바뀌면 같이 맞춰줘야 함(둘이 직접 import하진 않음 —
-// AuroraOverlay는 WorldMap 전용이 아니어도 되는 범용 이펙트로 두기 위해 하드코딩).
-const SKY_ROWS_LIMIT = 24 // 240px — 가장 높은 산 꼭대기(약 258px)보다 위쪽만 사용
+// 오로라가 산/땅을 가로지르지 않도록 "어떤 산 꼭대기보다도 확실히 위"인 행 수까지만
+// 그린다. 예전엔 이 값이 24로 하드코딩돼 있어 WorldMap의 캔버스 높이가 바뀌면 손으로
+// 맞춰줘야 했고(안 맞추면 오로라가 산을 가로지름), 실제로 모바일 지형도 높이를 줄이면서
+// 어긋났다. 이제 호출부가 skyRowsLimit으로 넘겨준다(WorldMap은 constants.ts의
+// getSkyRowsLimit(canvasH)로 계산). AuroraOverlay를 WorldMap 전용으로 묶지 않기 위해
+// 값을 직접 import하지 않는 건 그대로 유지 — 안 넘기면 기존 440px 기준값을 쓴다.
+const DEFAULT_SKY_ROWS_LIMIT = 24 // 240px — canvasH=440일 때의 값
 
 // 초록(위) → 보라(아래) — 완독 깃발의 AURORA_FLAG_COLORS와 같은 계열
 const TOP_RGB: [number, number, number] = [64, 224, 160]
@@ -51,9 +52,20 @@ const LINES: AuroraLine[] = [
   { diagOffset: 4, alpha: 0.22, widthCells: 1 },
 ]
 
-export default function AuroraOverlay({ onDone }: { onDone: () => void }) {
+export default function AuroraOverlay({
+  onDone,
+  skyRowsLimit = DEFAULT_SKY_ROWS_LIMIT,
+}: {
+  onDone: () => void
+  skyRowsLimit?: number
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
+
+  // 재생 중(10초) 화면을 회전하거나 창을 줄이면 값이 바뀔 수 있는데, effect의 deps에
+  // 넣으면 애니메이션이 처음부터 다시 시작된다. ref로 들고 있다가 매 프레임 읽는다.
+  const skyRowsLimitRef = useRef(skyRowsLimit)
+  skyRowsLimitRef.current = skyRowsLimit
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -91,7 +103,7 @@ export default function AuroraOverlay({ onDone }: { onDone: () => void }) {
 
       const rows = Math.ceil(canvas.height / CELL)
       const cols = Math.ceil(canvas.width / CELL)
-      const skyRows = Math.min(rows, SKY_ROWS_LIMIT)
+      const skyRows = Math.min(rows, skyRowsLimitRef.current)
 
       // 오른쪽 화면 밖(cols + 여유)에서 시작해 왼쪽 화면 밖(-skyRows - 여유)까지
       // 이동하는 데 걸리는 전체 거리 — 화면 폭에 따라 자동으로 맞춰짐.

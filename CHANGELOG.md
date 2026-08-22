@@ -3,6 +3,32 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.23 — 2026-08-22 (32)
+
+- **지형도 터치 조작 개선** — `components/worldmap/WorldMap.tsx`. 모바일 사용이
+  불편하다는 피드백으로 실제 기기 폭(375px)에서 확인한 세 가지를 고침.
+  ① 캔버스 폭이 864px인데 스크롤바를 숨겨둬서(`scrollbarWidth: 'none'`) 지도의
+  60%가 화면 밖인 걸 알 수 없었음 → 남은 방향 가장자리에 그라데이션 + 화살표를
+  띄우고 끝에 닿으면 감춤(스크롤 컨테이너 바깥에 두어 같이 밀려나지 않게 함).
+  ② 지도를 끌면 마지막에 click이 따라와 손 뗀 지점의 산/책추가 버튼이 눌렸음
+  (실제로 로그인 화면으로 튕김) → pointer 이벤트로 8px 이상 이동을 드래그로 보고
+  뒤따르는 click 한 번을 무시. ③ 터치 기기는 탭할 때 mousemove를 흉내내지만
+  mouseleave가 없어 산 말풍선이 사라지지 않았음 → 호버 처리를
+  `(hover: hover) and (pointer: fine)`일 때만 하고, 지도 바깥을 누르면 닫음.
+
+- **모바일 지형도 높이 축소** — `components/worldmap/constants.ts`, `WorldMap.tsx`.
+  440px 고정이라 모바일에서 화면 세로의 54%를 차지해 통계 카드가 밀렸음. 좁은 화면
+  (`COMPACT_MAX_W = 768` 미만)에서만 `CANVAS_H_COMPACT = 352`를 쓴다(54% → 43%).
+  산 크기는 그대로 두고 빈 하늘만 덜어내는 방식이라 픽셀아트가 뭉개지지 않음.
+  PC는 440 유지 — 세로 공간이 넉넉하고 오로라 연출을 그대로 두기 위함.
+
+- **오로라 하늘 상한 자동 계산** — `components/effects/AuroraOverlay.tsx`,
+  `constants.ts`. `SKY_ROWS_LIMIT = 24`가 하드코딩이라 캔버스 높이를 바꾸면 오로라가
+  산을 가로지르는 구조였음. `getSkyRowsLimit(canvasH)`가 땅·최대 산 높이를 빼서
+  계산하고 prop으로 전달 — canvasH=440이면 24로 기존과 동일, 352면 16(160px)이라
+  산 꼭대기(180px)보다 20px 위에서 멈춤. AuroraOverlay가 WorldMap 상수를 직접
+  import하지 않는 기존 설계는 유지(기본값 24).
+
 ## 0.4.22 — 2026-08-22 (31)
 
 - **OS 다크모드에서 입력칸 글씨가 안 보이던 문제 수정** — `app/globals.css`.

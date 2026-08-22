@@ -30,12 +30,35 @@ export const MAX_STEPS = Math.round(RAW_MAX_STEPS * SIZE_SCALE) // 16*0.6=10 (�
 export const DEFAULT_PAGES = 250 // 페이지 수를 모를 때 가정하는 평균 두께
 
 export const CANVAS_H = 440
+
+// 모바일 지형도 높이 — 좁은 화면(아래 COMPACT_MAX_W 미만)에서는 440px가 세로의
+// 54%를 잡아먹어 통계 카드 등이 화면 밖으로 밀렸다(피드백: "모바일에서 쓰긴 많이
+// 불편해"). 산 크기는 그대로 두고 빈 하늘만 줄이는 값이라 픽셀아트가 뭉개지지 않음.
+// 440의 1/5을 덜어낸 값. PC는 세로 공간이 넉넉하니 440을 그대로 쓴다(오로라 연출도
+// 지금 그대로 유지됨 — getSkyRowsLimit 참고).
+export const CANVAS_H_COMPACT = 352
+
+// 이 폭 미만이면 CANVAS_H_COMPACT 사용. Tailwind의 md(768px) 분기와 맞춰둠 —
+// 사이드바가 햄버거로 바뀌는 지점과 같아야 레이아웃이 따로 놀지 않는다.
+export const COMPACT_MAX_W = 768
 export const GROUND_H = 52
 export const GAP = 20
 // 실루엣 중 쌍봉(twin)이 가장 넓으므로(폭 +2칸, getMountainProfile 참고) 최대
 // 스텝(MAX_STEPS) 기준 쌍봉 폭을 기준으로 잡는다 — 다른 실루엣은 이보다 좁아서
 // 슬롯 안에서 중앙 정렬됨.
 export const MAX_MTN_W = (2 * MAX_STEPS + 1) * PX
+
+// 가장 큰 산의 높이 — geometry.ts의 mtnH = (steps + 2) * PX 와 같은 식.
+export const MAX_MTN_H = (MAX_STEPS + 2) * PX
+
+// 오로라(AuroraOverlay)가 산을 뚫지 않고 하늘에만 그려질 수 있는 행 수.
+// 예전엔 AuroraOverlay.tsx에 24로 하드코딩돼 있어서 캔버스 높이를 바꿀 때마다 손으로
+// 맞춰줘야 했고, 안 맞추면 오로라가 산을 가로질렀다. 캔버스 높이에서 땅과 가장 큰
+// 산을 뺀 만큼으로 자동 계산한다(여유 2칸은 기존 값 24와 동일하게 맞추기 위한 마진 —
+// canvasH=440이면 (440-52-120)/10 - 2 = 24).
+export function getSkyRowsLimit(canvasH: number) {
+  return Math.max(1, Math.floor((canvasH - GROUND_H - MAX_MTN_H) / PX) - 2)
+}
 
 // ─── 산이 많을 때 간격 압축 ───────────────────────────────────────────────────
 // 산이 5개 이상이면 기본 슬롯 폭(MAX_MTN_W + GAP)으로는 화면에 다 안 들어옴.
