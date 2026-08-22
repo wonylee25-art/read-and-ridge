@@ -3,6 +3,19 @@
 산책또산책(Read & Ridge)의 버전별 변경 이력. 배포(push)할 때마다 여기에 기록하고,
 `package.json`의 `version`과 `lib/version.ts`의 `LAST_UPDATED`도 같이 갱신할 것.
 
+## 0.4.22 — 2026-08-22 (31)
+
+- **OS 다크모드에서 입력칸 글씨가 안 보이던 문제 수정** — `app/globals.css`.
+  `@media (prefers-color-scheme: dark)`가 `--foreground`를 `#ededed`로 바꿨는데,
+  화면 배경은 흰색 고정이라 Windows 다크모드에서 body 글자색을 물려받는
+  `input/select/textarea`(Tailwind preflight의 `color: inherit`)가 흰 배경 위
+  밝은 회색으로 렌더돼 책 추가 폼에 입력한 글자가 보이지 않았음(피드백: "책을
+  적는 칸에 글씨가 회색으로 떠서 글자가 안 보여"). 앱은 원래 라이트 전용이므로
+  다크모드 오버라이드를 제거하고, 입력 요소 글자색(`#171717`)과
+  placeholder 색(`#9ca3af`)을 명시. 추가로 `:root`에 `color-scheme: light`를
+  선언해 브라우저 기본 위젯(날짜 선택기, select 드롭다운, 체크박스, 스크롤바,
+  자동완성 배경)도 OS 테마를 따라가지 않도록 고정.
+
 ## 0.4.21 — 2026-08-01 (30)
 
 - **오로라 이스터에그 트리거 책 추가** — `lib/aurora-books.ts`. `AURORA_ISBNS`에

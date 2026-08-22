@@ -1,0 +1,92 @@
+<h2 class="sr-only">Read and Ridge 앱의 새 화면 구조 목업: 지도/리스트 토글과 책 추가 버튼이 있는 메인 화면, 그리고 책을 탭했을 때 드릴다운되는 상세 화면</h2>
+
+<div style="max-width:340px;margin:0 auto;">
+
+  <div style="position:relative;background:var(--surface-2);border:0.5px solid var(--border);border-radius:20px;padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <span style="font-size:15px;font-weight:500;color:var(--text-primary);">내 서재</span>
+      <i class="ti ti-user-circle" style="font-size:20px;color:var(--text-muted);" aria-hidden="true"></i>
+    </div>
+
+    <div style="display:flex;background:var(--surface-1);border-radius:var(--radius);padding:3px;margin-bottom:12px;">
+      <div style="flex:1;text-align:center;padding:6px 0;border-radius:6px;background:var(--surface-2);border:0.5px solid var(--border);font-size:12px;font-weight:500;color:var(--text-primary);"><i class="ti ti-map" style="font-size:14px;vertical-align:-2px;margin-right:4px;" aria-hidden="true"></i>지도</div>
+      <div style="flex:1;text-align:center;padding:6px 0;font-size:12px;color:var(--text-muted);"><i class="ti ti-list" style="font-size:14px;vertical-align:-2px;margin-right:4px;" aria-hidden="true"></i>리스트</div>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;background:var(--surface-1);border:0.5px solid var(--border-strong);color:var(--text-primary);white-space:nowrap;">전체</span>
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;color:var(--text-muted);white-space:nowrap;">읽는 중</span>
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;color:var(--text-muted);white-space:nowrap;">완독</span>
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;color:var(--text-muted);white-space:nowrap;">멈춤</span>
+    </div>
+
+    <svg viewBox="0 0 300 150" style="width:100%;display:block;" role="img" aria-label="책 네 권을 산으로 표현한 산맥 지도. 하나는 정상에 깃발이 꽂혀 완독을 나타내고, 하나는 등반 중인 캐릭터가 있다">
+      <polygon points="0,150 45,60 90,150" class="c-green" fill="currentColor" opacity="0.35"/>
+      <polygon points="55,150 100,35 145,150" class="c-green" fill="currentColor" opacity="0.55"/>
+      <circle cx="100" cy="70" r="5" class="c-blue" fill="currentColor"/>
+      <polygon points="115,150 165,20 215,150" class="c-green" fill="currentColor" opacity="0.75"/>
+      <circle cx="165" cy="20" r="4" class="c-amber" fill="currentColor"/>
+      <path d="M165,20 L165,10 L172,13 Z" class="c-amber" fill="currentColor"/>
+      <polygon points="185,150 225,75 265,150" class="c-green" fill="currentColor" opacity="0.35"/>
+    </svg>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;">
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;">달러구트</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;">참을수없는</div>
+      <div style="font-size:10px;font-weight:500;color:var(--text-accent);text-align:center;">아몬드</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;">데미안</div>
+    </div>
+
+    <div style="position:absolute;right:16px;bottom:16px;width:44px;height:44px;border-radius:50%;background:var(--fill-accent);display:flex;align-items:center;justify-content:center;">
+      <i class="ti ti-plus" style="font-size:22px;color:var(--on-accent);" aria-hidden="true"></i>
+    </div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:var(--text-muted);padding:4px 4px 0 0;">+ 바코드 스캔 / 제목 검색으로 책 등록</div>
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;">
+    <i class="ti ti-arrow-down" style="font-size:18px;color:var(--text-muted);" aria-hidden="true"></i>
+    <span style="font-size:11px;color:var(--text-muted);">완독한 산(아몬드) 탭 → 드릴다운</span>
+  </div>
+
+  <div style="background:var(--surface-2);border:0.5px solid var(--border);border-radius:20px;padding:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <i class="ti ti-arrow-left" style="font-size:18px;color:var(--text-secondary);" aria-hidden="true"></i>
+      <span style="font-size:15px;font-weight:500;color:var(--text-primary);">아몬드</span>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-bottom:14px;">
+      <div style="width:52px;height:72px;border-radius:6px;background:var(--surface-1);border:0.5px solid var(--border);flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">손원평 지음</div>
+        <span style="display:inline-block;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;background:var(--bg-success);color:var(--text-success);">완독</span>
+        <div style="height:5px;background:var(--surface-1);border-radius:20px;margin-top:10px;overflow:hidden;">
+          <div style="height:100%;width:100%;background:var(--fill-success);"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <i class="ti ti-flag-2" style="font-size:15px;color:var(--text-accent);" aria-hidden="true"></i>
+        <span style="font-size:13px;font-weight:500;color:var(--text-primary);">등반 기록</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+        <div>
+          <i class="ti ti-ruler" style="font-size:14px;color:var(--text-muted);" aria-hidden="true"></i>
+          <div style="font-size:13px;font-weight:500;color:var(--text-primary);margin-top:2px;">3.2km</div>
+        </div>
+        <div>
+          <i class="ti ti-trending-up" style="font-size:14px;color:var(--text-muted);" aria-hidden="true"></i>
+          <div style="font-size:13px;font-weight:500;color:var(--text-primary);margin-top:2px;">280m</div>
+        </div>
+        <div>
+          <i class="ti ti-clock" style="font-size:14px;color:var(--text-muted);" aria-hidden="true"></i>
+          <div style="font-size:13px;font-weight:500;color:var(--text-primary);margin-top:2px;">6일</div>
+        </div>
+      </div>
+    </div>
+
+    <button style="width:100%;margin-top:12px;font-size:12px;">등반 일지 전체 보기</button>
+  </div>
+
+</div>

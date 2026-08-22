@@ -1,0 +1,171 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.dw{padding:1rem 0}
+#pc{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;border-radius:8px;border:0.5px solid var(--border)}
+.cap{font-size:12px;color:var(--text-muted);text-align:center;margin:6px 0 1.5rem;line-height:1.6}
+.sec{font-size:13px;font-weight:500;color:var(--text-secondary);margin:0 0 10px}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mc{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:14px}
+.mc-icon{font-size:20px;color:var(--text-muted);margin-bottom:8px}
+.mc-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:5px}
+.mc-desc{font-size:12px;color:var(--text-secondary);line-height:1.6}
+.mc-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;margin-top:8px;font-weight:500}
+.bg{background:var(--bg-success);color:var(--text-success)}
+.ba{background:var(--bg-accent);color:var(--text-accent)}
+.bw{background:var(--bg-warning);color:var(--text-warning)}
+.link-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.link-pill{font-size:11px;padding:2px 8px;border-radius:99px;border:0.5px solid var(--border);color:var(--text-secondary);background:var(--surface-1);cursor:pointer}
+.link-pill:hover{background:var(--surface-0);color:var(--text-accent)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 1.25rem;justify-content:center}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+@media(max-width:500px){.mgrid{grid-template-columns:1fr}}
+</style>
+
+<h2 class="sr-only">Read & Ridge 픽셀 월드맵 데모 — Claude가 Canvas 코드로 직접 생성한 예시</h2>
+
+<div class="dw">
+  <canvas id="pc" width="680" height="280"></canvas>
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#c9a0dc"></div>문학/어학 (KDC 6,8)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#c8a44a"></div>사회/예술/역사 (KDC 3,7,9) — 완독</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#2ec4b6"></div>과학/기술 (KDC 4,5) — 독서중</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#b8b5ae"></div>총류/철학/종교 (KDC 0,1,2) — 미시작</div>
+  </div>
+
+  <p class="sec">픽셀 디자인 없이 에셋 확보하는 3가지 방법</p>
+  <div class="mgrid">
+    <div class="mc">
+      <div class="mc-icon"><i class="ti ti-wand" aria-hidden="true"></i></div>
+      <div class="mc-title">Claude가 직접 생성</div>
+      <div class="mc-desc">위 화면처럼 산·나무·캐릭터·파티클 전부 Canvas 코드로 그려드립니다. 디자인 툴 없이 코드가 곧 에셋이 됩니다.</div>
+      <span class="mc-badge bg">무료 · 즉시 가능</span>
+    </div>
+    <div class="mc">
+      <div class="mc-icon"><i class="ti ti-package" aria-hidden="true"></i></div>
+      <div class="mc-title">itch.io 무료 에셋팩</div>
+      <div class="mc-desc">수천 개의 무료 픽셀아트 게임 에셋 보유. 아래 링크에서 PNG 다운로드 후 바로 프로젝트에 삽입 가능합니다.</div>
+      <span class="mc-badge ba">무료 · 다운로드</span>
+      <div class="link-row">
+        <span class="link-pill" onclick="openLink('https://itch.io/game-assets/free/tag-pixel-art')">itch.io 무료 에셋</span>
+        <span class="link-pill" onclick="openLink('https://kenney.nl/assets')">Kenney.nl</span>
+      </div>
+    </div>
+    <div class="mc">
+      <div class="mc-icon"><i class="ti ti-robot" aria-hidden="true"></i></div>
+      <div class="mc-title">AI 이미지 생성</div>
+      <div class="mc-desc">ChatGPT(DALL-E 3)에 "pixel art 16-bit mountain sprite, transparent background" 입력하면 커스텀 에셋이 즉시 생성됩니다.</div>
+      <span class="mc-badge bw">ChatGPT 유료 플랜</span>
+      <div class="link-row">
+        <span class="link-pill" onclick="openLink('https://chatgpt.com')">ChatGPT</span>
+        <span class="link-pill" onclick="openLink('https://pixilart.com')">Pixilart 에디터</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('pc');
+const ctx=cv.getContext('2d');
+const P=4,W=170,H=70;
+function p(x,y,c){if(x<0||x>=W||y<0||y>=H)return;ctx.fillStyle=c;ctx.fillRect(x*P,y*P,P,P);}
+function fill(x1,y1,x2,y2,c){if(x1>x2||y1>y2)return;ctx.fillStyle=c;ctx.fillRect(x1*P,y1*P,(x2-x1+1)*P,(y2-y1+1)*P);}
+
+fill(0,0,W-1,H-1,'#6bbfff');
+fill(0,0,W-1,16,'#a8dcff');
+
+[[0,0],[1,0],[-1,0],[0,-1],[0,1],[1,-1],[-1,-1],[1,1],[-1,1]].forEach(([dx,dy])=>p(162+dx,8+dy,'#ffe566'));
+[[-3,0],[3,0],[0,-3],[0,3]].forEach(([dx,dy])=>p(162+dx,8+dy,'#fff5aa'));
+
+function cloud(cx,cy){
+  [[-3,0],[-2,0],[-1,0],[0,0],[1,0],[2,0],[3,0],[-2,-1],[-1,-1],[0,-1],[1,-1],[2,-1],[-1,-2],[0,-2],[1,-2]].forEach(([dx,dy])=>p(cx+dx,cy+dy,'#ffffff'));
+}
+cloud(25,6);cloud(82,11);cloud(132,4);
+
+fill(0,57,W-1,H-1,'#3d6b1e');
+fill(0,56,W-1,56,'#52a028');
+fill(0,55,W-1,55,'#5bb530');
+
+function mtn(cx,hw,h,main,hi,sha,cap){
+  for(let row=0;row<h;row++){
+    const prog=row/h;
+    const w=Math.max(1,Math.floor(hw*2*prog));
+    const x0=cx-Math.floor(w/2);
+    for(let col=0;col<w;col++){
+      let c=main;
+      if(col<w*0.2)c=hi;
+      else if(col>w*0.76)c=sha;
+      if(row<Math.max(1,Math.floor(h*0.18)))c=cap;
+      p(x0+col,55-h+row,c);
+    }
+  }
+}
+
+mtn(152,15,31,'#b8b5ae','#cccac4','#8a8680','#eeecea');
+fill(137,47,167,55,'#c8c5bf');
+fill(137,52,167,55,'#d5d2cc');
+
+mtn(22,9,9,'#c9a0dc','#ddb8e8','#9470b0','#f5e6ff');
+mtn(62,13,17,'#c8a44a','#dfc068','#956f20','#fffad6');
+mtn(110,18,24,'#2ec4b6','#4dd4c8','#1a8080','#e0faf8');
+
+function blossom(tx){
+  const ty=54;
+  p(tx,ty,'#6b3a1f');p(tx,ty-1,'#8a5a2a');p(tx,ty-2,'#6b3a1f');
+  [[-2,-1],[-1,-1],[0,-1],[1,-1],[2,-1],[-1,-2],[0,-2],[1,-2],[0,-3],[-1,-3],[1,-3],[0,-4]].forEach(([dx,dy])=>p(tx+dx,ty+dy,(Math.abs(dx)+Math.abs(dy))%2===0?'#f2a7c3':'#f9d0e0'));
+  p(tx,ty-4,'#fff0f5');p(tx+1,ty-2,'#fff0f5');
+}
+blossom(8);blossom(15);
+
+function pine(tx){
+  const ty=54;
+  p(tx,ty,'#5c3010');p(tx,ty-1,'#5c3010');
+  for(let x=-3;x<=3;x++)p(tx+x,ty-2,'#2d7a1f');
+  for(let x=-2;x<=2;x++){p(tx+x,ty-3,'#2d7a1f');p(tx+x,ty-4,'#3d9e2a');}
+  for(let x=-1;x<=1;x++)p(tx+x,ty-5,'#3d9e2a');
+  p(tx,ty-6,'#4dc440');
+}
+pine(37);pine(44);pine(80);pine(87);pine(128);pine(135);
+
+const s2y=55-17;
+fill(60,s2y,64,s2y+2,'#888888');
+fill(61,s2y-1,63,s2y-1,'#aaaaaa');
+p(62,s2y-2,'#cccccc');
+p(62,s2y-3,'#dd2222');p(63,s2y-3,'#ee4444');
+p(62,s2y-4,'#ff4444');p(63,s2y-4,'#ff6666');
+
+const charRow=Math.floor(24*0.6);
+const chY=55-24+charRow-2;
+const chX=108;
+p(chX,chY-1,'#1a2c6e');p(chX-1,chY-1,'#1a2c6e');
+p(chX,chY,'#ffb366');
+p(chX-1,chY+1,'#3a80cc');p(chX,chY+1,'#3a80cc');p(chX+1,chY+1,'#7a4a2a');
+p(chX-1,chY+2,'#1a2c6e');p(chX+1,chY+2,'#1a2c6e');
+
+p(120,55,'#5c3010');p(121,55,'#5c3010');
+p(120,54,'#cc4400');p(121,53,'#ff8800');p(120,53,'#ffcc00');p(121,54,'#ff5500');
+
+let frame=0;
+function animate(){
+  const bounce=Math.floor(Math.sin(frame*0.15)*1.5);
+  p(chX,chY+bounce-1,'#1a2c6e');p(chX-1,chY+bounce-1,'#1a2c6e');
+  p(chX,chY+bounce,'#ffb366');
+  p(chX-1,chY+bounce+1,'#3a80cc');p(chX,chY+bounce+1,'#3a80cc');p(chX+1,chY+bounce+1,'#7a4a2a');
+  p(chX-1,chY+bounce+2,'#1a2c6e');p(chX+1,chY+bounce+2,'#1a2c6e');
+  if(bounce!==0){
+    p(chX,chY-1,'#6bbfff');p(chX-1,chY-1,'#6bbfff');
+    p(chX,chY,'#2ec4b6');
+    p(chX-1,chY+1,'#2ec4b6');p(chX,chY+1,'#2ec4b6');p(chX+1,chY+1,'#2ec4b6');
+    p(chX-1,chY+2,'#2ec4b6');p(chX+1,chY+2,'#2ec4b6');
+  }
+  const fOff=Math.floor(frame*0.3)%3;
+  const fireColors=['#cc4400','#ff8800','#ffcc00'];
+  p(121,53,fireColors[fOff]);p(120,53,fireColors[(fOff+1)%3]);
+  frame++;
+  requestAnimationFrame(animate);
+}
+animate();
+})();
+</script>

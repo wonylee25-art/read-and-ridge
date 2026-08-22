@@ -5,19 +5,32 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* 브라우저 기본 위젯(날짜 선택기, select 드롭다운, 체크박스, 스크롤바,
+     자동완성 배경)이 OS 다크모드를 따라가지 않도록 라이트로 고정 */
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* 이 앱은 라이트 테마 전용(모든 화면이 흰 배경 고정)이라 OS 다크모드에 따라
+   --foreground 를 밝은 회색으로 바꾸면 흰 배경 위 글자/입력창 텍스트가
+   보이지 않는다. 그래서 다크모드 오버라이드를 두지 않는다. */
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Tailwind preflight 가 form 요소에 color: inherit 을 적용하므로,
+   입력 요소의 글자색을 명시해 브라우저/OS 테마의 영향을 받지 않게 한다. */
+input,
+textarea,
+select {
+  color: #171717;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
 }
 
 @layer utilities {

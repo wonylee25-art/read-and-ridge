@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 2FA 백업/복구 코드 — 절대 커밋 금지
+docs/Backup-codes-*.txt
+docs/recovery-codes.txt
