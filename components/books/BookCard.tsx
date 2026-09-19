@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, updateAuthor, updateTitle, updateTotalPages, updateVisibility, updateQuizHint } from '@/app/dashboard/books/actions'
-import { Trash2, CheckCircle, StickyNote, Home, Pencil, Globe, HelpCircle, Lock } from 'lucide-react'
+import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, updateAuthor, updateTitle, updateTotalPages, updateVisibility, updateQuizHints } from '@/app/dashboard/books/actions'
+import { Trash2, CheckCircle, StickyNote, Home, Pencil, Globe, HelpCircle, Lock, Plus, X } from 'lucide-react'
 import { formatAuthor } from '@/lib/formatAuthor'
+import { MAX_QUIZ_HINTS } from '@/lib/trail/constants'
 import DeleteConfirmModal from '@/components/books/DeleteConfirmModal'
 
 type Book = {
@@ -17,7 +18,7 @@ type Book = {
   memo: string | null
   owned?: boolean | null
   visibility?: Visibility | null
-  quiz_hint?: string | null
+  quiz_hints?: string[] | null
 }
 
 // 공개 지형도(/trail/[slug])에서 이 책을 어떻게 보여줄지.
@@ -67,7 +68,10 @@ export default function BookCard({ book }: { book: Book }) {
   const [memoSaved, setMemoSaved] = useState(false)
   const [owned, setOwned] = useState(!!book.owned)
   const [visibility, setVisibility] = useState<Visibility>(book.visibility ?? 'public')
-  const [hint, setHint] = useState(book.quiz_hint ?? '')
+  // 힌트는 최소 한 칸은 항상 보이게 둔다(빈 배열이면 입력할 곳이 없어 보임)
+  const [hints, setHints] = useState<string[]>(
+    book.quiz_hints?.length ? book.quiz_hints : ['']
+  )
   const [hintSaving, setHintSaving] = useState(false)
   const [hintSaved, setHintSaved] = useState(false)
   const memoRef = useRef<HTMLTextAreaElement>(null)
@@ -81,10 +85,18 @@ export default function BookCard({ book }: { book: Book }) {
 
   async function handleHintSave() {
     setHintSaving(true)
-    await updateQuizHint(book.id, hint)
+    await updateQuizHints(book.id, hints)
     setHintSaving(false)
     setHintSaved(true)
     setTimeout(() => setHintSaved(false), 2000)
+  }
+
+  function setHintAt(i: number, value: string) {
+    setHints((prev) => prev.map((h, idx) => (idx === i ? value : h)))
+  }
+
+  function removeHintAt(i: number) {
+    setHints((prev) => (prev.length <= 1 ? [''] : prev.filter((_, idx) => idx !== i)))
   }
 
   // 책 정보(제목·저자·전체 쪽수) 인라인 수정 — 등록 시 오타가 났거나, 검색 결과를 안
@@ -448,26 +460,56 @@ export default function BookCard({ book }: { book: Book }) {
           최근 5권만 지도에 뜨는 완등기록에서도 메모는 이 카드로 확인 가능.
           길이 제한 없이 그대로 보여줘서, 메모가 길면 카드도 자연히 늘어남
           (whitespace-pre-wrap으로 줄바꿈도 유지) */}
-      {/* 맞춰보세요 힌트 — 방문자에게 보여줄 한 줄. 비워두면 힌트 없이 산 모양만 보고 맞혀야 한다. */}
+      {/* 맞춰보세요 힌트 — 최대 3개. 방문자는 맞히기 창에서 눌러가며 하나씩 본다. */}
       {visibility === 'quiz' && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <div className="flex items-center gap-2">
-            <input
-              value={hint}
-              onChange={(e) => setHint(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleHintSave() }}
-              maxLength={100}
-              placeholder="맞히기 힌트 (선택) — 예: 작년에 네가 추천한 그 작가"
-              className="flex-1 min-w-0 text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300"
-            />
-            {hintSaved && <span className="text-xs text-green-500 shrink-0">저장됨 ✓</span>}
-            <button
-              onClick={handleHintSave}
-              disabled={hintSaving}
-              className="shrink-0 text-xs px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg transition-colors disabled:opacity-40"
-            >
-              {hintSaving ? '저장 중…' : '저장'}
-            </button>
+        <div className="mt-3 border-t border-gray-100 pt-3 space-y-1.5">
+          <p className="text-[11px] text-gray-400">
+            맞히기 힌트 (최대 {MAX_QUIZ_HINTS}개) — 방문자가 눌러가며 하나씩 봐요
+          </p>
+          {hints.map((h, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <span className="text-[11px] text-gray-300 w-3 shrink-0">{i + 1}</span>
+              <input
+                value={h}
+                onChange={(e) => setHintAt(i, e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleHintSave() }}
+                maxLength={100}
+                placeholder={i === 0 ? '예: 말로 남긴 역사에 관한 책' : '힌트 추가 (선택)'}
+                className="flex-1 min-w-0 text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300"
+              />
+              {hints.length > 1 && (
+                <button
+                  onClick={() => removeHintAt(i)}
+                  className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
+                  title="이 힌트 지우기"
+                  aria-label={`${i + 1}번 힌트 지우기`}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          ))}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            {hints.length < MAX_QUIZ_HINTS ? (
+              <button
+                onClick={() => setHints((prev) => [...prev, ''])}
+                className="flex items-center gap-1 text-[11px] text-violet-600 hover:text-violet-700 transition-colors"
+              >
+                <Plus size={12} /> 힌트 추가
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-2">
+              {hintSaved && <span className="text-xs text-green-500">저장됨 ✓</span>}
+              <button
+                onClick={handleHintSave}
+                disabled={hintSaving}
+                className="text-xs px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg transition-colors disabled:opacity-40"
+              >
+                {hintSaving ? '저장 중…' : '저장'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -16,7 +16,7 @@ export type BookVisibility = 'public' | 'quiz' | 'private'
 // 같이 딸려오고, 나중에 누가 컬럼을 추가하면 자동으로 유출됩니다. 명시 목록이
 // "새 컬럼은 기본적으로 비공개"를 보장하는 유일한 방법입니다.
 const PUBLIC_BOOK_COLUMNS =
-  'id, title, total_pages, current_page, status, kdc, completed_at, isbn, owned, visibility, quiz_hint'
+  'id, title, total_pages, current_page, status, kdc, completed_at, isbn, owned, visibility, quiz_hints'
 
 type PublicBookRow = {
   id: string
@@ -29,7 +29,7 @@ type PublicBookRow = {
   isbn: string | null
   owned: boolean | null
   visibility: BookVisibility
-  quiz_hint: string | null
+  quiz_hints: string[] | null
 }
 
 // ─── 마스킹 (순수 함수) ───────────────────────────────────────────────────────
@@ -114,8 +114,8 @@ export type PublicTrail = {
   books: (WorldMapBook & { isQuiz: boolean })[]
   /** 완등기록 지형도용 — 완독한 책만, 최근 완독 순 */
   completed: (WorldMapBook & { isQuiz: boolean })[]
-  /** 맞춰보세요 책의 주인이 적어둔 한 줄 힌트 (책 id → 힌트) */
-  quizHints: Record<string, string>
+  /** 맞춰보세요 책의 주인이 적어둔 힌트 (책 id → 힌트 목록, 최대 3개) */
+  quizHints: Record<string, string[]>
   stats: {
     /** 등록한 책 수 — 비공개 포함 전체 */
     totalBooks: number
@@ -174,11 +174,11 @@ export async function getPublicTrail(slug: string): Promise<PublicTrail | null> 
     .map(toPublicBook)
 
   // 힌트는 아직 안 밝혀진 맞춰보세요 책만
-  const quizHints: Record<string, string> = {}
+  const quizHints: Record<string, string[]> = {}
   for (const row of visible) {
-    if (row.visibility === 'quiz' && !isQuizRevealed(row) && row.quiz_hint?.trim()) {
-      quizHints[row.id] = row.quiz_hint.trim()
-    }
+    if (row.visibility !== 'quiz' || isQuizRevealed(row)) continue
+    const list = (row.quiz_hints ?? []).map((h) => h.trim()).filter(Boolean)
+    if (list.length) quizHints[row.id] = list
   }
 
   return { nickname: profile.nickname || '산책자', books, completed, quizHints, stats }

@@ -89,7 +89,7 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
         <GuessModal
           slug={slug}
           bookId={guessTarget.id}
-          hint={trail.quizHints[guessTarget.id]}
+          hints={trail.quizHints[guessTarget.id]}
           onClose={() => setGuessTarget(null)}
         />
       )}

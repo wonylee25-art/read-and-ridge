@@ -1,24 +1,28 @@
 'use client'
 
 import { useState } from 'react'
+import { Shuffle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { submitGuess, type GuessResult } from './guess-actions'
 
 export default function GuessModal({
   slug,
   bookId,
-  hint,
+  hints = [],
   onClose,
 }: {
   slug: string
   bookId: string
-  hint?: string
+  hints?: string[]
   onClose: () => void
 }) {
   const [guess, setGuess] = useState('')
   const [name, setName] = useState('')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<GuessResult | null>(null)
+  // 힌트는 한 번에 하나만 — 누를 때마다 다음 힌트로 넘어간다(끝나면 처음으로).
+  // 셋을 한꺼번에 늘어놓으면 너무 쉬워지고, 화면도 힌트가 다 차지한다.
+  const [hintIndex, setHintIndex] = useState(0)
 
   async function handleSubmit() {
     if (!guess.trim() || sending) return
@@ -41,10 +45,20 @@ export default function GuessModal({
         주인이 제목을 가려뒀어요. 완독하면 자동으로 공개됩니다.
       </p>
 
-      {hint && (
-        <p className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
-          힌트 · {hint}
-        </p>
+      {hints.length > 0 && (
+        <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+          <p className="text-sm text-amber-900">{hints[hintIndex]}</p>
+          {hints.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setHintIndex((i) => (i + 1) % hints.length)}
+              className="mt-1.5 flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900 transition-colors"
+            >
+              <Shuffle size={11} />
+              다른 힌트 ({hintIndex + 1}/{hints.length})
+            </button>
+          )}
+        </div>
       )}
 
       {correct ? (

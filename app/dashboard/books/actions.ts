@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { MAX_QUIZ_HINTS } from '@/lib/trail/constants'
 
 // books 관련 액션은 항상 이 세 경로를 함께 갱신해야 함(캐시된 목록이
 // 산책기록/완등기록 양쪽 다 최신화되도록). 여러 함수에서 반복되던 3줄을 추출.
@@ -237,17 +238,22 @@ export async function updateVisibility(bookId: string, visibility: 'public' | 'q
   revalidateBookPaths()
 }
 
-// 맞춰보세요 책에 주인이 붙이는 한 줄 힌트.
-// 자동 생성 힌트(저자·초성)보다 "작년에 너가 추천했던 그 사람 신작" 같은
-// 사람이 쓴 힌트가 훨씬 재밌어서, 입력만 받고 앱이 만들어주지는 않는다.
-export async function updateQuizHint(bookId: string, hint: string) {
+// 맞춰보세요 책에 주인이 붙이는 힌트 — 최대 3개.
+// 힌트가 하나뿐이면 "너무 쉽거나 너무 어렵거나" 둘 중 하나가 되기 쉬워서, 여러 개를 두고
+// 방문자가 눌러가며 하나씩 볼 수 있게 한다(GuessModal에서 순환).
+// 자동 생성(저자·초성)은 일부러 안 만든다 — "작년에 네가 추천한 그 작가" 같은
+// 사람이 쓴 힌트가 훨씬 재밌기 때문.
+export async function updateQuizHints(bookId: string, hints: string[]) {
   const supabase = await createClient()
-  const trimmed = hint.trim().slice(0, 100)
+  const cleaned = hints
+    .map((h) => h.trim().slice(0, 100))
+    .filter(Boolean)
+    .slice(0, MAX_QUIZ_HINTS)
   const { error } = await supabase
     .from('books')
-    .update({ quiz_hint: trimmed || null })
+    .update({ quiz_hints: cleaned.length ? cleaned : null })
     .eq('id', bookId)
-  if (error) console.error('updateQuizHint failed:', error.message)
+  if (error) console.error('updateQuizHints failed:', error.message)
   revalidateBookPaths()
   return { error: error ? ('failed' as const) : null }
 }
