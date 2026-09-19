@@ -21,5 +21,14 @@ export function createAdminClient() {
 
   return createClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      // ⚠️ Next.js는 서버에서 호출되는 fetch를 가로채 응답을 캐시한다. supabase-js는
+      // 전역 fetch를 그대로 쓰기 때문에, 이걸 안 막으면 관리자 조회 결과가 캐시에
+      // 얼어붙는다. 실제로 공개 지형도(/trail/[slug])에서 책을 비공개로 바꿔도
+      // 방문자에게 계속 보이는 문제가 여기서 나왔다 — 페이지에 force-dynamic을
+      // 걸어도 fetch 캐시는 별개라 안 풀렸다. (2026.09.19 실측)
+      // 관리자 클라이언트의 조회는 어떤 경우에도 캐시되면 안 되므로 여기서 못 박는다.
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   })
 }
