@@ -289,3 +289,56 @@ export function sideMountainNumCols(book: WorldMapBook): number {
 export function sideMountainWidth(book: WorldMapBook, zoom: number = 1): number {
   return sideMountainNumCols(book) * PX * SIDE_MOUNTAIN_SCALE * zoom
 }
+
+// ─── 소장 중인 책의 산기슭 베이스캠프 위치 ────────────────────────────────────
+// 텐트와 모닥불을 어디에 세울지 계산한다. 책마다 고정된 랜덤값(seed = hashString(book.id))
+// 이라 같은 책은 언제 봐도 같은 자리다.
+//
+// ⚠ 예전엔 비율 4종(0.12/0.28/0.68/0.82) 중 하나를 고르는 방식이라, 산이 몇 개만 있어도
+// 캠프가 죄다 비슷한 자리에 서 있는 것처럼 보였다(피드백: "산마다 위치도 달리 해줘").
+// 지금은 ① 좌/우 기슭 중 한쪽을 고르고 ② 그 구간 안에서 연속값으로 위치를 잡고
+// ③ 모닥불을 산 바깥쪽(기슭 방향)에 두는 3중 변주라 겹쳐 보이지 않는다.
+// 산 정중앙(0.34~0.66)은 비워둔다 — 거기 세우면 "기슭"이 아니라 산을 타고 오른
+// 것처럼 보이고, 오르는 캐릭터와도 겹친다.
+const CAMP_FIRE_W = 8 // drawCampfire가 차지하는 가로 폭
+const TENT_PALETTE_COUNT = 4 // constants.ts의 TENT_PALETTES 길이 — 순환 import를 피하려고 숫자로 둠
+const CAMP_GAP = 3    // 텐트와 모닥불 사이 간격
+
+export function getCampLayout(seed: number, mtnW: number, tentW: number) {
+  const rand = mulberry32(seed ^ 0x43414d50) // 'CAMP' — 다른 랜덤(산 프로필 등)과 겹치지 않게 분리
+  const onLeft = rand() < 0.5
+  const t = rand()
+  // 좌 기슭 0.06~0.34 / 우 기슭 0.66~0.94 구간 안에서 연속적으로
+  const ratio = onLeft ? 0.06 + t * 0.28 : 0.66 + t * 0.28
+  const tentDx = mtnW * ratio - tentW / 2
+  // 모닥불은 산 바깥쪽에 — 왼쪽 기슭이면 텐트 왼편, 오른쪽 기슭이면 텐트 오른편
+  const fireDx = onLeft ? tentDx - CAMP_GAP - CAMP_FIRE_W : tentDx + tentW + CAMP_GAP
+  return { tentDx, fireDx }
+}
+
+// 어느 산이 어느 색 천막을 쓸지 — 한 화면에 그릴 책들을 통째로 받아서 한 번에 정한다.
+//
+// ⚠ 예전엔 책 id 해시로 각자 독립적으로 골랐는데, 4벌뿐이라 옆 산끼리 같은 색이 나오는
+// 일이 잦았다(피드백: "너무 비슷한 컬러끼리 겹쳐있잖아"). 지금은 순서대로 훑으면서
+// **직전 두 텐트에 쓰인 색을 피해서** 고른다 — 색이 4벌이라 항상 고를 수 있고,
+// 옆 산은 물론 한 칸 건너 산과도 겹치지 않아 '코발트-로즈-코발트' 같은 반복 패턴이
+// 생기지 않는다. 시작점은 책 id 해시라 같은 책은 (배치가 그대로면) 같은 색을 유지한다.
+// 캠프가 없는 책(소장 안 함)은 건너뛰므로 '직전 텐트'는 화면상 실제로 보이는 텐트다.
+export function assignCampPalettes(books: WorldMapBook[]): Map<string, number> {
+  const out = new Map<string, number>()
+  const recent: number[] = [] // 최근에 쓴 색 2개
+  books.forEach((book) => {
+    if (!book.owned) return
+    const base = Math.floor(
+      mulberry32(hashString(book.id) ^ 0x54454e54)() * TENT_PALETTE_COUNT
+    ) % TENT_PALETTE_COUNT
+    let palette = base
+    for (let i = 0; i < TENT_PALETTE_COUNT && recent.includes(palette); i++) {
+      palette = (palette + 1) % TENT_PALETTE_COUNT
+    }
+    out.set(book.id, palette)
+    recent.push(palette)
+    if (recent.length > 2) recent.shift()
+  })
+  return out
+}

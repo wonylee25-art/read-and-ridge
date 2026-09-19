@@ -53,6 +53,8 @@ import {
   buildSnowMask,
   getFlagColor,
   isRecentlyCompleted,
+  getCampLayout,
+  assignCampPalettes,
 } from './geometry'
 import {
   type SkyConfig,
@@ -78,6 +80,8 @@ import {
   drawPixelSun,
   drawFlag,
   drawCampfire,
+  drawTent,
+  TENT_W,
   drawBackgroundRange,
   truncateMemo,
   drawStar,
@@ -269,6 +273,14 @@ export default function WorldMap({
     return map
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreground.map((b) => `${b.id}:${b.title}:${b.total_pages}:${b.status}`).join(',')])
+
+  // 산기슭 텐트 색 — 화면에 그릴 순서대로 한 번에 배정해서 옆 산끼리 같은 색이
+  // 나오지 않게 한다(assignCampPalettes 주석 참고). 라이브 렌더와 산책기록 PNG
+  // 캡처가 같은 값을 써야 해서 컴포넌트 스코프에 둔다.
+  const campPalettes = useMemo(
+    () => assignCampPalettes(foreground),
+    [foreground.map((b) => `${b.id}:${b.owned ? 1 : 0}`).join(',')]
+  )
 
   // 메모 있는 책 중 오늘(날짜 기준) 랜덤 2~3개만 뽑아 산 위에 말풍선으로 항상 띄운다.
   // 모두 다 띄우면 번잡스러우니 개수를 제한하고, 날짜를 시드로 써서 하루 동안은
@@ -589,21 +601,25 @@ export default function WorldMap({
             : -((20 - s2.bounceFrame) * 0.35)
           const charCY = mountainBaseY - progress * travel + bounceY
           drawChar(ctx, charCX, charCY, s2.charFrame, theme.char)
-
-          // 야간이면 산 아래 모닥불 — 항상 정중앙이면 단조로우니 책마다 고정된
-          // 랜덤 위치(왼쪽/오른쪽 치우침)로 베이스 라인 위에 배치
-          if (sky.stars) {
-            const FIRE_X_RATIOS = [0.12, 0.28, 0.68, 0.82]
-            const fireRatio = FIRE_X_RATIOS[Math.abs(hashString(book.id)) % FIRE_X_RATIOS.length]
-            drawCampfire(ctx, baseX + mtnW * fireRatio - 4, mountainBaseY - 14, s2.fireFrame)
-          }
         }
 
-        // trophy 모드 → 시간대와 무관하게 완등을 자축하는 모닥불을 항상 켜둠
-        if (mode === 'trophy') {
-          const FIRE_X_RATIOS = [0.12, 0.28, 0.68, 0.82]
-          const fireRatio = FIRE_X_RATIOS[Math.abs(hashString(book.id)) % FIRE_X_RATIOS.length]
-          drawCampfire(ctx, baseX + mtnW * fireRatio - 4, mountainBaseY - 14, stateRef.current.fireFrame)
+        // ── 소장 중인 책(owned) → 산기슭 베이스캠프 ─────────────────────────
+        // 낮에는 텐트만, 밤에는 텐트 + 그 옆 모닥불. 소장하지 않은 책(빌린 책·
+        // 도서관 대출본)에는 아무것도 세우지 않아서 "잠시 들른 산"과 대비된다.
+        // 읽기 상태(읽는 중/완독/멈춤)와는 무관 — 소장 여부만 본다.
+        // (2026.09 — 그전까지 모닥불은 '읽는 중 + 야간'/trophy 조건이었고 owned는
+        //  지형도에서 전혀 쓰이지 않았다. docs/ideation.md "산기슭 텐트 점등" 참고)
+        if (book.owned) {
+          // 자리는 책마다 고정된 랜덤 — 좌/우 기슭, 구간 내 연속 위치, 모닥불 방향까지
+          // 같이 정해진다(getCampLayout 주석 참고)
+          const { tentDx, fireDx } = getCampLayout(hashString(book.id), mtnW, TENT_W)
+          const palette = campPalettes.get(book.id) ?? 0
+          // trophy(완등기록)는 시간대와 무관하게 완등을 자축하는 밤 캠프로 고정
+          const campNight = sky.stars || mode === 'trophy'
+          drawTent(ctx, baseX + tentDx, mountainBaseY, campNight, palette)
+          if (campNight) {
+            drawCampfire(ctx, baseX + fireDx, mountainBaseY - 4, stateRef.current.fireFrame)
+          }
         }
       })
 
@@ -760,7 +776,7 @@ export default function WorldMap({
       canvasEl.removeEventListener('pointercancel', handlePointerUp)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground, background, stars, snowMasks, onBookClick, onAddBook, fixedHour, mode, weather, demo, canvasH])
+  }, [foreground, background, stars, snowMasks, campPalettes, onBookClick, onAddBook, fixedHour, mode, weather, demo, canvasH])
 
   // ── 캔버스 크기: 컨테이너 폭 측정 후 동기화 (전경 산 개수 기준) ────────────
 

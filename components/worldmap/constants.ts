@@ -236,6 +236,35 @@ export const CHERRY_TREE_COLORS: Record<string, string> = {
   T: '#6b4226', // 줄기
 }
 
+// 소장 중인 책(owned) 표시용 베이스캠프 텐트 — 산기슭에 세워둔다.
+// "이 산은 내 책"이라는 단일 기호. 낮에는 텐트만, 밤에는 옆에 모닥불이 더해진다.
+// (2026.09 — 그전까지 owned 값은 지형도에서 전혀 쓰이지 않았다. docs/ideation.md 참고)
+export const TENT_ROWS = [
+  '...T...',
+  '..TTT..',
+  '.TTTTT.',
+  'TTTDTTT',
+  'TTTDTTT',
+]
+// 천막 색 4벌. 어느 산이 어느 벌을 쓸지는 assignCampPalettes(geometry.ts)가 정한다.
+// ⚠ 어느 벌이든 모닥불(#ff6600/#ff9900/#ffcc00)과 확실히 달라야 한다. 처음엔 주황 계열
+// 천막 한 벌뿐이라 바로 옆 불꽃과 같은 색이었고, 텐트가 아니라 횃불처럼 보였다(피드백).
+// ⚠ 천막은 테두리(능선)와 내부를 색으로 나누지 않는다 — 한 벌당 단색 한 가지다(피드백).
+// ⚠ 4벌이 전부 옅은 파스텔이던 때는 산이 나란히 서면 "비슷한 색끼리 겹쳐 보인다"는
+// 피드백이 있었다(2026.09.19). 그래서 명도만 살짝 다른 조합을 버리고 색상(hue) 자체를
+// 크게 벌린 4벌로 교체 — 아이보리 / 청록 / 로즈 / 코발트. 주황·노랑(불꽃)과 산 팔레트
+// (청회색·황토·청록산·연보라), 잔디는 계속 피한다.
+//   T = 천막 전체(단색) / D = 입구(낮에는 어두운 안쪽, 밤엔 TENT_LIT_DOOR로 점등)
+export const TENT_PALETTES: Record<string, string>[] = [
+  { T: '#f0e4c4', D: '#3a3a44' }, // 아이보리
+  { T: '#46bda6', D: '#243f3a' }, // 청록
+  { T: '#ec7f9c', D: '#4a2130' }, // 로즈
+  { T: '#5b95df', D: '#23344c' }, // 코발트
+]
+
+// 밤에 텐트 입구에 켜지는 등불 색 — 4벌 공통.
+export const TENT_LIT_DOOR = '#ffcf70'
+
 export const FLOWER_ROWS = [
   '.P.P.',
   'PPPPP',
@@ -282,8 +311,10 @@ export const SIDE_MOUNTAIN_GAP = 14
 // ─── 데모 데이터 (props 없이 단독 실행될 때 사용 — 미리보기/스토리북용) ────────
 
 export const DEMO_BOOKS: WorldMapBook[] = [
-  { id: 'demo-1', title: '문학 책',   total_pages: 150, current_page: 0,   status: 'paused',    kdc: '8' },
-  { id: 'demo-2', title: '역사 책',   total_pages: 300, current_page: 300, status: 'completed', kdc: '9' },
-  { id: 'demo-3', title: '과학 책',   total_pages: 500, current_page: 210, status: 'reading',   kdc: '4' },
-  { id: 'demo-4', title: '철학 책',   total_pages: 700, current_page: 0,   status: 'paused',    kdc: '1' },
+  // owned는 산기슭 베이스캠프(텐트/모닥불) 노출 조건 — 예시 지도에서도 소장/비소장이
+  // 섞여 보이도록 일부러 demo-4만 false로 둔다(빌린 책엔 캠프가 없다는 걸 보여주기 위함).
+  { id: 'demo-1', title: '문학 책',   total_pages: 150, current_page: 0,   status: 'paused',    kdc: '8', owned: true },
+  { id: 'demo-2', title: '역사 책',   total_pages: 300, current_page: 300, status: 'completed', kdc: '9', owned: true },
+  { id: 'demo-3', title: '과학 책',   total_pages: 500, current_page: 210, status: 'reading',   kdc: '4', owned: true },
+  { id: 'demo-4', title: '철학 책',   total_pages: 700, current_page: 0,   status: 'paused',    kdc: '1', owned: false },
 ]

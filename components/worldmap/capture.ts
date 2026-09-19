@@ -25,6 +25,8 @@ import {
   countByTheme,
   getFlagColor,
   getMountainVisual,
+  getCampLayout,
+  assignCampPalettes,
   getStripBaseX,
   sideMountainWidth,
 } from './geometry'
@@ -35,6 +37,8 @@ import {
   drawMountainBody,
   drawFlag,
   drawCampfire,
+  drawTent,
+  TENT_W,
   drawMountainTitle,
   drawMemoBubble,
   drawKdcBadge,
@@ -118,6 +122,8 @@ export function renderCompletedPanorama(
     drawSprite(ctx, TREE_ROWS, colorsB, slotBoundary + 4, mountainBaseY, decoBlock)
   }
 
+  const campPalettes = assignCampPalettes(front)
+
   front.forEach((book, i) => {
     const { steps, theme, profile, mtnW, mtnH, peakCol, seed } = getMountainVisual(book)
     const baseX = getStripBaseX(i, slotW, mtnW)
@@ -129,10 +135,14 @@ export function renderCompletedPanorama(
     // 정상 깃발 (오로라 이스터에그 책이면 자동으로 오로라 팔레트 — getFlagColor 참고)
     drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
 
-    // 자축 모닥불 — trophy 모드와 동일하게 항상 켜둠(정적 이미지라 프레임 고정)
-    const FIRE_X_RATIOS = [0.12, 0.28, 0.68, 0.82]
-    const fireRatio = FIRE_X_RATIOS[Math.abs(seed) % FIRE_X_RATIOS.length]
-    drawCampfire(ctx, baseX + mtnW * fireRatio - 4, mountainBaseY - 14, 1)
+    // 소장 중인 책만 산기슭 베이스캠프(텐트 + 자축 모닥불) — trophy 모드와 동일한
+    // 규칙. 정적 이미지라 불꽃 프레임은 1로 고정한다.
+    if (book.owned) {
+      const { tentDx, fireDx } = getCampLayout(seed, mtnW, TENT_W)
+      const palette = campPalettes.get(book.id) ?? 0
+      drawTent(ctx, baseX + tentDx, mountainBaseY, true, palette)
+      drawCampfire(ctx, baseX + fireDx, mountainBaseY - 4, 1)
+    }
 
     // 땅과 산이 맞닿는 지점에 책 제목 각인
     drawMountainTitle(ctx, book.title, baseX + mtnW / 2, mountainBaseY, mtnW)

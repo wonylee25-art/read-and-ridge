@@ -24,6 +24,9 @@ import {
   type KdcThemeKey,
   SIDE_MOUNTAIN_SCALE,
   SIDE_MOUNTAIN_OPACITY,
+  TENT_ROWS,
+  TENT_PALETTES,
+  TENT_LIT_DOOR,
 } from './constants'
 
 // ─── Draw helpers ─────────────────────────────────────────────────────────────
@@ -282,6 +285,28 @@ export function drawClearPixelText(ctx: CanvasRenderingContext2D, elapsed: numbe
 export function drawDanceChar(ctx: CanvasRenderingContext2D, cx: number, cy: number, frame: number, outfitColor?: string) {
   drawCharSprite(ctx, cx, cy, frame, DANCE_CHAR_ROWS_A, DANCE_CHAR_ROWS_B, outfitColor)
 }
+
+// 소장 중인 책 표시 — 산기슭 베이스캠프 텐트.
+// x는 텐트 왼쪽 끝, bottomY는 텐트가 서 있는 지면 y.
+// palette는 TENT_PALETTES의 인덱스(책마다 고정 — getCampLayout이 정해준다).
+// night=true면 천막 안에 등불이 켜진 것처럼 입구가 따뜻한 색으로 바뀐다.
+export function drawTent(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  bottomY: number,
+  night = false,
+  palette = 0
+) {
+  const base = TENT_PALETTES[palette % TENT_PALETTES.length]
+  const colors = night ? { ...base, D: TENT_LIT_DOOR } : base
+  drawSprite(ctx, TENT_ROWS, colors, x, bottomY, TENT_BLOCK)
+}
+
+// 텐트 한 칸 크기(px). 캐릭터(CPX=3, 8행=24px)보다 낮되 축소 렌더에서도 형태가
+// 읽히도록 4로 둠 — 3이면 실제 표시 폭에서 텐트인지 알아보기 어려웠다.
+export const TENT_BLOCK = 4
+export const TENT_W = TENT_ROWS[0].length * TENT_BLOCK // 28px
+export const TENT_H = TENT_ROWS.length * TENT_BLOCK // 20px
 
 export function drawCampfire(ctx: CanvasRenderingContext2D, x: number, y: number, frame: number) {
   const fireColors = ['#ff6600', '#ff9900', '#ffcc00']

@@ -8,8 +8,9 @@
 import type { WorldMapBook } from '@/components/worldmap/worldmap-utils'
 
 export const DEMO_HOME_BOOKS: WorldMapBook[] = [
-  { id: 'demo-home-1', title: '압록강은 흐른다', total_pages: 240, current_page: 0, status: 'paused', kdc: '8', completed_at: null, memo: null, isbn: null },
-  { id: 'demo-home-2', title: '망고와 수류탄', total_pages: 636, current_page: 320, status: 'reading', kdc: '9', completed_at: null, memo: null, isbn: null },
-  { id: 'demo-home-3', title: '제자리에 있다는 것', total_pages: 320, current_page: 0, status: 'paused', kdc: '1', completed_at: null, memo: null, isbn: null },
-  { id: 'demo-home-4', title: '랩걸', total_pages: 400, current_page: 0, status: 'paused', kdc: '5', completed_at: null, memo: null, isbn: null },
+  { id: 'demo-home-1', title: '압록강은 흐른다', total_pages: 240, current_page: 0, status: 'paused', kdc: '8', completed_at: null, memo: null, isbn: null, owned: true },
+  { id: 'demo-home-2', title: '망고와 수류탄', total_pages: 636, current_page: 320, status: 'reading', kdc: '9', completed_at: null, memo: null, isbn: null, owned: true },
+  { id: 'demo-home-3', title: '제자리에 있다는 것', total_pages: 320, current_page: 0, status: 'paused', kdc: '1', completed_at: null, memo: null, isbn: null, owned: true },
+  // 랩걸만 owned:false — 빌린 책에는 산기슭 베이스캠프(텐트)가 없다는 대비를 예시에서도 보여줌
+  { id: 'demo-home-4', title: '랩걸', total_pages: 400, current_page: 0, status: 'paused', kdc: '5', completed_at: null, memo: null, isbn: null, owned: false },
 ]
