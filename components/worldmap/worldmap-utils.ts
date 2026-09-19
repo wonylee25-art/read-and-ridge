@@ -19,6 +19,11 @@ export type WorldMapBook = {
   memo?: string | null
   isbn?: string | null // 오로라 이스터에그(개발자 지정 책) 판별용 — lib/aurora-books.ts 참고
   owned?: boolean | null // 소장 여부 — 지형도에서 산기슭 베이스캠프(텐트/모닥불)로 표현
+  // 오로라 이스터에그 여부를 "미리 계산해둔" 값. 보통은 isbn으로 그때그때 판별하지만,
+  // 공개 지형도(/trail/[slug])는 isbn 자체를 클라이언트로 내보내면 안 된다 —
+  // ISBN 하나면 그 책이 무슨 책인지 바로 특정되기 때문(맞춰보세요 기능이 무의미해짐).
+  // 그래서 서버에서 isAuroraBook()으로 계산한 결과만 넘기고 isbn은 뺀다.
+  aurora?: boolean
 }
 
 // Supabase에서 받아온 books row 배열을 WorldMap이 필요로 하는 형태로 변환.

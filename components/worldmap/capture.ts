@@ -133,7 +133,7 @@ export function renderCompletedPanorama(
     drawMountainBody(ctx, profile, steps, theme, baseX, baseY)
 
     // 정상 깃발 (오로라 이스터에그 책이면 자동으로 오로라 팔레트 — getFlagColor 참고)
-    drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
+    drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn, book.aurora))
 
     // 소장 중인 책만 산기슭 베이스캠프(텐트 + 자축 모닥불) — trophy 모드와 동일한
     // 규칙. 정적 이미지라 불꽃 프레임은 1로 고정한다.

@@ -109,6 +109,11 @@ export default function WorldMap({
                         // 넘어온 책 전부를 그대로 보여주고(배경 없음), 산/나무/모닥불/깃발만
   demo = false,        // 비로그인 예시 지형도(랜딩페이지)에서만 true — 깜빡이는 TUTORIAL 라벨 노출
   nickname,            // PNG 캡처(완독 맵/정상 인증샷) 워터마크용. 없으면 앱 이름만 찍힘.
+  readOnly = false,    // 남의 지형도를 구경하는 화면(/trail/[slug])용 — PNG 캡처 UI를 숨긴다.
+                        // 남의 기록을 이미지로 내려받게 두지 않기 위함.
+  onBookTap,           // 상태와 무관하게 "산을 탭하면" 호출. 공개 지형도의 맞춰보세요 모달용.
+                        // onBookClick(읽는 중인 책만)과는 계약이 달라서 일부러 분리했다 —
+                        // WorldMapClient가 onBookClick의 기존 계약에 의존하고 있다.
 }: {
   books?: WorldMapBook[]
   onBookClick?: (book: WorldMapBook) => void
@@ -117,6 +122,8 @@ export default function WorldMap({
   mode?: 'home' | 'trophy'
   demo?: boolean
   nickname?: string
+  readOnly?: boolean
+  onBookTap?: (book: WorldMapBook) => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -277,10 +284,9 @@ export default function WorldMap({
   // 산기슭 텐트 색 — 화면에 그릴 순서대로 한 번에 배정해서 옆 산끼리 같은 색이
   // 나오지 않게 한다(assignCampPalettes 주석 참고). 라이브 렌더와 산책기록 PNG
   // 캡처가 같은 값을 써야 해서 컴포넌트 스코프에 둔다.
-  const campPalettes = useMemo(
-    () => assignCampPalettes(foreground),
-    [foreground.map((b) => `${b.id}:${b.owned ? 1 : 0}`).join(',')]
-  )
+  const campPaletteKey = foreground.map((b) => `${b.id}:${b.owned ? 1 : 0}`).join(',')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const campPalettes = useMemo(() => assignCampPalettes(foreground), [campPaletteKey])
 
   // 메모 있는 책 중 오늘(날짜 기준) 랜덤 2~3개만 뽑아 산 위에 말풍선으로 항상 띄운다.
   // 모두 다 띄우면 번잡스러우니 개수를 제한하고, 날짜를 시드로 써서 하루 동안은
@@ -403,7 +409,7 @@ export default function WorldMap({
     const prevIds = prevBookIdsRef.current
     if (prevIds) {
       const justAdded = books.filter((b) => !prevIds.has(b.id))
-      if (justAdded.some((b) => isAuroraBook(b.isbn))) {
+      if (justAdded.some((b) => b.aurora ?? isAuroraBook(b.isbn))) {
         setAuroraActive(true)
       }
     }
@@ -560,7 +566,7 @@ export default function WorldMap({
         // 완독(유예 시간 안) → 정상에 깃발 (색은 책마다 고정된 랜덤 색).
         // 세레모니가 진행 중인 동안엔 깃발 대신 댄스 캐릭터가 그 자리를 대신함.
         if (book.status === 'completed' && !burstActive) {
-          drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn))
+          drawFlag(ctx, baseX + peakCol * PX + PX / 2, baseY, getFlagColor(book.id, book.isbn, book.aurora))
         }
 
         if (burstActive && burst) {
@@ -673,6 +679,7 @@ export default function WorldMap({
 
     function hitTestAddButton(cx: number, cy: number) {
       if (mode !== 'home') return false // trophy 모드엔 책 추가 버튼이 없음
+      if (!onAddBook) return false // 핸들러가 없으면 버튼도 없는 것 — 공개 지형도에서 호버 힌트가 뜨지 않게
       const r = getAddButtonRect(canvasEl.width)
       return cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h
     }
@@ -717,6 +724,12 @@ export default function WorldMap({
       const { cx, cy } = toCanvasPoint(e.clientX, e.clientY)
       const hit = hitTestMountain(cx, cy)
       if (hit) {
+        // onBookTap이 주어지면 상태와 무관하게 모든 산이 탭 대상 (공개 지형도)
+        if (onBookTap) {
+          setTooltip(null)
+          onBookTap(hit.book)
+          return
+        }
         if (hit.book.status === 'reading') {
           setTooltip(null)
           onBookClick?.(hit.book)
@@ -776,7 +789,7 @@ export default function WorldMap({
       canvasEl.removeEventListener('pointercancel', handlePointerUp)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreground, background, stars, snowMasks, campPalettes, onBookClick, onAddBook, fixedHour, mode, weather, demo, canvasH])
+  }, [foreground, background, stars, snowMasks, campPalettes, onBookClick, onBookTap, onAddBook, fixedHour, mode, weather, demo, canvasH])
 
   // ── 캔버스 크기: 컨테이너 폭 측정 후 동기화 (전경 산 개수 기준) ────────────
 
@@ -971,7 +984,7 @@ export default function WorldMap({
             모은 파노라마), 산책기록(home)은 "산책기록 월드맵"(지금 화면 그대로, 읽는
             중+완독+배경 산 전부)을 저장한다. 산책기록에서 눌러도 완독맵만 나온다는
             피드백(2026.07.12)으로 분리함. */}
-        {(mode === 'trophy' ? completedBooks.length > 0 : books.length > 0) && (
+        {!readOnly && (mode === 'trophy' ? completedBooks.length > 0 : books.length > 0) && (
           <div className="absolute left-3 bottom-3 z-20">
             {captureButtonTarget ? (
               <SlideToCapture

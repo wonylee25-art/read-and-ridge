@@ -204,8 +204,10 @@ export function buildSnowMask(book: WorldMapBook, steps: number, profile: Mounta
   return mask
 }
 
-export function getFlagColor(id: string, isbn?: string | null): string {
-  if (isAuroraBook(isbn)) {
+// aurora: 이미 판별된 결과가 있으면 그걸 쓴다(공개 지형도처럼 isbn을 클라이언트로
+// 보내지 않는 경로용 — WorldMapBook.aurora 주석 참고). 없으면 기존대로 isbn으로 판별.
+export function getFlagColor(id: string, isbn?: string | null, aurora?: boolean): string {
+  if (aurora ?? isAuroraBook(isbn)) {
     const idx = Math.abs(hashString(id)) % AURORA_FLAG_COLORS.length
     return AURORA_FLAG_COLORS[idx]
   }
