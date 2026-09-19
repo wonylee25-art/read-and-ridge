@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, updateAuthor, updateTitle, updateTotalPages } from '@/app/dashboard/books/actions'
-import { Trash2, CheckCircle, StickyNote, Home, Pencil } from 'lucide-react'
+import { updateProgress, changeStatus, deleteBook, saveMemo, updateOwned, updateAuthor, updateTitle, updateTotalPages, updateVisibility, updateQuizHint } from '@/app/dashboard/books/actions'
+import { Trash2, CheckCircle, StickyNote, Home, Pencil, Globe, HelpCircle, Lock } from 'lucide-react'
 import { formatAuthor } from '@/lib/formatAuthor'
 import DeleteConfirmModal from '@/components/books/DeleteConfirmModal'
 
@@ -16,6 +16,32 @@ type Book = {
   started_at: string | null
   memo: string | null
   owned?: boolean | null
+  visibility?: Visibility | null
+  quiz_hint?: string | null
+}
+
+// 공개 지형도(/trail/[slug])에서 이 책을 어떻게 보여줄지.
+// 아이콘을 누를 때마다 공개 → 맞춰보세요 → 비공개 순으로 돈다(소장 토글과 같은 조작감).
+type Visibility = 'public' | 'quiz' | 'private'
+
+const VISIBILITY_ORDER: Visibility[] = ['public', 'quiz', 'private']
+
+const VISIBILITY_META: Record<Visibility, { Icon: typeof Globe; className: string; title: string }> = {
+  public: {
+    Icon: Globe,
+    className: 'text-gray-300 hover:text-gray-500',
+    title: '공개 — 공유 링크에서 제목까지 보여요 (클릭하면 맞춰보세요)',
+  },
+  quiz: {
+    Icon: HelpCircle,
+    className: 'text-violet-500 hover:text-violet-600',
+    title: '맞춰보세요 — 산은 보이고 제목은 가려져요. 완독하면 자동 공개 (클릭하면 비공개)',
+  },
+  private: {
+    Icon: Lock,
+    className: 'text-gray-600 hover:text-gray-800',
+    title: '비공개 — 공유 링크에서 이 산이 보이지 않아요 (클릭하면 공개)',
+  },
 }
 
 const STATUS_OPTIONS = [
@@ -40,7 +66,26 @@ export default function BookCard({ book }: { book: Book }) {
   const [memoSaving, setMemoSaving] = useState(false)
   const [memoSaved, setMemoSaved] = useState(false)
   const [owned, setOwned] = useState(!!book.owned)
+  const [visibility, setVisibility] = useState<Visibility>(book.visibility ?? 'public')
+  const [hint, setHint] = useState(book.quiz_hint ?? '')
+  const [hintSaving, setHintSaving] = useState(false)
+  const [hintSaved, setHintSaved] = useState(false)
   const memoRef = useRef<HTMLTextAreaElement>(null)
+
+  // 소장 토글과 동일한 낙관적 업데이트 — 먼저 화면을 바꾸고 서버에 알린다
+  async function handleCycleVisibility() {
+    const next = VISIBILITY_ORDER[(VISIBILITY_ORDER.indexOf(visibility) + 1) % VISIBILITY_ORDER.length]
+    setVisibility(next)
+    await updateVisibility(book.id, next)
+  }
+
+  async function handleHintSave() {
+    setHintSaving(true)
+    await updateQuizHint(book.id, hint)
+    setHintSaving(false)
+    setHintSaved(true)
+    setTimeout(() => setHintSaved(false), 2000)
+  }
 
   // 책 정보(제목·저자·전체 쪽수) 인라인 수정 — 등록 시 오타가 났거나, 검색 결과를 안
   // 고르고 직접 입력했거나, 자동 채워진 쪽수(검색 결과 또는 기본 150쪽)가 실제 책과
@@ -316,6 +361,19 @@ export default function BookCard({ book }: { book: Book }) {
             <Home size={14} />
           </button>
 
+          {/* 공개 범위 — 공개 / 맞춰보세요 / 비공개 순환 */}
+          <button
+            onClick={handleCycleVisibility}
+            className={`transition-colors ${VISIBILITY_META[visibility].className}`}
+            title={VISIBILITY_META[visibility].title}
+            aria-label={VISIBILITY_META[visibility].title}
+          >
+            {(() => {
+              const { Icon } = VISIBILITY_META[visibility]
+              return <Icon size={14} />
+            })()}
+          </button>
+
           {/* 메모 토글 */}
           <button
             onClick={() => setMemoOpen((v) => !v)}
@@ -390,6 +448,30 @@ export default function BookCard({ book }: { book: Book }) {
           최근 5권만 지도에 뜨는 완등기록에서도 메모는 이 카드로 확인 가능.
           길이 제한 없이 그대로 보여줘서, 메모가 길면 카드도 자연히 늘어남
           (whitespace-pre-wrap으로 줄바꿈도 유지) */}
+      {/* 맞춰보세요 힌트 — 방문자에게 보여줄 한 줄. 비워두면 힌트 없이 산 모양만 보고 맞혀야 한다. */}
+      {visibility === 'quiz' && (
+        <div className="mt-3 border-t border-gray-100 pt-3">
+          <div className="flex items-center gap-2">
+            <input
+              value={hint}
+              onChange={(e) => setHint(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleHintSave() }}
+              maxLength={100}
+              placeholder="맞히기 힌트 (선택) — 예: 작년에 네가 추천한 그 작가"
+              className="flex-1 min-w-0 text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300"
+            />
+            {hintSaved && <span className="text-xs text-green-500 shrink-0">저장됨 ✓</span>}
+            <button
+              onClick={handleHintSave}
+              disabled={hintSaving}
+              className="shrink-0 text-xs px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {hintSaving ? '저장 중…' : '저장'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {!memoOpen && memo && (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs text-gray-500 whitespace-pre-wrap break-words leading-relaxed">

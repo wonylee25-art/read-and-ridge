@@ -225,6 +225,33 @@ export async function updateOwned(bookId: string, owned: boolean) {
   revalidateBookPaths()
 }
 
+// 책별 공개 범위 — 공개 지형도(/trail/[slug])에서 이 책을 어떻게 보여줄지.
+//   public  : 산 + 제목 그대로
+//   quiz    : 산은 보이고 제목은 가림. 방문자가 맞히기 가능, 완독하면 자동 공개
+//   private : 공개 페이지에서 아예 제외 (내 화면과 누적 숫자에는 그대로 남는다)
+// updateOwned와 같은 패턴 — 본인 확인은 RLS(user_id = auth.uid())에 맡긴다.
+export async function updateVisibility(bookId: string, visibility: 'public' | 'quiz' | 'private') {
+  const supabase = await createClient()
+  const { error } = await supabase.from('books').update({ visibility }).eq('id', bookId)
+  if (error) console.error('updateVisibility failed:', error.message)
+  revalidateBookPaths()
+}
+
+// 맞춰보세요 책에 주인이 붙이는 한 줄 힌트.
+// 자동 생성 힌트(저자·초성)보다 "작년에 너가 추천했던 그 사람 신작" 같은
+// 사람이 쓴 힌트가 훨씬 재밌어서, 입력만 받고 앱이 만들어주지는 않는다.
+export async function updateQuizHint(bookId: string, hint: string) {
+  const supabase = await createClient()
+  const trimmed = hint.trim().slice(0, 100)
+  const { error } = await supabase
+    .from('books')
+    .update({ quiz_hint: trimmed || null })
+    .eq('id', bookId)
+  if (error) console.error('updateQuizHint failed:', error.message)
+  revalidateBookPaths()
+  return { error: error ? ('failed' as const) : null }
+}
+
 export async function changeStatus(bookId: string, status: string) {
   const supabase = await createClient()
 

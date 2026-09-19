@@ -26,9 +26,19 @@ export default async function DashboardLayout({
     completedCount: number
     completedKm: number
   } | null = null
+  let shareSlug: string | null = null
 
   if (user) {
     nickname = getNicknameFromUser(user)
+
+    // 공개 지형도 링크 상태 — "산책자 증표" 팝업의 공개 토글에 쓴다.
+    // share_slug가 null이면 아직 공개하지 않은 것(기본값).
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('share_slug')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    shareSlug = (profile?.share_slug as string | null) ?? null
 
     const { data: books } = await supabase
       .from('books')
@@ -69,7 +79,7 @@ export default async function DashboardLayout({
               둘 다 이 relative 컨테이너의 top: 0에서 시작해 같은 줄에 정렬된다. */}
           {user && nickname && stats && (
             <div className="absolute top-0 right-0">
-              <ProfileTrigger nickname={nickname} stats={stats} />
+              <ProfileTrigger nickname={nickname} stats={stats} shareSlug={shareSlug} />
             </div>
           )}
           {children}

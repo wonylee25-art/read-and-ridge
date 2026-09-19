@@ -32,9 +32,11 @@ function pickGreetingPhrase(hour: number): string {
 export default function ProfileTrigger({
   nickname,
   stats,
+  shareSlug,
 }: {
   nickname: string
   stats: ProfileStats
+  shareSlug: string | null
 }) {
   const [open, setOpen] = useState(false)
 
@@ -64,7 +66,14 @@ export default function ProfileTrigger({
           <User size={15} className="text-gray-600" />
         </button>
       </div>
-      {open && <ProfileModal nickname={nickname} stats={stats} onClose={() => setOpen(false)} />}
+      {open && (
+        <ProfileModal
+          nickname={nickname}
+          stats={stats}
+          shareSlug={shareSlug}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   )
 }
