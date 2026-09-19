@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User } from 'lucide-react'
+import type { VisibilityBook } from '@/components/dashboard/VisibilityModal'
 import ProfileModal, { type ProfileStats } from './ProfileModal'
 
 // 시간대별 인사 문구 — 2시간 단위 12구간, 구간마다 후보 2개 중 하나를 랜덤으로 보여준다.
@@ -33,10 +34,12 @@ export default function ProfileTrigger({
   nickname,
   stats,
   shareSlug,
+  visibilityBooks,
 }: {
   nickname: string
   stats: ProfileStats
   shareSlug: string | null
+  visibilityBooks: VisibilityBook[]
 }) {
   const [open, setOpen] = useState(false)
 
@@ -71,6 +74,7 @@ export default function ProfileTrigger({
           nickname={nickname}
           stats={stats}
           shareSlug={shareSlug}
+          visibilityBooks={visibilityBooks}
           onClose={() => setOpen(false)}
         />
       )}

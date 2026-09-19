@@ -3,6 +3,7 @@ import ProfileTrigger from '@/components/dashboard/ProfileTrigger'
 import { createClient } from '@/lib/supabase/server'
 import { DISTANCE_PER_PAGE_M } from '@/components/worldmap/worldmap-utils'
 import { getNicknameFromUser } from '@/lib/nickname'
+import type { VisibilityBook } from '@/components/dashboard/VisibilityModal'
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +28,8 @@ export default async function DashboardLayout({
     completedKm: number
   } | null = null
   let shareSlug: string | null = null
+  // "책별 공개 범위" 모달용 — 공개 토글과 같은 자리에서 여니 여기서 같이 실어 보낸다
+  let visibilityBooks: VisibilityBook[] = []
 
   if (user) {
     nickname = getNicknameFromUser(user)
@@ -42,7 +45,7 @@ export default async function DashboardLayout({
 
     const { data: books } = await supabase
       .from('books')
-      .select('status, current_page, total_pages, status_changed_at')
+      .select('id, title, status, current_page, total_pages, status_changed_at, visibility')
       .eq('user_id', user.id)
 
     const all = books ?? []
@@ -55,6 +58,12 @@ export default async function DashboardLayout({
         .filter((v): v is string => !!v)
         .sort()
         .at(-1) ?? null
+
+    visibilityBooks = all.map((b) => ({
+      id: b.id as string,
+      title: b.title as string,
+      visibility: ((b.visibility as string) ?? 'public') as VisibilityBook['visibility'],
+    }))
 
     stats = {
       createdAt: user.created_at,
@@ -79,7 +88,12 @@ export default async function DashboardLayout({
               둘 다 이 relative 컨테이너의 top: 0에서 시작해 같은 줄에 정렬된다. */}
           {user && nickname && stats && (
             <div className="absolute top-0 right-0">
-              <ProfileTrigger nickname={nickname} stats={stats} shareSlug={shareSlug} />
+              <ProfileTrigger
+                nickname={nickname}
+                stats={stats}
+                shareSlug={shareSlug}
+                visibilityBooks={visibilityBooks}
+              />
             </div>
           )}
           {children}

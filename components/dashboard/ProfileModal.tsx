@@ -5,6 +5,7 @@ import { X, BookOpen, Footprints, Mountain, TrendingUp, Link2, Check } from 'luc
 import { updateNickname, updateShareEnabled } from '@/app/dashboard/account-actions'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/dashboard/StatCard'
+import VisibilityModal, { type VisibilityBook } from '@/components/dashboard/VisibilityModal'
 
 export type ProfileStats = {
   createdAt: string
@@ -25,11 +26,13 @@ export default function ProfileModal({
   nickname,
   stats,
   shareSlug,
+  visibilityBooks,
   onClose,
 }: {
   nickname: string
   stats: ProfileStats
   shareSlug: string | null
+  visibilityBooks: VisibilityBook[]
   onClose: () => void
 }) {
   const [name, setName] = useState(nickname)
@@ -39,6 +42,7 @@ export default function ProfileModal({
   const [slug, setSlug] = useState(shareSlug)
   const [shareBusy, setShareBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [visibilityOpen, setVisibilityOpen] = useState(false)
 
   const shareUrl = slug && typeof window !== 'undefined' ? `${window.location.origin}/trail/${slug}` : ''
 
@@ -144,6 +148,14 @@ export default function ProfileModal({
           </button>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setVisibilityOpen(true)}
+          className="mt-2.5 w-full rounded-xl border border-gray-200 py-2 text-[11px] text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          책별 공개 범위 한 번에 정리하기 ({visibilityBooks.length}권)
+        </button>
+
         {slug && (
           <div className="mt-2.5 flex items-center gap-2">
             <code className="flex-1 min-w-0 truncate text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
@@ -167,6 +179,9 @@ export default function ProfileModal({
         <StatCard label="완등기록" value={stats.completedCount} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
         <StatCard label="완등거리" value={`${stats.completedKm.toFixed(1)}km`} icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
       </div>
+      {visibilityOpen && (
+        <VisibilityModal books={visibilityBooks} onClose={() => setVisibilityOpen(false)} />
+      )}
     </Modal>
   )
 }

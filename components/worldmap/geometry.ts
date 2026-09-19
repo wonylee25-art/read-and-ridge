@@ -304,18 +304,54 @@ export function sideMountainWidth(book: WorldMapBook, zoom: number = 1): number 
 // 것처럼 보이고, 오르는 캐릭터와도 겹친다.
 const CAMP_FIRE_W = 8 // drawCampfire가 차지하는 가로 폭
 const TENT_PALETTE_COUNT = 4 // constants.ts의 TENT_PALETTES 길이 — 순환 import를 피하려고 숫자로 둠
-const CAMP_GAP = 3    // 텐트와 모닥불 사이 간격
 
-export function getCampLayout(seed: number, mtnW: number, tentW: number) {
+// 칼럼 구간 [c0, c0+n)에서 산 표면의 가장 낮은 높이(블록 수).
+// 텐트는 여러 칼럼에 걸치는데 계단마다 높이가 달라서, 가장 낮은 칸에 맞춰 앉힌다 —
+// 가장 높은 칸에 맞추면 반대쪽이 공중에 뜨고, 낮은 쪽에 맞추면 안쪽이 비탈에 살짝
+// 파묻혀 "산기슭에 기대 세운 텐트"처럼 보인다.
+function surfaceBlocks(heights: number[], c0: number, n: number): number {
+  let min = Infinity
+  for (let c = c0; c < c0 + n; c++) {
+    min = Math.min(min, c >= 0 && c < heights.length ? heights[c] : 0)
+  }
+  return Number.isFinite(min) ? min : 0
+}
+
+export function getCampLayout(seed: number, profile: MountainProfile, tentW: number) {
   const rand = mulberry32(seed ^ 0x43414d50) // 'CAMP' — 다른 랜덤(산 프로필 등)과 겹치지 않게 분리
+  const { numCols, heights } = profile
+
+  const tentCols = Math.max(1, Math.round(tentW / PX))
+  const fireCols = Math.max(1, Math.round(CAMP_FIRE_W / PX))
+  const need = tentCols + fireCols // 텐트+모닥불이 나란히 차지하는 칼럼 수
+
   const onLeft = rand() < 0.5
   const t = rand()
-  // 좌 기슭 0.06~0.34 / 우 기슭 0.66~0.94 구간 안에서 연속적으로
-  const ratio = onLeft ? 0.06 + t * 0.28 : 0.66 + t * 0.28
-  const tentDx = mtnW * ratio - tentW / 2
-  // 모닥불은 산 바깥쪽에 — 왼쪽 기슭이면 텐트 왼편, 오른쪽 기슭이면 텐트 오른편
-  const fireDx = onLeft ? tentDx - CAMP_GAP - CAMP_FIRE_W : tentDx + tentW + CAMP_GAP
-  return { tentDx, fireDx }
+
+  // 좌/우 기슭 구간에서 캠프 블록의 시작 칼럼을 고른다.
+  // 정중앙(0.35~0.65)은 비워둔다 — 오르는 캐릭터와 정상 깃발 자리이고,
+  // 거기까지 올라가면 "기슭의 베이스캠프"라는 의미도 사라진다.
+  const leftEnd = Math.max(0, Math.floor(numCols * 0.35) - need)
+  const rightStart = Math.min(numCols - need, Math.ceil(numCols * 0.65))
+  const startCol = onLeft
+    ? Math.round(t * leftEnd)
+    : rightStart + Math.round(t * Math.max(0, numCols - need - rightStart))
+
+  // 모닥불은 산 바깥쪽(기슭 방향)에 — 왼쪽 기슭이면 텐트 왼편, 오른쪽이면 오른편
+  const fireCol = onLeft ? startCol : startCol + tentCols
+  const tentCol = onLeft ? startCol + fireCols : startCol
+
+  // 지면이 아니라 "그 자리의 산 표면"에 앉힌다. 그래서 같은 좌우 위치라도 산 모양에
+  // 따라 높이가 달라지고, 고른 칼럼에 따라 기슭 바닥부터 비탈 중턱까지 다양하게 선다.
+  const tentDy = surfaceBlocks(heights, tentCol, tentCols) * PX
+  const fireDy = surfaceBlocks(heights, fireCol, fireCols) * PX
+
+  return {
+    tentDx: tentCol * PX,
+    tentDy, // mountainBaseY에서 위로 올릴 픽셀
+    fireDx: fireCol * PX + 1,
+    fireDy,
+  }
 }
 
 // 어느 산이 어느 색 천막을 쓸지 — 한 화면에 그릴 책들을 통째로 받아서 한 번에 정한다.

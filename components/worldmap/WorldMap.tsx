@@ -618,13 +618,17 @@ export default function WorldMap({
         if (book.owned) {
           // 자리는 책마다 고정된 랜덤 — 좌/우 기슭, 구간 내 연속 위치, 모닥불 방향까지
           // 같이 정해진다(getCampLayout 주석 참고)
-          const { tentDx, fireDx } = getCampLayout(hashString(book.id), mtnW, TENT_W)
+          const { tentDx, tentDy, fireDx, fireDy } = getCampLayout(
+            hashString(book.id),
+            profile,
+            TENT_W
+          )
           const palette = campPalettes.get(book.id) ?? 0
           // trophy(완등기록)는 시간대와 무관하게 완등을 자축하는 밤 캠프로 고정
           const campNight = sky.stars || mode === 'trophy'
-          drawTent(ctx, baseX + tentDx, mountainBaseY, campNight, palette)
+          drawTent(ctx, baseX + tentDx, mountainBaseY - tentDy, campNight, palette)
           if (campNight) {
-            drawCampfire(ctx, baseX + fireDx, mountainBaseY - 4, stateRef.current.fireFrame)
+            drawCampfire(ctx, baseX + fireDx, mountainBaseY - fireDy - 4, stateRef.current.fireFrame)
           }
         }
       })

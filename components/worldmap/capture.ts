@@ -138,10 +138,10 @@ export function renderCompletedPanorama(
     // 소장 중인 책만 산기슭 베이스캠프(텐트 + 자축 모닥불) — trophy 모드와 동일한
     // 규칙. 정적 이미지라 불꽃 프레임은 1로 고정한다.
     if (book.owned) {
-      const { tentDx, fireDx } = getCampLayout(seed, mtnW, TENT_W)
+      const { tentDx, tentDy, fireDx, fireDy } = getCampLayout(seed, profile, TENT_W)
       const palette = campPalettes.get(book.id) ?? 0
-      drawTent(ctx, baseX + tentDx, mountainBaseY, true, palette)
-      drawCampfire(ctx, baseX + fireDx, mountainBaseY - 4, 1)
+      drawTent(ctx, baseX + tentDx, mountainBaseY - tentDy, true, palette)
+      drawCampfire(ctx, baseX + fireDx, mountainBaseY - fireDy - 4, 1)
     }
 
     // 땅과 산이 맞닿는 지점에 책 제목 각인

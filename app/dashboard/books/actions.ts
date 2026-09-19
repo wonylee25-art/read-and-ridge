@@ -243,6 +243,36 @@ export async function updateVisibility(bookId: string, visibility: 'public' | 'q
 // 방문자가 눌러가며 하나씩 볼 수 있게 한다(GuessModal에서 순환).
 // 자동 생성(저자·초성)은 일부러 안 만든다 — "작년에 네가 추천한 그 작가" 같은
 // 사람이 쓴 힌트가 훨씬 재밌기 때문.
+// 여러 책의 공개 범위를 한 번에 바꾼다.
+// 책이 쌓이면 카드를 하나씩 눌러 돌리는 게 번거롭고, 무엇보다 "공유 켜기 전에 숨길 것부터
+// 한 번에 정리"하는 흐름이 필요하다. 같은 값끼리 묶어 visibility 종류당 쿼리 한 번씩
+// (최대 3번)만 날린다.
+export async function updateVisibilityBulk(
+  updates: { id: string; visibility: 'public' | 'quiz' | 'private' }[]
+) {
+  if (!updates.length) return { error: null }
+  const supabase = await createClient()
+
+  // tsconfig target이 낮아 Map 순회에 downlevelIteration이 필요하므로 일반 객체로 묶는다
+  const byVisibility: Record<string, string[]> = {}
+  for (const u of updates) {
+    ;(byVisibility[u.visibility] ??= []).push(u.id)
+  }
+
+  for (const [visibility, ids] of Object.entries(byVisibility)) {
+    // 본인 책만 바뀌는 건 RLS(user_id = auth.uid())가 보장한다 — updateOwned와 동일한 전제
+    const { error } = await supabase.from('books').update({ visibility }).in('id', ids)
+    if (error) {
+      console.error('updateVisibilityBulk failed:', error.message)
+      revalidateBookPaths()
+      return { error: 'failed' as const }
+    }
+  }
+
+  revalidateBookPaths()
+  return { error: null }
+}
+
 export async function updateQuizHints(bookId: string, hints: string[]) {
   const supabase = await createClient()
   const cleaned = hints
