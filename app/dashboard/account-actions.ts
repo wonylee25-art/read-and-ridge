@@ -3,24 +3,90 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { generateShareSlug } from '@/lib/trail/slug'
+import { getNicknameFromUser } from '@/lib/nickname'
 
-// 닉네임 저장 — 별도 profiles 테이블 없이 auth.users의 user_metadata에 저장한다.
-// 다른 유저에게 보여줄 일이 없는 "본인 전용" 값(인사말, 나중에 캡처 워터마크)이라
-// RLS·새 테이블 없이 supabase.auth.updateUser()로 충분함. 나중에 다른 유저에게도
-// 닉네임을 보여주는 소셜 기능이 생기면 그때 profiles 테이블로 옮기면 됨.
+// 닉네임 저장 — 원본은 계속 auth.users의 user_metadata에 둔다(앱 안의 모든 화면이
+// lib/nickname.ts의 getNicknameFromUser로 거기서 읽는다).
+//
+// 2026.09 공개 지형도(/trail/[slug])가 생기면서 "남이 읽어야 하는 닉네임"이 처음
+// 필요해졌다. 비로그인 방문자는 auth.users를 읽을 수 없으므로 profiles 테이블에
+// 공개용 사본을 같이 써둔다. profiles.nickname은 미러이지 원본이 아니다 —
+// 읽기는 공개 페이지에서만 하고, 앱 내부는 지금처럼 user_metadata를 본다.
 export async function updateNickname(nickname: string) {
   const supabase = await createClient()
   const trimmed = nickname.trim()
   if (!trimmed) return { error: 'empty' as const }
 
-  const { error } = await supabase.auth.updateUser({ data: { nickname: trimmed } })
+  const { data, error } = await supabase.auth.updateUser({ data: { nickname: trimmed } })
   if (error) {
     console.error('updateNickname failed:', error.message)
     return { error: 'failed' as const }
   }
 
+  // 공개용 미러 갱신. 실패해도 닉네임 저장 자체는 성공으로 본다 — 공개 페이지의
+  // 이름이 잠깐 예전 값일 뿐이고, 여기서 막으면 본질(닉네임 변경)이 안 되기 때문.
+  const userId = data.user?.id
+  if (userId) {
+    const { error: mirrorError } = await supabase
+      .from('profiles')
+      .upsert({ user_id: userId, nickname: trimmed }, { onConflict: 'user_id' })
+    if (mirrorError) console.error('updateNickname: profiles 미러 실패:', mirrorError.message)
+  }
+
   revalidatePath('/dashboard')
   return { error: null }
+}
+
+// 공개 지형도 링크 켜기/끄기.
+//
+// 켜면 slug를 발급하고(이미 있으면 그대로 재사용 — 한 번 공유한 링크가 토글을
+// 껐다 켰다고 죽으면 곤란하다), 끄면 slug를 지워 링크가 즉시 404가 된다.
+// 기본값은 꺼짐이고, 켜는 건 항상 사용자의 명시적 행동이다.
+export async function updateShareEnabled(enabled: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'unauthenticated' as const, slug: null }
+
+  if (!enabled) {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ user_id: user.id, share_slug: null }, { onConflict: 'user_id' })
+    if (error) {
+      console.error('updateShareEnabled(off) failed:', error.message)
+      return { error: 'failed' as const, slug: null }
+    }
+    revalidatePath('/dashboard')
+    return { error: null, slug: null }
+  }
+
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('share_slug')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (existing?.share_slug) {
+    return { error: null, slug: existing.share_slug as string }
+  }
+
+  const slug = generateShareSlug()
+  const { error } = await supabase.from('profiles').upsert(
+    {
+      user_id: user.id,
+      share_slug: slug,
+      // 아직 미러가 없는 사용자를 대비해 닉네임도 같이 채워둔다
+      nickname: getNicknameFromUser(user),
+    },
+    { onConflict: 'user_id' }
+  )
+  if (error) {
+    console.error('updateShareEnabled(on) failed:', error.message)
+    return { error: 'failed' as const, slug: null }
+  }
+
+  revalidatePath('/dashboard')
+  return { error: null, slug }
 }
 
 // 회원 탈퇴 — 이용자 데이터(books)를 전부 지우고, Supabase Auth
