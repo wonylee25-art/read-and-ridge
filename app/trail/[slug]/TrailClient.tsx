@@ -3,22 +3,60 @@
 // 남의 지형도를 구경하는 화면. /dashboard의 WorldMapClient와는 일부러 별개로 뒀다 —
 // 저쪽은 진행률 모달·책 추가 바처럼 "내 기록을 고치는" 기능이 붙어 있어서,
 // 조건부로 끄는 것보다 읽기 전용 화면을 따로 두는 쪽이 실수로 새어나갈 여지가 없다.
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { HelpCircle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import WorldMap from '@/components/worldmap/WorldMap'
 import type { WorldMapBook } from '@/components/worldmap/worldmap-utils'
 import { TARGET_TROPHY } from '@/components/worldmap/worldmap-utils'
 import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
-import type { PublicTrail } from '@/lib/trail/public-books'
+import type { PublicBook, PublicTrail } from '@/lib/trail/public-books'
 import GuessModal from './GuessModal'
-
-type PublicBook = WorldMapBook & { isQuiz: boolean }
+import { loadRevealed, saveRevealed, type RevealedTitles } from '@/lib/trail/revealed'
 
 export default function TrailClient({ slug, trail }: { slug: string; trail: PublicTrail }) {
   const [guessTarget, setGuessTarget] = useState<PublicBook | null>(null)
   const [tapped, setTapped] = useState<PublicBook | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
+
+  // 이 방문자가 맞힌 산들(책 id → 제목). 서버가 아니라 이 브라우저에만 남는다 —
+  // 이유는 lib/trail/revealed.ts 주석 참고.
+  const [revealed, setRevealed] = useState<RevealedTitles>({})
+  // 방금 맞힌 산 하나 — 이름표가 넘어가는 연출은 한 번만 돌고 끝난다.
+  const [flipId, setFlipId] = useState<string | null>(null)
+  const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // localStorage는 서버 렌더에 없으므로 마운트 후에 읽는다(hydration 불일치 방지).
+  useEffect(() => {
+    setRevealed(loadRevealed(slug))
+  }, [slug])
+
+  useEffect(() => () => {
+    if (flipTimer.current) clearTimeout(flipTimer.current)
+  }, [])
+
+  function handleReveal(bookId: string, title: string) {
+    setRevealed((prev) => {
+      const next = { ...prev, [bookId]: title }
+      saveRevealed(slug, next)
+      return next
+    })
+    setFlipId(bookId)
+    if (flipTimer.current) clearTimeout(flipTimer.current)
+    // 애니메이션(640ms)이 끝나면 강조 테두리를 걷어 평범한 이름표로 남긴다.
+    flipTimer.current = setTimeout(() => setFlipId(null), 900)
+  }
+
+  // 맞힌 산은 물음표 대신 제목 팻말을 세운다. 제목 길이가 LONG_TITLE_THRESHOLD를
+  // 넘나드는지는 maskTitle이 이미 보존하고 있어서, 제목이 바뀌어도 산 모양은 그대로다.
+  // (쪽수는 가린 값 그대로 둔다 — 정답을 맞혔다고 주인의 정확한 진도까지 풀 이유는 없다.)
+  const applyRevealed = (list: PublicBook[]): PublicBook[] =>
+    list.map((b) => (b.isQuiz && revealed[b.id] ? { ...b, title: revealed[b.id], isQuiz: false } : b))
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const books = useMemo(() => applyRevealed(trail.books), [trail.books, revealed])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const completed = useMemo(() => applyRevealed(trail.completed), [trail.completed, revealed])
 
   // 산을 탭했을 때 — 맞춰보세요 책이면 맞히기 모달, 아니면 제목만 알려주는 가벼운 안내.
   // (WorldMap 자체의 말풍선은 onBookTap이 있으면 뜨지 않는다.)
@@ -60,18 +98,26 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
           <h2 className="text-sm font-semibold text-gray-700">산책기록</h2>
           {/* ⚠ books는 반드시 명시적으로 넘긴다 — WorldMap의 기본값이 데모 산이라,
               undefined를 넘기면 남에게 데모 데이터가 그 사람 기록인 것처럼 보인다. */}
-          <WorldMap books={trail.books} mode="home" readOnly nameplates onBookTap={handleBookTap} />
+          <WorldMap
+            books={books}
+            mode="home"
+            readOnly
+            nameplates
+            onBookTap={handleBookTap}
+            flipNameplateId={flipId}
+          />
         </section>
 
         {trail.completed.length > 0 && (
           <section className="space-y-3 mb-8">
             <h2 className="text-sm font-semibold text-gray-700">완등기록</h2>
             <WorldMap
-              books={trail.completed}
+              books={completed}
               mode="trophy"
               readOnly
               nameplates
               onBookTap={handleBookTap}
+              flipNameplateId={flipId}
             />
             {trail.completed.length > TARGET_TROPHY && (
               <p className="text-xs text-gray-400">
@@ -132,22 +178,65 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
           status={guessTarget.status}
           hints={trail.quizHints[guessTarget.id]}
           onClose={() => setGuessTarget(null)}
+          onReveal={handleReveal}
         />
       )}
 
-      {tapped && (
-        <button
-          type="button"
-          onClick={() => setTapped(null)}
-          className="fixed inset-x-0 bottom-0 z-50 p-4"
-          aria-label="닫기"
-        >
-          <span className="block mx-auto max-w-sm rounded-xl bg-gray-900/90 text-white text-sm px-4 py-3 text-center">
-            {tapped.title}
-          </span>
-        </button>
-      )}
+      {/* 산을 누르면 그 책 이야기 — 제목만 알려주던 자리다. 놀러 온 사람이 가장
+          궁금해하는 건 "이 책 뭐지"이고, 거기서 "나도 읽어볼까"로 넘어간다.
+          바닥에서 올라오는 판이라 지도를 가리지 않는다. */}
+      {tapped && <BookSheet book={tapped} onClose={() => setTapped(null)} />}
     </div>
+  )
+}
+
+function BookSheet({ book, onClose }: { book: PublicBook; onClose: () => void }) {
+  const total = book.total_pages ?? 0
+  const read = Math.min(book.current_page ?? 0, total || Infinity)
+  const percent = total > 0 ? Math.round((read / total) * 100) : null
+
+  const state =
+    book.status === 'completed' ? '다 오른 산' : book.status === 'paused' ? '잠시 멈춘 산' : '오르는 중'
+
+  return (
+    <>
+      {/* 바깥을 누르면 닫힌다. 지도를 계속 보고 싶어 하는 화면이라 어둡게 덮지 않는다. */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="닫기"
+        className="fixed inset-0 z-40 cursor-default"
+      />
+      <div className="fixed inset-x-0 bottom-0 z-50 p-4 pointer-events-none">
+        <div className="pointer-events-auto mx-auto max-w-sm rounded-2xl bg-white border border-gray-200 shadow-lg p-4">
+          <p className="text-base font-bold text-gray-900 leading-snug">{book.title}</p>
+          {book.author && <p className="mt-1 text-sm text-gray-500">{book.author}</p>}
+
+          <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+            <span className="rounded-full bg-gray-100 px-2 py-0.5">{state}</span>
+            {percent !== null && (
+              <span>
+                {read.toLocaleString()} / {total.toLocaleString()}쪽 · {percent}%
+              </span>
+            )}
+          </div>
+
+          {percent !== null && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full rounded-full bg-gray-800" style={{ width: `${percent}%` }} />
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
 

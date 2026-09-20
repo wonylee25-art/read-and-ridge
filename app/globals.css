@@ -48,3 +48,23 @@ textarea::placeholder {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
+
+/* 맞춰보세요 산의 이름표가 넘어가는 순간 — 방문자가 제목을 맞히면 물음표 팻말이
+   제목 팻말로 바뀐다. 완등 세레모니(폭죽)를 재사용하지 않는 이유는, 그쪽은 주인이
+   몇 주에 걸쳐 한 권을 다 오른 성취라 같은 연출을 3초짜리 맞히기에 쓰면 완등이
+   싸지기 때문. 여기서는 "팻말이 넘어갔다"는 상태 변화 자체가 연출이다. */
+@keyframes nameplate-flip {
+  0%   { transform: rotateX(90deg); opacity: 0; }
+  55%  { transform: rotateX(-14deg); opacity: 1; }
+  80%  { transform: rotateX(6deg); }
+  100% { transform: rotateX(0); }
+}
+
+.animate-nameplate-flip {
+  transform-origin: top center;
+  animation: nameplate-flip 640ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-nameplate-flip { animation: none; }
+}

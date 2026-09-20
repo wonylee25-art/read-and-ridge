@@ -6,21 +6,30 @@
 // "안 넘긴 것"만 안전합니다. 아래 마스킹 규칙이 이 기능의 핵심입니다.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuroraBook } from '@/lib/aurora-books'
+import { formatAuthor } from '@/lib/formatAuthor'
 import { LONG_TITLE_THRESHOLD, PAGES_PER_STEP } from '@/components/worldmap/constants'
 import { DISTANCE_PER_PAGE_M, type WorldMapBook } from '@/components/worldmap/worldmap-utils'
 
 export type BookVisibility = 'public' | 'quiz' | 'private'
 
+// 공개 페이지로 내려보내는 책 한 권. WorldMapBook(지형도 렌더에 필요한 값) 위에
+// 공개 화면에서만 쓰는 두 가지를 얹은 것 — 가려진 책인지(isQuiz), 그리고 방문자가
+// 산을 눌렀을 때 보여줄 저자(author).
+export type PublicBook = WorldMapBook & { isQuiz: boolean; author: string | null }
+
 // 공개 페이지가 books에서 읽는 컬럼 목록.
-// ⚠️ select('*')를 쓰면 안 됩니다 — author·cover_url처럼 책을 바로 특정하는 컬럼이
-// 같이 딸려오고, 나중에 누가 컬럼을 추가하면 자동으로 유출됩니다. 명시 목록이
-// "새 컬럼은 기본적으로 비공개"를 보장하는 유일한 방법입니다.
+// ⚠️ select('*')를 쓰면 안 됩니다 — 나중에 누가 컬럼을 추가하면 자동으로 유출됩니다.
+// 명시 목록이 "새 컬럼은 기본적으로 비공개"를 보장하는 유일한 방법입니다.
+// author는 놀러 온 사람이 산을 눌렀을 때 보여주려고 일부러 넣은 것이고, 가려진 책
+// (맞춰보세요)에서는 toPublicBook이 null로 지웁니다 — 저자를 주면 맞히기가 성립하지
+// 않습니다. cover_url은 여전히 내보내지 않습니다.
 const PUBLIC_BOOK_COLUMNS =
-  'id, title, total_pages, current_page, status, kdc, completed_at, isbn, owned, visibility, quiz_hints'
+  'id, title, author, total_pages, current_page, status, kdc, completed_at, isbn, owned, visibility, quiz_hints'
 
 type PublicBookRow = {
   id: string
   title: string
+  author: string | null
   total_pages: number | null
   current_page: number
   status: string
@@ -83,7 +92,7 @@ export function isQuizRevealed(row: { visibility: BookVisibility; status: string
 //   isbn  — 책 한 권을 바로 특정함. 대신 aurora(깃발 색) 판정 결과만 넘긴다
 //   completed_at — 날짜까지만. 그래야 isRecentlyCompleted가 항상 false가 되어
 //                  방문자 화면에서 완등 세레모니·인증샷 버튼이 뜨지 않는다
-export function toPublicBook(row: PublicBookRow): WorldMapBook & { isQuiz: boolean } {
+export function toPublicBook(row: PublicBookRow): PublicBook {
   const quizHidden = row.visibility === 'quiz' && !isQuizRevealed(row)
   const maskedPages = quizHidden ? quantizePages(row.total_pages) : row.total_pages
 
@@ -103,6 +112,10 @@ export function toPublicBook(row: PublicBookRow): WorldMapBook & { isQuiz: boole
     aurora: quizHidden ? false : isAuroraBook(row.isbn),
     owned: row.owned ?? false,
     isQuiz: quizHidden,
+    // ⚠️ 저자는 가려진 책에서는 절대 내보내면 안 된다 — 제목을 가려놓고 저자를 주면
+    //    맞히기가 성립하지 않는다(검색 한 번이면 끝난다). 완독해서 이름표가 드러난
+    //    책은 quizHidden이 false라 자연스럽게 함께 공개된다.
+    author: quizHidden ? null : formatAuthor(row.author),
   }
 }
 
@@ -111,9 +124,9 @@ export function toPublicBook(row: PublicBookRow): WorldMapBook & { isQuiz: boole
 export type PublicTrail = {
   nickname: string
   /** 산책기록 지형도용 — 비공개를 제외한 전부 */
-  books: (WorldMapBook & { isQuiz: boolean })[]
+  books: PublicBook[]
   /** 완등기록 지형도용 — 완독한 책만, 최근 완독 순 */
-  completed: (WorldMapBook & { isQuiz: boolean })[]
+  completed: PublicBook[]
   /** 맞춰보세요 책의 주인이 적어둔 힌트 (책 id → 힌트 목록, 최대 3개) */
   quizHints: Record<string, string[]>
   stats: {

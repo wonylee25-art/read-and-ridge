@@ -37,6 +37,7 @@ export default function GuessModal({
   status,
   hints = [],
   onClose,
+  onReveal,
 }: {
   slug: string
   bookId: string
@@ -44,6 +45,9 @@ export default function GuessModal({
   status: string
   hints?: string[]
   onClose: () => void
+  /** 맞혔을 때 — 창을 닫으면서 지도의 이름표를 넘긴다. 연출의 무대는 모달이 아니라
+   *  지도여야 해서, 정답을 받은 즉시가 아니라 '지도에서 보기'를 눌렀을 때 호출한다. */
+  onReveal?: (bookId: string, title: string) => void
 }) {
   const [guess, setGuess] = useState('')
   const [name, setName] = useState('')
@@ -70,11 +74,14 @@ export default function GuessModal({
   return (
     <Modal onClose={onClose}>
       <h2 className="text-lg font-bold text-gray-900">{pickTitle(nickname, status, bookId)}</h2>
-      <p className="text-sm text-gray-500 mt-1">
-        이름표를 살짝 떼어뒀어요. 다 오르고 나면 저절로 드러납니다.
-      </p>
+      {!correct && (
+        <p className="text-sm text-gray-500 mt-1">
+          이름표를 살짝 떼어뒀어요. 다 오르고 나면 저절로 드러납니다.
+        </p>
+      )}
 
-      {hints.length > 0 && (
+      {/* 맞힌 뒤에는 힌트도 접는다 — 이미 답을 아는 사람에게 쪽지를 더 내밀 이유가 없다 */}
+      {!correct && hints.length > 0 && (
         <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
           <p className="text-sm text-amber-900">{hints[hintIndex]}</p>
           {hints.length > 1 && (
@@ -92,8 +99,10 @@ export default function GuessModal({
 
       {correct ? (
         <div className="mt-5 text-center">
-          <p className="text-2xl">🎉</p>
-          <p className="mt-2 text-sm text-gray-500">정상 도착! {nickname}님이 산 책은</p>
+          <p className="text-base font-bold text-gray-900">이름표를 달았어요</p>
+          {/* 창 제목이 이미 "◯◯님이 산 책은 무엇일까요?"인 경우가 있어 닉네임을
+              한 번 더 넣으면 같은 말이 두 줄 반복된다. */}
+          <p className="mt-3 text-sm text-gray-500">이 산의 이름은</p>
           <p className="mt-1 text-base font-bold text-gray-900">{result?.ok && result.title}</p>
         </div>
       ) : (
@@ -150,10 +159,13 @@ export default function GuessModal({
       {correct && (
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            if (result?.ok && result.title) onReveal?.(bookId, result.title)
+            onClose()
+          }}
           className="mt-5 w-full rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
         >
-          닫기
+          지도에서 보기
         </button>
       )}
     </Modal>

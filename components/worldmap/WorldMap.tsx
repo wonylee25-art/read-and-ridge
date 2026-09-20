@@ -127,6 +127,7 @@ export default function WorldMap({
   onBookTap,           // 상태와 무관하게 "산을 탭하면" 호출. 공개 지형도의 맞춰보세요 모달용.
                         // onBookClick(읽는 중인 책만)과는 계약이 달라서 일부러 분리했다 —
                         // WorldMapClient가 onBookClick의 기존 계약에 의존하고 있다.
+  flipNameplateId = null, // 방금 맞힌 산 — 그 이름표만 한 번 넘어가는 연출을 준다.
   nameplates = false,  // 전경 산 위에 제목 팻말을 상시로 세운다. 공개 지형도 전용 —
                         // 주인 화면은 메모 말풍선이 그 자리를 쓰고, 어차피 자기 책이라
                         // 이름표가 늘 떠 있을 이유가 없다. 반대로 놀러 온 사람에게는
@@ -142,6 +143,7 @@ export default function WorldMap({
   nickname?: string
   readOnly?: boolean
   onBookTap?: (book: WorldMapBook) => void
+  flipNameplateId?: string | null
   nameplates?: boolean
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -342,6 +344,10 @@ export default function WorldMap({
 
   // 이름표(팻말) 위치 — 메모 말풍선과 같은 좌표계를 쓴다(전경 산의 꼭대기 중앙).
   // 세레모니 중인 산은 메모 말풍선과 같은 이유로 제외한다.
+  // ⚠️ 이름표 메모의 의존성에는 제목·isQuiz까지 들어가야 한다 — 방문자가 맞혀서
+  //    물음표가 제목으로 바뀌어도 책 id는 그대로라, id만 보면 옛 팻말이 그대로 남는다.
+  const nameplateSignature = foreground.map((b) => `${b.id}:${b.isQuiz ? '?' : b.title}`).join(',')
+
   const nameplateItems = useMemo(() => {
     if (!nameplates || containerW === 0) return []
     const rects = getMountainRects(foreground, canvasH, containerW)
@@ -358,7 +364,7 @@ export default function WorldMap({
         return { book: r.book, x, y: r.y }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nameplates, foreground.map((b) => b.id).join(','), containerW, justCompletedId, canvasH])
+  }, [nameplates, nameplateSignature, containerW, justCompletedId, canvasH])
 
   // 방금 완독한 책 — 있으면(산책기록/home에서만) 좌하단 카메라 버튼이 평소 동작
   // 대신 "인증샷 찍기"로 바뀐다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는
@@ -1000,7 +1006,16 @@ export default function WorldMap({
                     ?
                   </span>
                 ) : (
-                  <span className="max-w-[140px] truncate rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-medium text-gray-800 shadow-md">
+                  <span
+                    // key에 제목을 섞어둬야 물음표 → 제목으로 바뀔 때 React가 같은
+                    // 엘리먼트를 재사용하지 않고 새로 붙여서 애니메이션이 실제로 돈다.
+                    key={n.book.title}
+                    className={`max-w-[140px] truncate rounded-md px-2 py-0.5 text-[11px] font-medium shadow-md ${
+                      n.book.id === flipNameplateId
+                        ? 'animate-nameplate-flip bg-white text-gray-900 ring-2 ring-violet-400'
+                        : 'bg-white/95 text-gray-800'
+                    }`}
+                  >
                     {n.book.title}
                   </span>
                 )}
