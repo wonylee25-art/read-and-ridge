@@ -9,6 +9,9 @@ import EmptyState from '@/components/dashboard/EmptyState'
 import { toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { DEMO_HOME_BOOKS } from '@/lib/demo-books'
 import { getNicknameFromUser } from '@/lib/nickname'
+import GuestLog from '@/components/dashboard/GuestLog'
+import HintBubble from '@/components/dashboard/HintBubble'
+import { getGuestLog } from '@/lib/trail/guest-log'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -37,10 +40,14 @@ export default async function DashboardPage() {
           <h2 className="text-2xl font-bold text-gray-900">산책기록</h2>
         </div>
 
-        <div className="space-y-6 mb-10">
+        <div className="space-y-3 mb-10">
+          <HintBubble id="demo-map">
+            지금 보이는 산들은 예시예요. 아무 산이나 눌러서 만져봐도 괜찮아요.
+          </HintBubble>
+
           <WorldMapClient books={DEMO_HOME_BOOKS} authenticated={false} />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 pt-3">
             {demoStats.map((stat) => <StatCard key={stat.label} {...stat} />)}
           </div>
         </div>
@@ -55,6 +62,10 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
+
+  // 공개 지형도에 놀러 온 사람이 '맞춰보세요' 산에 남긴 답. 공개 링크를 한 번도
+  // 켜지 않았거나 아무도 안 왔으면 빈 배열이고, 그때는 섹션이 아예 안 그려진다.
+  const guestEntries = await getGuestLog(user.id)
 
   // 목록(읽는 중/잠시 멈춤)은 WorldMap과 별개로 "이 상태가 된 시각"(status_changed_at)
   // 기준 최신순으로 따로 정렬 — 단순히 등록순을 뒤집기만 하면, 오래전에 등록해둔
@@ -80,6 +91,13 @@ export default async function DashboardPage() {
     .concat(pausedBooks)
     .reduce((sum, b) => sum + (b.current_page ?? 0), 0)
 
+  // 막히는 자리에 한 줄씩 뜨는 안내(HintBubble)의 조건.
+  // ① 책은 등록했는데 아무 산도 오르지 않은 상태 — 진도 입력 방법을 아직 모르는 것
+  // ② 첫 완등이 나온 뒤 — 완독한 책이 목록에서 사라진 것처럼 보이는 자리이기도 하고,
+  //    남에게 보여줄 수 있다는 걸 처음 알려주기 좋은 자리이기도 하다
+  const nothingClimbed = (books?.length ?? 0) > 0 && !books?.some((b) => (b.current_page ?? 0) > 0)
+  const hasCompleted = books?.some((b) => b.status === 'completed') ?? false
+
   const worldMapBooks = toWorldMapBooks(books)
   const nickname = getNicknameFromUser(user) // WorldMap PNG 캡처(정상 인증샷/완독 맵) 워터마크용
 
@@ -96,12 +114,28 @@ export default async function DashboardPage() {
 
       {/* 상단 — 예전 홈: WorldMap + 통계 */}
       <div className="space-y-6 mb-10">
+        {nothingClimbed && (
+          <HintBubble id="first-progress">
+            산을 누르면 어디까지 읽었는지 적을 수 있어요. 읽은 만큼 마루가 올라갑니다.
+          </HintBubble>
+        )}
+
+        {hasCompleted && (
+          <HintBubble id="first-summit">
+            다 오른 산은 완등기록에 쌓여요. 산책자 증표에서 공개 링크를 켜면 다른
+            사람에게 지도를 보여줄 수도 있어요.
+          </HintBubble>
+        )}
+
         <WorldMapClient books={worldMapBooks} nickname={nickname} />
 
         <div className="grid grid-cols-2 gap-3">
           {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
         </div>
       </div>
+
+      {/* 다녀간 사람들 — 내가 앱을 다시 열었을 때 기다리고 있는 것 */}
+      <GuestLog entries={guestEntries} />
 
       {/* 하단 — 예전 산책기록: 읽는 중 / 잠시 멈춤 목록 (완독은 완등기록으로 이동) */}
       {(!books || books.length === 0) && (
