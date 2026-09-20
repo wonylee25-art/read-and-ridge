@@ -28,6 +28,7 @@ export default async function DashboardLayout({
     completedKm: number
   } | null = null
   let shareSlug: string | null = null
+  let shareEnabled = false
   // "책별 공개 범위" 모달용 — 공개 토글과 같은 자리에서 여니 여기서 같이 실어 보낸다
   let visibilityBooks: VisibilityBook[] = []
 
@@ -35,13 +36,16 @@ export default async function DashboardLayout({
     nickname = getNicknameFromUser(user)
 
     // 공개 지형도 링크 상태 — "산책자 증표" 팝업의 공개 토글에 쓴다.
-    // share_slug가 null이면 아직 공개하지 않은 것(기본값).
+    // ⚠ 공개 여부는 share_slug 유무가 아니라 share_enabled다. 토글을 꺼도 slug는
+    // 남아 있어서(껐다 켜도 같은 링크로 돌아오게 하려고), slug로 판단하면 꺼둔
+    // 사람에게 토글이 켜진 것처럼 보인다.
     const { data: profile } = await supabase
       .from('profiles')
-      .select('share_slug')
+      .select('share_slug, share_enabled')
       .eq('user_id', user.id)
       .maybeSingle()
-    shareSlug = (profile?.share_slug as string | null) ?? null
+    shareEnabled = !!profile?.share_enabled
+    shareSlug = shareEnabled ? ((profile?.share_slug as string | null) ?? null) : null
 
     const { data: books } = await supabase
       .from('books')
@@ -92,6 +96,7 @@ export default async function DashboardLayout({
                 nickname={nickname}
                 stats={stats}
                 shareSlug={shareSlug}
+                shareEnabled={shareEnabled}
                 visibilityBooks={visibilityBooks}
               />
             </div>

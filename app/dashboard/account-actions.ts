@@ -40,25 +40,19 @@ export async function updateNickname(nickname: string) {
 
 // 공개 지형도 링크 켜기/끄기.
 //
-// 켜면 slug를 발급하고(이미 있으면 그대로 재사용 — 한 번 공유한 링크가 토글을
-// 껐다 켰다고 죽으면 곤란하다), 끄면 slug를 지워 링크가 즉시 404가 된다.
+// ⚠️ 끈다고 slug를 지우지 않는다. 전에는 지웠는데, 그러면 이미 뿌려둔 링크가 영영
+// 죽고 다시 켤 때 새 주소가 나왔다. 토글을 끄는 상황은 대개 "영영 끊겠다"가 아니라
+// "잠깐 내려두겠다"여서, 토글 한 번으로 되돌릴 수 없는 일이 벌어지는 셈이었다.
+// 링크를 정말 버리는 건 별도 동작(regenerateShareSlug)으로만 일어난다.
+//
+// 그래서 **공개 여부는 slug의 존재가 아니라 share_enabled가 정한다.** 공개 페이지를
+// 읽는 모든 경로(lib/trail/public-books.ts, app/trail/[slug]/guess-actions.ts)는
+// 반드시 이 플래그를 같이 확인해야 한다 — 한 곳이라도 빠뜨리면 껐는데도 열린다.
 // 기본값은 꺼짐이고, 켜는 건 항상 사용자의 명시적 행동이다.
 export async function updateShareEnabled(enabled: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'unauthenticated' as const, slug: null }
-
-  if (!enabled) {
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ user_id: user.id, share_slug: null }, { onConflict: 'user_id' })
-    if (error) {
-      console.error('updateShareEnabled(off) failed:', error.message)
-      return { error: 'failed' as const, slug: null }
-    }
-    revalidatePath('/dashboard')
-    return { error: null, slug: null }
-  }
 
   const { data: existing } = await supabase
     .from('profiles')
@@ -66,15 +60,26 @@ export async function updateShareEnabled(enabled: boolean) {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (existing?.share_slug) {
-    return { error: null, slug: existing.share_slug as string }
+  if (!enabled) {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ user_id: user.id, share_enabled: false }, { onConflict: 'user_id' })
+    if (error) {
+      console.error('updateShareEnabled(off) failed:', error.message)
+      return { error: 'failed' as const, slug: null }
+    }
+    revalidatePath('/dashboard')
+    // 꺼진 동안에는 화면에 링크를 보여주지 않는다(slug 자체는 남아 있다)
+    return { error: null, slug: null }
   }
 
-  const slug = generateShareSlug()
+  // 한 번 발급한 slug는 계속 같은 것을 쓴다 — 껐다 켜도 같은 링크로 돌아온다.
+  const slug = (existing?.share_slug as string | null) ?? generateShareSlug()
   const { error } = await supabase.from('profiles').upsert(
     {
       user_id: user.id,
       share_slug: slug,
+      share_enabled: true,
       // 아직 미러가 없는 사용자를 대비해 닉네임도 같이 채워둔다
       nickname: getNicknameFromUser(user),
     },
@@ -82,6 +87,35 @@ export async function updateShareEnabled(enabled: boolean) {
   )
   if (error) {
     console.error('updateShareEnabled(on) failed:', error.message)
+    return { error: 'failed' as const, slug: null }
+  }
+
+  revalidatePath('/dashboard')
+  return { error: null, slug }
+}
+
+// 링크 새로 만들기 — 되돌릴 수 없다. 지금 링크는 그 자리에서 죽고 새 주소가 나온다.
+//
+// 토글(잠깐 내려두기)과 의도가 다르다. 이쪽은 "이 링크가 엉뚱한 사람에게 흘러갔다"는
+// 상황을 위한 것이라, 공개 상태는 건드리지 않고 주소만 갈아끼운다. 둘을 한 버튼에
+// 겸하게 두면(예전처럼) 사용자에게는 되돌릴 수 있는 쪽으로만 보인다.
+export async function regenerateShareSlug() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'unauthenticated' as const, slug: null }
+
+  const slug = generateShareSlug()
+  const { error } = await supabase.from('profiles').upsert(
+    {
+      user_id: user.id,
+      share_slug: slug,
+      share_enabled: true,
+      nickname: getNicknameFromUser(user),
+    },
+    { onConflict: 'user_id' }
+  )
+  if (error) {
+    console.error('regenerateShareSlug failed:', error.message)
     return { error: 'failed' as const, slug: null }
   }
 

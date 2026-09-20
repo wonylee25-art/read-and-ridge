@@ -34,11 +34,13 @@ export default function ProfileTrigger({
   nickname,
   stats,
   shareSlug,
+  shareEnabled,
   visibilityBooks,
 }: {
   nickname: string
   stats: ProfileStats
   shareSlug: string | null
+  shareEnabled: boolean
   visibilityBooks: VisibilityBook[]
 }) {
   const [open, setOpen] = useState(false)
@@ -74,6 +76,7 @@ export default function ProfileTrigger({
           nickname={nickname}
           stats={stats}
           shareSlug={shareSlug}
+          shareEnabled={shareEnabled}
           visibilityBooks={visibilityBooks}
           onClose={() => setOpen(false)}
         />

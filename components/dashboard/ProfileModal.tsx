@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, BookOpen, Footprints, Mountain, TrendingUp, Link2, Check } from 'lucide-react'
-import { updateNickname, updateShareEnabled } from '@/app/dashboard/account-actions'
+import { X, BookOpen, Footprints, Mountain, TrendingUp, Link2, Check, RefreshCw } from 'lucide-react'
+import { updateNickname, updateShareEnabled, regenerateShareSlug } from '@/app/dashboard/account-actions'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/dashboard/StatCard'
 import VisibilityModal, { type VisibilityBook } from '@/components/dashboard/VisibilityModal'
@@ -26,12 +26,14 @@ export default function ProfileModal({
   nickname,
   stats,
   shareSlug,
+  shareEnabled,
   visibilityBooks,
   onClose,
 }: {
   nickname: string
   stats: ProfileStats
   shareSlug: string | null
+  shareEnabled: boolean
   visibilityBooks: VisibilityBook[]
   onClose: () => void
 }) {
@@ -40,20 +42,42 @@ export default function ProfileModal({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [slug, setSlug] = useState(shareSlug)
+  // 공개 여부는 slug 유무가 아니라 이 값이다 — 꺼도 slug는 남아 있다.
+  const [enabled, setEnabled] = useState(shareEnabled)
   const [shareBusy, setShareBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  // "링크 새로 만들기"는 되돌릴 수 없어서 한 번 더 묻는다
+  const [confirmingNewLink, setConfirmingNewLink] = useState(false)
   const [visibilityOpen, setVisibilityOpen] = useState(false)
 
   const shareUrl = slug && typeof window !== 'undefined' ? `${window.location.origin}/trail/${slug}` : ''
 
-  // 공개 토글. 끄면 slug가 지워져 기존 링크가 즉시 404가 된다.
-  // 다시 켤 때 예전 slug가 남아 있으면 그대로 재사용한다 — 한 번 공유한 링크가
-  // 토글 한 번에 영영 죽으면 곤란하기 때문(updateShareEnabled 주석 참고).
+  // 공개 토글. 끄면 링크가 즉시 404가 되지만 주소 자체는 남아서, 다시 켜면 같은
+  // 링크로 돌아온다. "잠깐 내려두기"라서 되돌릴 수 있어야 한다.
   async function handleToggleShare() {
     if (shareBusy) return
+    const next = !enabled
     setShareBusy(true)
-    const res = await updateShareEnabled(!slug)
-    if (!res.error) setSlug(res.slug)
+    const res = await updateShareEnabled(next)
+    if (!res.error) {
+      setEnabled(next)
+      setSlug(res.slug)
+      setConfirmingNewLink(false)
+    }
+    setShareBusy(false)
+  }
+
+  // 링크 새로 만들기 — 지금 주소를 버리고 새로 받는다. 되돌릴 수 없다.
+  async function handleRegenerate() {
+    if (shareBusy) return
+    setShareBusy(true)
+    const res = await regenerateShareSlug()
+    if (!res.error) {
+      setSlug(res.slug)
+      setEnabled(true)
+      setCopied(false)
+    }
+    setConfirmingNewLink(false)
     setShareBusy(false)
   }
 
@@ -126,7 +150,8 @@ export default function ProfileModal({
             <p className="text-xs font-medium text-gray-700">내 지형도에 놀러 오게 하기</p>
             <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
               링크를 아는 사람만 들어올 수 있어요. 메모는 따라가지 않고, 산마다
-              안개에 가리거나 이름표를 떼고 수수께끼로 낼 수 있어요.
+              안개에 가리거나 이름표를 떼고 수수께끼로 낼 수 있어요. 껐다 켜도
+              링크 주소는 그대로예요.
             </p>
           </div>
           <button
@@ -134,15 +159,15 @@ export default function ProfileModal({
             onClick={handleToggleShare}
             disabled={shareBusy}
             role="switch"
-            aria-checked={!!slug}
+            aria-checked={enabled}
             aria-label="내 지형도 공개하기"
             className={`shrink-0 mt-0.5 w-10 h-6 rounded-full transition-colors disabled:opacity-40 ${
-              slug ? 'bg-gray-900' : 'bg-gray-200'
+              enabled ? 'bg-gray-900' : 'bg-gray-200'
             }`}
           >
             <span
               className={`block w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                slug ? 'translate-x-5' : 'translate-x-1'
+                enabled ? 'translate-x-5' : 'translate-x-1'
               }`}
             />
           </button>
@@ -156,20 +181,59 @@ export default function ProfileModal({
           산마다 어떻게 보여줄지 정하기 ({visibilityBooks.length}권)
         </button>
 
-        {slug && (
-          <div className="mt-2.5 flex items-center gap-2">
-            <code className="flex-1 min-w-0 truncate text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
-              {shareUrl || `/trail/${slug}`}
-            </code>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="shrink-0 flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
-            >
-              {copied ? <Check size={12} /> : <Link2 size={12} />}
-              {copied ? '복사됨' : '복사'}
-            </button>
-          </div>
+        {enabled && slug && (
+          <>
+            <div className="mt-2.5 flex items-center gap-2">
+              <code className="flex-1 min-w-0 truncate text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                {shareUrl || `/trail/${slug}`}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="shrink-0 flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+              >
+                {copied ? <Check size={12} /> : <Link2 size={12} />}
+                {copied ? '복사됨' : '복사'}
+              </button>
+            </div>
+
+            {/* 토글은 잠깐 내려두는 것(되돌릴 수 있음), 이쪽은 링크를 버리는 것
+                (되돌릴 수 없음). 의도가 달라서 버튼을 나눠 뒀다. */}
+            {confirmingNewLink ? (
+              <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 px-2.5 py-2">
+                <p className="text-[11px] text-gray-600 leading-relaxed">
+                  새 주소를 받고 지금 링크는 그 자리에서 막힙니다. 이미 보낸 링크로는
+                  아무도 못 들어와요.
+                </p>
+                <div className="flex gap-1.5 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingNewLink(false)}
+                    className="flex-1 text-[11px] py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                  >
+                    그대로 둘래요
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRegenerate}
+                    disabled={shareBusy}
+                    className="flex-1 text-[11px] py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors disabled:opacity-40"
+                  >
+                    {shareBusy ? '만드는 중…' : '새로 만들기'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingNewLink(true)}
+                className="mt-1.5 flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <RefreshCw size={11} />
+                링크 새로 만들기
+              </button>
+            )}
+          </>
         )}
       </div>
 

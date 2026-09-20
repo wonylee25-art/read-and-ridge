@@ -136,13 +136,16 @@ export type PublicTrail = {
 export async function getPublicTrail(slug: string): Promise<PublicTrail | null> {
   const admin = createAdminClient()
 
+  // ⚠️ share_enabled를 반드시 같이 본다. 공개 토글을 꺼도 share_slug는 지워지지 않고
+  // 남아 있기 때문에(계정이 사라질 때까지 같은 링크를 쓰려고 — account-actions.ts의
+  // updateShareEnabled 주석 참고), slug만 맞으면 열어주면 **껐는데도 열린다.**
   const { data: profile } = await admin
     .from('profiles')
-    .select('user_id, nickname')
+    .select('user_id, nickname, share_enabled')
     .eq('share_slug', slug)
     .maybeSingle()
 
-  if (!profile) return null
+  if (!profile || !profile.share_enabled) return null
 
   const { data: rows, error } = await admin
     .from('books')

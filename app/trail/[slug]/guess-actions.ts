@@ -89,13 +89,16 @@ export async function submitGuess(
 
   // 이 책의 주인이 지금 보고 있는 그 공개 페이지의 주인이 맞는지 —
   // 링크를 통하지 않은 임의 book_id 조회를 막는 핵심 검사.
+  // ⚠️ share_enabled까지 봐야 한다 — 공개 토글을 꺼도 slug는 남아 있으므로
+  // (account-actions.ts의 updateShareEnabled 주석 참고), 이 검사를 빼면 꺼진
+  // 지형도의 책 제목을 이 액션으로 계속 확인할 수 있다.
   const { data: profile } = await admin
     .from('profiles')
-    .select('user_id')
+    .select('user_id, share_enabled')
     .eq('share_slug', slug)
     .maybeSingle()
 
-  if (!profile || profile.user_id !== book.user_id) {
+  if (!profile || !profile.share_enabled || profile.user_id !== book.user_id) {
     return { ok: false, reason: 'invalid' }
   }
 
