@@ -31,17 +31,17 @@ const VISIBILITY_META: Record<Visibility, { Icon: typeof Globe; className: strin
   public: {
     Icon: Globe,
     className: 'text-gray-300 hover:text-gray-500',
-    title: '공개 — 공유 링크에서 제목까지 보여요 (클릭하면 맞춰보세요)',
+    title: '공개 — 산에 이름표가 달려 있어요 (누르면 맞춰보세요)',
   },
   quiz: {
     Icon: HelpCircle,
     className: 'text-violet-500 hover:text-violet-600',
-    title: '맞춰보세요 — 산은 보이고 제목은 가려져요. 완독하면 자동 공개 (클릭하면 비공개)',
+    title: '맞춰보세요 — 이름표를 떼고 수수께끼로 냈어요. 다 오르면 저절로 공개 (누르면 비공개)',
   },
   private: {
     Icon: Lock,
     className: 'text-gray-600 hover:text-gray-800',
-    title: '비공개 — 공유 링크에서 이 산이 보이지 않아요 (클릭하면 공개)',
+    title: '비공개 — 이 산은 안개에 가려둬요 (누르면 공개)',
   },
 }
 
@@ -464,7 +464,7 @@ export default function BookCard({ book }: { book: Book }) {
       {visibility === 'quiz' && (
         <div className="mt-3 border-t border-gray-100 pt-3 space-y-1.5">
           <p className="text-[11px] text-gray-400">
-            맞히기 힌트 (최대 {MAX_QUIZ_HINTS}개) — 방문자가 눌러가며 하나씩 봐요
+            힌트 쪽지 (최대 {MAX_QUIZ_HINTS}장) — 놀러 온 사람이 한 장씩 꺼내 봐요
           </p>
           {hints.map((h, i) => (
             <div key={i} className="flex items-center gap-1.5">
@@ -474,15 +474,15 @@ export default function BookCard({ book }: { book: Book }) {
                 onChange={(e) => setHintAt(i, e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleHintSave() }}
                 maxLength={100}
-                placeholder={i === 0 ? '예: 말로 남긴 역사에 관한 책' : '힌트 추가 (선택)'}
+                placeholder={i === 0 ? '예: 작년에 네가 나한테 추천했던 그 작가' : '쪽지 한 장 더 (선택)'}
                 className="flex-1 min-w-0 text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300"
               />
               {hints.length > 1 && (
                 <button
                   onClick={() => removeHintAt(i)}
                   className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
-                  title="이 힌트 지우기"
-                  aria-label={`${i + 1}번 힌트 지우기`}
+                  title="이 쪽지 버리기"
+                  aria-label={`${i + 1}번 쪽지 버리기`}
                 >
                   <X size={13} />
                 </button>
@@ -495,7 +495,7 @@ export default function BookCard({ book }: { book: Book }) {
                 onClick={() => setHints((prev) => [...prev, ''])}
                 className="flex items-center gap-1 text-[11px] text-violet-600 hover:text-violet-700 transition-colors"
               >
-                <Plus size={12} /> 힌트 추가
+                <Plus size={12} /> 쪽지 추가
               </button>
             ) : (
               <span />

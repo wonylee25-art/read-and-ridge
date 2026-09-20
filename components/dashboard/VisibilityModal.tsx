@@ -65,14 +65,14 @@ export default function VisibilityModal({
 
   return (
     <Modal onClose={onClose} maxWidth="max-w-md">
-      <h2 className="text-lg font-bold text-gray-900">책별 공개 범위</h2>
+      <h2 className="text-lg font-bold text-gray-900">산마다 어떻게 보여줄까요?</h2>
       <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-        공유 링크에서 각 책을 어떻게 보여줄지 정합니다. 비공개로 둔 책은 지도에서 빠지지만
-        내 기록과 누적 숫자에는 그대로 남아요.
+        놀러 온 사람에게 각 산을 어떻게 보여줄지 정해요. 안개에 가려둔 산은 지도에서 빠지지만,
+        내 기록과 누적 숫자에는 그대로 남습니다.
       </p>
 
       <div className="flex items-center gap-1.5 mt-3">
-        <span className="text-[11px] text-gray-400 mr-0.5">전체를</span>
+        <span className="text-[11px] text-gray-400 mr-0.5">전부 다</span>
         {OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -87,7 +87,7 @@ export default function VisibilityModal({
 
       <div className="mt-3 max-h-72 overflow-y-auto -mx-1 px-1 divide-y divide-gray-100">
         {books.length === 0 && (
-          <p className="text-xs text-gray-400 py-6 text-center">아직 등록한 책이 없어요.</p>
+          <p className="text-xs text-gray-400 py-6 text-center">아직 오른 산이 없어요.</p>
         )}
         {books.map((book) => (
           <div key={book.id} className="py-2.5">
@@ -133,7 +133,7 @@ export default function VisibilityModal({
           disabled={!changed.length || saving}
           className="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40"
         >
-          {saving ? '저장 중…' : changed.length ? `${changed.length}권 저장` : '변경 없음'}
+          {saving ? '저장 중…' : changed.length ? `${changed.length}개 산 저장` : '그대로예요'}
         </button>
       </div>
     </Modal>

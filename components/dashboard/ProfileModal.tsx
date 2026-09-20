@@ -123,10 +123,10 @@ export default function ProfileModal({
       <div className="border-t border-gray-100 pt-3 mb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-700">내 지형도 공개하기</p>
+            <p className="text-xs font-medium text-gray-700">내 지형도에 놀러 오게 하기</p>
             <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
-              링크를 아는 사람이면 로그인 없이 볼 수 있어요. 메모는 공개되지 않고,
-              책별로 비공개·맞춰보세요를 따로 정할 수 있어요.
+              링크를 아는 사람만 들어올 수 있어요. 메모는 따라가지 않고, 산마다
+              안개에 가리거나 이름표를 떼고 수수께끼로 낼 수 있어요.
             </p>
           </div>
           <button
@@ -153,7 +153,7 @@ export default function ProfileModal({
           onClick={() => setVisibilityOpen(true)}
           className="mt-2.5 w-full rounded-xl border border-gray-200 py-2 text-[11px] text-gray-600 hover:bg-gray-50 transition-colors"
         >
-          책별 공개 범위 한 번에 정리하기 ({visibilityBooks.length}권)
+          산마다 어떻게 보여줄지 정하기 ({visibilityBooks.length}권)
         </button>
 
         {slug && (

@@ -34,7 +34,8 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
             {trail.nickname}님의 지형도
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            책 한 권이 산 하나예요. 읽은 만큼 캐릭터가 산을 오릅니다.
+            책 한 권이 산 하나예요. 읽은 만큼 마루가 산을 오릅니다.
+            이름표가 없는 산은 눌러서 무슨 책인지 맞혀보세요.
           </p>
         </header>
 
@@ -89,6 +90,8 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
         <GuessModal
           slug={slug}
           bookId={guessTarget.id}
+          nickname={trail.nickname}
+          status={guessTarget.status}
           hints={trail.quizHints[guessTarget.id]}
           onClose={() => setGuessTarget(null)}
         />
