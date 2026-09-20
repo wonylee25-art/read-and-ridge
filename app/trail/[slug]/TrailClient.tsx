@@ -4,6 +4,8 @@
 // 저쪽은 진행률 모달·책 추가 바처럼 "내 기록을 고치는" 기능이 붙어 있어서,
 // 조건부로 끄는 것보다 읽기 전용 화면을 따로 두는 쪽이 실수로 새어나갈 여지가 없다.
 import { useState } from 'react'
+import { HelpCircle } from 'lucide-react'
+import Modal from '@/components/ui/Modal'
 import WorldMap from '@/components/worldmap/WorldMap'
 import type { WorldMapBook } from '@/components/worldmap/worldmap-utils'
 import { TARGET_TROPHY } from '@/components/worldmap/worldmap-utils'
@@ -16,6 +18,7 @@ type PublicBook = WorldMapBook & { isQuiz: boolean }
 export default function TrailClient({ slug, trail }: { slug: string; trail: PublicTrail }) {
   const [guessTarget, setGuessTarget] = useState<PublicBook | null>(null)
   const [tapped, setTapped] = useState<PublicBook | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   // 산을 탭했을 때 — 맞춰보세요 책이면 맞히기 모달, 아니면 제목만 알려주는 가벼운 안내.
   // (WorldMap 자체의 말풍선은 onBookTap이 있으면 뜨지 않는다.)
@@ -28,22 +31,36 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <header className="mb-6">
-          <p className="text-xs text-gray-400">산책또산책</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-1">
-            {trail.nickname}님의 지형도
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            책 한 권이 산 하나예요. 읽은 만큼 마루가 산을 오릅니다.
-            이름표가 없는 산은 눌러서 무슨 책인지 맞혀보세요.
-          </p>
+        {/* 설명을 (?)로 접어두고 머리말은 이름·숫자만 남긴다 — 놀러 온 사람이 가장
+            먼저 보고 싶은 건 사용법이 아니라 "이 사람이 뭘 얼마나 걸었나"다. */}
+        <header className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400">산책또산책</p>
+            <h1 className="text-2xl font-bold text-gray-900 mt-1 truncate">
+              {trail.nickname}님의 등반지도
+            </h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            aria-label="이 지도 읽는 법"
+            className="shrink-0 mt-1 rounded-full p-1.5 text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <HelpCircle size={20} />
+          </button>
         </header>
+
+        <section className="grid grid-cols-3 gap-3 mb-8">
+          <Stat label="산책 수" value={String(trail.stats.totalBooks)} />
+          <Stat label="발걸음 수" value={trail.stats.stepsWalked.toLocaleString()} />
+          <Stat label="완독거리" value={`${trail.stats.totalKm.toFixed(1)}km`} />
+        </section>
 
         <section className="space-y-3 mb-8">
           <h2 className="text-sm font-semibold text-gray-700">산책기록</h2>
           {/* ⚠ books는 반드시 명시적으로 넘긴다 — WorldMap의 기본값이 데모 산이라,
               undefined를 넘기면 남에게 데모 데이터가 그 사람 기록인 것처럼 보인다. */}
-          <WorldMap books={trail.books} mode="home" readOnly onBookTap={handleBookTap} />
+          <WorldMap books={trail.books} mode="home" readOnly nameplates onBookTap={handleBookTap} />
         </section>
 
         {trail.completed.length > 0 && (
@@ -53,6 +70,7 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
               books={trail.completed}
               mode="trophy"
               readOnly
+              nameplates
               onBookTap={handleBookTap}
             />
             {trail.completed.length > TARGET_TROPHY && (
@@ -62,12 +80,6 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
             )}
           </section>
         )}
-
-        <section className="grid grid-cols-3 gap-3 mb-10">
-          <Stat label="산 책" value={String(trail.stats.totalBooks)} />
-          <Stat label="완등 기록" value={String(trail.stats.completedCount)} />
-          <Stat label="완등 거리 km" value={trail.stats.totalKm.toFixed(1)} />
-        </section>
 
         <div className="rounded-2xl bg-white border border-gray-200 p-6 text-center shadow-sm">
           <p className="text-sm text-gray-700 font-medium">나도 내 산 만들기</p>
@@ -85,6 +97,32 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
 
         <p className="text-center text-xs text-gray-400 mt-8">© 2026 산책또산책</p>
       </div>
+
+      {helpOpen && (
+        <Modal onClose={() => setHelpOpen(false)}>
+          <h2 className="text-lg font-bold text-gray-900">이 지도 읽는 법</h2>
+          <ul className="mt-3 space-y-2.5 text-sm text-gray-600 leading-relaxed">
+            <li>책 한 권이 산 하나예요. 두꺼운 책일수록 높은 산이 됩니다.</li>
+            <li>읽은 만큼 마루가 산을 오릅니다. 산중턱의 캐릭터가 지금 읽고 있는 자리예요.</li>
+            <li>
+              팻말에 이름이 적힌 산은 눌러서 제목을 볼 수 있고,{' '}
+              <span className="inline-flex items-center rounded bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold text-white align-middle">
+                ?
+              </span>{' '}
+              팻말이 선 산은 무슨 책인지 맞혀보는 산이에요.
+            </li>
+            <li>산기슭의 텐트와 모닥불은 그 책을 소장하고 있다는 표시입니다.</li>
+            <li>다 오른 산은 아래 완등기록으로 옮겨가고, 그때 감춰뒀던 이름도 드러납니다.</li>
+          </ul>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(false)}
+            className="mt-5 w-full rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            닫기
+          </button>
+        </Modal>
+      )}
 
       {guessTarget && (
         <GuessModal

@@ -38,6 +38,14 @@ export const CANVAS_H = 440
 // 지금 그대로 유지됨 — getSkyRowsLimit 참고).
 export const CANVAS_H_COMPACT = 352
 
+// 완등기록(trophy) 지형도 높이 — 산책기록보다 낮게 잡는다.
+// 가장 큰 산도 MAX_MTN_H(120px)라 땅(52px)까지 합쳐 172px면 다 들어오는데, 440px를
+// 그대로 쓰면 화면의 2/3가 빈 하늘이었다. 산책기록 쪽은 메모 말풍선·이름표 팻말이
+// 그 공간을 쓰지만 완등기록은 정상석만 있어서 채울 것이 없다. 구름은 y=25~60에만
+// 떠서(makeCloudStates) 이 높이에서도 산과 겹치지 않는다.
+export const CANVAS_H_TROPHY = 300
+export const CANVAS_H_TROPHY_COMPACT = 264
+
 // 이 폭 미만이면 CANVAS_H_COMPACT 사용. Tailwind의 md(768px) 분기와 맞춰둠 —
 // 사이드바가 햄버거로 바뀌는 지점과 같아야 레이아웃이 따로 놀지 않는다.
 export const COMPACT_MAX_W = 768

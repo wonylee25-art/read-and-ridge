@@ -22,6 +22,8 @@ import { Camera, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   CANVAS_H,
   CANVAS_H_COMPACT,
+  CANVAS_H_TROPHY,
+  CANVAS_H_TROPHY_COMPACT,
   COMPACT_MAX_W,
   getSkyRowsLimit,
   GROUND_H,
@@ -98,6 +100,17 @@ import { renderCompletedPanorama, renderCompletionCapture, todayFileDateKey } fr
 export type { WorldMapBook }
 export { toWorldMapBooks, TARGET_TROPHY }
 
+// ─── 이름표 팻말 폭 어림 ──────────────────────────────────────────────────────
+// 가장자리 산의 팻말이 캔버스 밖으로 넘어가지 않게 밀어 넣으려면 폭을 알아야 하는데,
+// 실측하려면 렌더 후 useLayoutEffect가 한 번 더 돌아야 한다. 한글은 글자 폭이 거의
+// 일정해서(11px 기준) 어림으로 충분하다. 아래 값들은 JSX의 클래스와 맞춰둘 것 —
+// text-[11px] + px-2(좌우 8px씩) + max-w-[140px].
+const NAMEPLATE_MAX_W = 140
+const NAMEPLATE_QUIZ_W = 24 // 물음표 하나 + 좌우 패딩
+function estimateNameplateW(title: string) {
+  return Math.min(NAMEPLATE_MAX_W, title.length * 11 + 16)
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function WorldMap({
@@ -114,6 +127,11 @@ export default function WorldMap({
   onBookTap,           // 상태와 무관하게 "산을 탭하면" 호출. 공개 지형도의 맞춰보세요 모달용.
                         // onBookClick(읽는 중인 책만)과는 계약이 달라서 일부러 분리했다 —
                         // WorldMapClient가 onBookClick의 기존 계약에 의존하고 있다.
+  nameplates = false,  // 전경 산 위에 제목 팻말을 상시로 세운다. 공개 지형도 전용 —
+                        // 주인 화면은 메모 말풍선이 그 자리를 쓰고, 어차피 자기 책이라
+                        // 이름표가 늘 떠 있을 이유가 없다. 반대로 놀러 온 사람에게는
+                        // 마우스를 올릴 수 없는 터치 기기에서 산을 구분할 단서가
+                        // 아예 없었고(탭해야만 제목이 뜸), 하늘도 통째로 비어 있었다.
 }: {
   books?: WorldMapBook[]
   onBookClick?: (book: WorldMapBook) => void
@@ -124,6 +142,7 @@ export default function WorldMap({
   nickname?: string
   readOnly?: boolean
   onBookTap?: (book: WorldMapBook) => void
+  nameplates?: boolean
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -147,7 +166,7 @@ export default function WorldMap({
   // 지형도 높이 — 좁은 화면에서는 빈 하늘을 덜어낸 CANVAS_H_COMPACT를 쓴다.
   // 서버 렌더와 첫 페인트를 맞추기 위해 초기값은 항상 CANVAS_H(440)로 두고,
   // 마운트 후 실제 화면 폭을 보고 정한다.
-  const [canvasH, setCanvasH] = useState(CANVAS_H)
+  const [canvasH, setCanvasH] = useState(mode === 'trophy' ? CANVAS_H_TROPHY : CANVAS_H)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // 터치로 지도를 끌면 마지막에 click 이벤트가 따라오면서 손을 뗀 지점의 산/책추가
@@ -320,6 +339,26 @@ export default function WorldMap({
       .filter((v): v is { book: WorldMapBook; x: number; y: number } => v !== null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreground.map((b) => `${b.id}:${!!b.memo}`).join(','), containerW, justCompletedId, canvasH])
+
+  // 이름표(팻말) 위치 — 메모 말풍선과 같은 좌표계를 쓴다(전경 산의 꼭대기 중앙).
+  // 세레모니 중인 산은 메모 말풍선과 같은 이유로 제외한다.
+  const nameplateItems = useMemo(() => {
+    if (!nameplates || containerW === 0) return []
+    const rects = getMountainRects(foreground, canvasH, containerW)
+    // 캔버스 콘텐츠 폭 — syncSize가 canvas.width를 정하는 식과 같다.
+    // 가장자리 산의 팻말이 산 중앙에 딱 맞춰 서면 캔버스 밖으로 넘어가 잘렸다.
+    // 팻말 폭을 어림해서 양끝에서는 안쪽으로 밀어 넣는다(가운데 산들은 그대로).
+    const contentW = Math.max(foreground.length * computeSlotW(foreground, containerW) + 64, containerW)
+    return rects
+      .filter((r) => r.book.id !== justCompletedId)
+      .map((r) => {
+        const halfW = (r.book.isQuiz ? NAMEPLATE_QUIZ_W : estimateNameplateW(r.book.title)) / 2
+        const center = r.x + r.w / 2
+        const x = Math.min(Math.max(center, halfW + 4), contentW - halfW - 4)
+        return { book: r.book, x, y: r.y }
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nameplates, foreground.map((b) => b.id).join(','), containerW, justCompletedId, canvasH])
 
   // 방금 완독한 책 — 있으면(산책기록/home에서만) 좌하단 카메라 버튼이 평소 동작
   // 대신 "인증샷 찍기"로 바뀐다(viral-capture.md 트리거 결정: 산 위에 따로 뜨는
@@ -822,11 +861,20 @@ export default function WorldMap({
 
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${COMPACT_MAX_W - 1}px)`)
-    const apply = () => setCanvasH(mq.matches ? CANVAS_H_COMPACT : CANVAS_H)
+    const apply = () =>
+      setCanvasH(
+        mode === 'trophy'
+          ? mq.matches
+            ? CANVAS_H_TROPHY_COMPACT
+            : CANVAS_H_TROPHY
+          : mq.matches
+            ? CANVAS_H_COMPACT
+            : CANVAS_H
+      )
     apply()
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
-  }, [])
+  }, [mode])
 
   // ── 좌/우로 더 볼 게 남았는지 (가장자리 그라데이션 표시용) ──────────────────
   // 모바일에선 캔버스 폭이 화면의 2~3배가 되기 쉬운데 스크롤바를 숨겨둬서 옆으로
@@ -851,6 +899,14 @@ export default function WorldMap({
       ro.disconnect()
     }
   }, [foreground])
+
+  // 화살표를 눌렀을 때 한 화면씩 옆으로 — 마우스 휠은 세로로만 굴러서, 데스크톱에서는
+  // 화살표가 보여도 옆으로 넘길 방법이 마땅치 않았다(스크롤바도 숨겨둔 상태).
+  function scrollByPage(dir: -1 | 1) {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
+  }
 
   // 터치에는 mouseleave가 없어서, 산을 탭해 띄운 말풍선이 지도 바깥을 눌러도 남아
   // 있었다. 지도 밖을 누르면 닫는다. (지도 안을 누르는 경우는 click 핸들러가 처리)
@@ -927,6 +983,31 @@ export default function WorldMap({
                 <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-amber-50 border-r border-b border-amber-200" />
               </div>
             ))}
+
+          {/* 이름표 팻말 — 공개 지형도에서만. 가려진 책(맞춰보세요)은 제목 대신
+              물음표를 세워서 "여기를 누르면 맞힐 수 있다"가 한눈에 보이게 한다.
+              마우스를 올린 산은 위의 제목·상태 툴팁이 대신 뜨니 중복을 피해 숨긴다. */}
+          {nameplateItems
+            .filter((n) => n.book.id !== tooltip?.book.id)
+            .map((n) => (
+              <div
+                key={n.book.id}
+                className="absolute z-10 pointer-events-none flex flex-col items-center"
+                style={{ left: n.x, top: n.y, transform: 'translate(-50%, calc(-100% - 6px))' }}
+              >
+                {n.book.isQuiz ? (
+                  <span className="rounded-md bg-violet-600 px-2 py-0.5 text-xs font-bold text-white shadow-md">
+                    ?
+                  </span>
+                ) : (
+                  <span className="max-w-[140px] truncate rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-medium text-gray-800 shadow-md">
+                    {n.book.title}
+                  </span>
+                )}
+                {/* 팻말을 땅에 꽂아둔 기둥 */}
+                <span className="h-2 w-[3px] bg-white/70 shadow-sm" />
+              </div>
+            ))}
         </div>
 
         {/* 옆으로 더 볼 게 있다는 표시 — 모바일에서 캔버스가 화면보다 훨씬 넓은데
@@ -935,12 +1016,26 @@ export default function WorldMap({
             않도록 pointer-events-none. 끝에 닿으면 해당 방향은 사라진다. */}
         {overflow.left && (
           <div className="absolute inset-y-0 left-0 z-10 flex w-10 items-center justify-start pl-1 pointer-events-none bg-gradient-to-r from-black/25 to-transparent">
-            <ChevronLeft size={18} className="text-white/80 drop-shadow" />
+            <button
+              type="button"
+              onClick={() => scrollByPage(-1)}
+              aria-label="왼쪽 산 보기"
+              className="pointer-events-auto rounded-full p-1.5 hover:bg-black/20 active:scale-90 transition-all"
+            >
+              <ChevronLeft size={18} className="text-white/80 drop-shadow" />
+            </button>
           </div>
         )}
         {overflow.right && (
           <div className="absolute inset-y-0 right-0 z-10 flex w-10 items-center justify-end pr-1 pointer-events-none bg-gradient-to-l from-black/25 to-transparent">
-            <ChevronRight size={18} className="text-white/80 drop-shadow" />
+            <button
+              type="button"
+              onClick={() => scrollByPage(1)}
+              aria-label="오른쪽 산 보기"
+              className="pointer-events-auto rounded-full p-1.5 hover:bg-black/20 active:scale-90 transition-all"
+            >
+              <ChevronRight size={18} className="text-white/80 drop-shadow" />
+            </button>
           </div>
         )}
 

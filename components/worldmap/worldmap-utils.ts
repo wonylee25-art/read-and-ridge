@@ -24,6 +24,10 @@ export type WorldMapBook = {
   // ISBN 하나면 그 책이 무슨 책인지 바로 특정되기 때문(맞춰보세요 기능이 무의미해짐).
   // 그래서 서버에서 isAuroraBook()으로 계산한 결과만 넘기고 isbn은 뺀다.
   aurora?: boolean
+  // 공개 지형도(/trail/[slug])에서 "맞춰보세요"로 가려진 책인지. 제목이 이미
+  // '?????'로 마스킹돼 내려오기 때문에 title만 봐서는 가려진 책인지 알 수 없어서,
+  // 이름표(팻말)를 제목으로 그릴지 물음표로 그릴지 판단하려고 같이 받는다.
+  isQuiz?: boolean
 }
 
 // Supabase에서 받아온 books row 배열을 WorldMap이 필요로 하는 형태로 변환.

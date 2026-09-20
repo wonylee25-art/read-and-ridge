@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const trail = await getPublicTrail(params.slug)
   if (!trail) return { title: '산책또산책' }
   return {
-    title: `${trail.nickname}님의 지형도 · 산책또산책`,
+    title: `${trail.nickname}님의 등반지도 · 산책또산책`,
     description: `${trail.nickname}님이 오른 산 ${trail.stats.completedCount}개를 구경해보세요.`,
     // 공개 링크이긴 하지만 검색엔진에 올라갈 성격은 아니다 — 링크를 받은 사람만 본다.
     robots: { index: false, follow: false },

@@ -121,6 +121,9 @@ export type PublicTrail = {
     totalBooks: number
     /** 완독 권수 — 비공개 포함 전체 */
     completedCount: number
+    /** 발걸음 수 — 아직 오르는 중인 책(읽는 중·잠시 멈춤)의 읽은 쪽수 합. 1쪽 = 1걸음.
+        주인 화면(app/dashboard/page.tsx)의 같은 이름 숫자와 동일한 기준이다. */
+    stepsWalked: number
     /** 완등 거리(km) — 비공개 포함 전체, 실제 쪽수 기준 */
     totalKm: number
   }
@@ -161,6 +164,9 @@ export async function getPublicTrail(slug: string): Promise<PublicTrail | null> 
   const stats = {
     totalBooks: all.length,
     completedCount: completedRows.length,
+    stepsWalked: all
+      .filter((b) => b.status !== 'completed')
+      .reduce((sum, b) => sum + (b.current_page ?? 0), 0),
     totalKm:
       (completedRows.reduce((sum, b) => sum + (b.total_pages ?? 0), 0) * DISTANCE_PER_PAGE_M) / 1000,
   }
