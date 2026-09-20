@@ -203,7 +203,7 @@
 - [x] **개인정보처리방침 페이지 신규 추가** (`/privacy`, `app/privacy/page.tsx`) — 로그인 없이도 접근 가능한 공개 라우트(middleware `protectedPaths`에 안 걸림). 수집 항목(구글 OAuth 이메일/이름/사진, 이용자가 입력하는 책 정보), 이용 목적, 보유기간, 제3자 제공(Supabase/Google/국립중앙도서관·Open Library API), 이용자 권리, 쿠키, 아동 보호, 안전성 확보 조치, 고지 의무 순으로 구성. 로그인 페이지(`/login`)와 사이드바 하단에 링크 추가
 - [x] **문의처 이메일 확정** — `readandridge@gmail.com`으로 별도 계정 생성, "9. 문의처" 섹션에 반영 완료 (2026.07.08)
 - [x] **저작권 표기 추가** — 사이드바 하단에 `© 2026 산책또산책` 표기, 개인정보처리방침 페이지 하단에도 도서 정보(국립중앙도서관/Open Library API 제공, 저작권은 각 출판사/저작권자에게 있음) 관련 저작권 안내 문구 추가
-- [x] **버그 수정**: 개인정보처리방침에 실제 안 쓰는 "카카오 도서 검색 API"가 잘못 기재돼 있던 걸 발견 — 실제 도서 검색은 국립중앙도서관 API + Open Library라서 문구 전체(정책 페이지, `docs/architecture.md`, `docs/features/books.md`, `docs/verification.md`, `docs/product-direction.md`)에서 카카오 언급을 국립중앙도서관 API로 정정. (카카오는 로그인 방식 후보로만 검토됐다가 진행 안 함으로 결정된 것과는 별개 사안 — 혼동 주의)
+- [x] **버그 수정**: 개인정보처리방침에 실제로는 쓰지 않는 도서 검색 API가 잘못 기재돼 있던 걸 발견 — 실제 도서 검색은 국립중앙도서관 API + Open Library라서 문구 전체(정책 페이지, `docs/architecture.md`, `docs/features/books.md`, `docs/verification.md`, `docs/product-direction.md`)의 표기를 국립중앙도서관 API로 정정. (같은 시기에 다른 소셜 로그인 도입을 검토했다가 진행 안 함으로 결정한 건과는 별개 사안 — 혼동 주의)
 - [x] **이용약관 페이지 신규 추가** (`/terms`, `app/terms/page.tsx`) — 개인정보처리방침과 동일하게 공개 라우트. 목적/정의/약관 효력·변경/서비스 제공·변경/회원 의무/콘텐츠 관리(이용자 등록 콘텐츠 권리는 본인에게 있음 명시)/서비스 중단/면책조항/회원 탈퇴/저작권 귀속/분쟁해결·준거법/문의처 순으로 구성. 개인정보처리방침·이용약관 페이지끼리 서로 링크, 사이드바·로그인 페이지에도 두 링크 나란히 추가
 - [x] **회원 탈퇴(계정 완전 삭제) 기능 구현** — 사이드바 하단 "회원 탈퇴" 버튼 → `DeleteAccountModal`(실수 방지용 "탈퇴합니다" 타이핑 확인) → `app/dashboard/account-actions.ts`의 `deleteAccount()` 서버 액션이 (1) `books`/레거시 `hikes` 행 삭제 (2) 로그아웃 (3) `lib/supabase/admin.ts`의 서비스 롤 클라이언트로 Supabase Auth 계정 자체까지 완전 삭제. 로그아웃 버튼과 동일하게 클라이언트에서 `router.push('/login')`으로 이동시킴(서버 액션 안에서 `redirect()`를 쓰면 실패 시 에러 메시지를 보여주는 try/catch가 그 특수 예외까지 삼켜버릴 수 있어 일부러 피함)
   - ⚠️ **`SUPABASE_SERVICE_ROLE_KEY` 환경변수 설정 필요** — Supabase 프로젝트 대시보드 > Project Settings > API에서 `service_role` 키를 복사해 `.env.local`에 붙여넣어야 로컬에서 동작함(플레이스홀더로 미리 넣어둠). **Vercel에 배포할 때도 동일한 키를 프로젝트 환경변수에 추가해야** 배포본에서도 탈퇴 기능이 작동함. 이 키는 RLS를 완전히 우회하는 매우 민감한 키라 `.env.local`에만 두고 절대 커밋/공유하면 안 됨
@@ -329,9 +329,9 @@ IA 재구성 논의(홈/독서/등산 → 지도·리스트 통합안, 별도 �
 - [x] Supabase `books` 테이블 연동
 - [x] 상태별 그룹 노출 (읽는 중 / 완독 / 잠시 멈춤)
 - [x] 책 카드 (`BookCard.tsx`) — 진행률 바 + 페이지 업데이트
-- [x] 책 추가 폼 (`AddBookForm.tsx`) — 제목 검색 (카카오 API) + 결과 드롭다운
+- [x] 책 추가 폼 (`AddBookForm.tsx`) — 제목 검색 + 결과 드롭다운
 - [x] 바코드 스캐너 (`BarcodeScanner.tsx`) — ZXing, 실시간 ISBN 감지
-- [x] API 라우트 (`/api/books/search`) — 카카오 제목 검색 + Open Library ISBN 조회
+- [x] API 라우트 (`/api/books/search`) — 제목 검색 + Open Library ISBN 조회
 - [x] Server Actions: `addBook`, `updateProgress`, `deleteBook`
 
 ### 등산 기록 (`/dashboard/hikes`)
@@ -370,9 +370,9 @@ IA 재구성 논의(홈/독서/등산 → 지도·리스트 통합안, 별도 �
 | 항목 | 현재 상태 | 목표 |
 |------|---------|------|
 | 앱 진입점 | `/dashboard` (사이드바 레이아웃) | **`/`가 메인 월드맵 Canvas 풀스크린** |
-| 도서 API | ~~카카오~~ → 국립중앙도서관 API + Open Library로 전환 완료(단 KDC 필드는 매핑에서 아직 미추출) | ✅ 달성 |
+| 도서 API | 국립중앙도서관 API + Open Library(단 KDC 필드는 매핑에서 아직 미추출) | ✅ 달성 |
 | Z 레이어 시각 | opacity + scale만 | 드롭 섀도 (전경) / 안개 레이어 (원경) |
-| 로그인 | Google OAuth만 | ~~카카오 로그인 추가~~ — 진행 안 함으로 결정 (2026.07.08) |
+| 로그인 | Google OAuth만 | ~~다른 소셜 로그인 추가~~ — 진행 안 함으로 결정 (2026.07.08) |
 | 페이지 구조 | `/dashboard/*` | `/`, `/mypage`, `/shop` 구조로 개편 |
 
 > 위 항목들은 `design-style.md`에 설계 방향이 문서화돼 있으나, 코드 구현은 미완. 표 내용은 코드 기준 여전히 유효.
@@ -388,7 +388,7 @@ IA 재구성 논의(홈/독서/등산 → 지도·리스트 통합안, 별도 �
 | Phase | 작업 내용 | 예상 기간 | 주요 기술 |
 |-------|---------|---------|---------|
 | **1** | 개발 환경 설정 (Node.js, VS Code, Next.js, Vercel 배포 연결) | 0.5일 | Next.js, Vercel |
-| **2** | Supabase 설정 + 카카오/구글 소셜 로그인 + 로그인/회원가입 UI | 1일 | Supabase Auth |
+| **2** | Supabase 설정 + 구글 소셜 로그인 + 로그인/회원가입 UI | 1일 | Supabase Auth |
 | **3** | 도서 등록 — 국립중앙도서관 API 연동, 도서 검색 UI, 등록 플로우 | 1~2일 | 국립중앙도서관 API, Next.js API Routes |
 | **4** | 픽셀 월드맵 — **HTML5 Canvas 렌더링**, 산 높이 시스템, KDC 자동 채색, 시간대 배경 | 3~5일 | HTML5 Canvas, JavaScript |
 | **5** | 캐릭터 애니메이션 + 진도 입력 — 바운스 애니메이션, 수직 모달 UI, 실시간 슬라이딩 | 2~3일 | Canvas Animation |
@@ -403,7 +403,7 @@ IA 재구성 논의(홈/독서/등산 → 지도·리스트 통합안, 별도 �
 ```
 [Vercel — Next.js 14]
 ├── /              → 메인 픽셀 월드맵 (Canvas 풀스크린)
-├── /login         → 카카오 / 구글 소셜 로그인
+├── /login         → 구글 소셜 로그인
 ├── /mypage        → 마이페이지 + 정상석 갤러리
 ├── /shop          → 픽셀 아이템샵
 └── /api/
@@ -411,7 +411,7 @@ IA 재구성 논의(홈/독서/등산 → 지도·리스트 통합안, 별도 �
     └── /api/payment  → 토스페이먼츠 결제 웹훅 처리
 
 [Supabase 클라우드]
-├── Auth      → 카카오/구글 소셜 로그인 처리
+├── Auth      → 구글 소셜 로그인 처리
 ├── Database  → 도서 기록, 읽기 진도, 유저 정보, 정상석 데이터
 └── Storage   → 커스텀 픽셀 에셋 (캐릭터 스킨, 테마 이미지)
 ```
@@ -444,7 +444,7 @@ IA 재구성 논의(홈/독서/등산 → 지도·리스트 통합안, 별도 �
 - [x] **BookCard 상태 변경** — 드롭다운으로 reading/paused/completed 전환
 - [x] **완독 시 자동 상태 전환** — `current_page >= total_pages`이면 `completed`
 - [x] **책 메모 입력** — BookCard 메모 textarea + 저장
-- ~~**카카오 로그인 추가**~~ — **진행 안 함으로 결정** (2026.07.08)
+- ~~**다른 소셜 로그인 추가**~~ — **진행 안 함으로 결정** (2026.07.08)
 
 ---
 
