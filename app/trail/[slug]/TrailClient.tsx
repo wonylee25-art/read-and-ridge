@@ -10,8 +10,10 @@ import WorldMap from '@/components/worldmap/WorldMap'
 import type { WorldMapBook } from '@/components/worldmap/worldmap-utils'
 import { TARGET_TROPHY } from '@/components/worldmap/worldmap-utils'
 import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
+import { ADD_BOOK_NEXT } from '@/lib/auth/next'
 import type { PublicBook, PublicTrail } from '@/lib/trail/public-books'
 import GuessModal from './GuessModal'
+import { 문구 } from '@/lib/copy'
 import { loadRevealed, saveRevealed, type RevealedTitles } from '@/lib/trail/revealed'
 
 export default function TrailClient({ slug, trail }: { slug: string; trail: PublicTrail }) {
@@ -73,15 +75,15 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
             먼저 보고 싶은 건 사용법이 아니라 "이 사람이 뭘 얼마나 걸었나"다. */}
         <header className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs text-gray-400">산책또산책</p>
+            <p className="text-xs text-gray-400">{문구.앱.이름}</p>
             <h1 className="text-2xl font-bold text-gray-900 mt-1 truncate">
-              {trail.nickname}님의 등반지도
+              {문구.공개지도.제목(trail.nickname)}
             </h1>
           </div>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            aria-label="이 지도 읽는 법"
+            aria-label={문구.공개지도.읽는법_제목}
             className="shrink-0 mt-1 rounded-full p-1.5 text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <HelpCircle size={20} />
@@ -89,13 +91,13 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
         </header>
 
         <section className="grid grid-cols-3 gap-3 mb-8">
-          <Stat label="산책 수" value={String(trail.stats.totalBooks)} />
-          <Stat label="발걸음 수" value={trail.stats.stepsWalked.toLocaleString()} />
-          <Stat label="완독거리" value={`${trail.stats.totalKm.toFixed(1)}km`} />
+          <Stat label={문구.공개지도.통계.산책수} value={String(trail.stats.totalBooks)} />
+          <Stat label={문구.공개지도.통계.발걸음수} value={trail.stats.stepsWalked.toLocaleString()} />
+          <Stat label={문구.공개지도.통계.완독거리} value={`${trail.stats.totalKm.toFixed(1)}km`} />
         </section>
 
         <section className="space-y-3 mb-8">
-          <h2 className="text-sm font-semibold text-gray-700">산책기록</h2>
+          <h2 className="text-sm font-semibold text-gray-700">{문구.공개지도.산책기록}</h2>
           {/* ⚠ books는 반드시 명시적으로 넘긴다 — WorldMap의 기본값이 데모 산이라,
               undefined를 넘기면 남에게 데모 데이터가 그 사람 기록인 것처럼 보인다. */}
           <WorldMap
@@ -110,7 +112,7 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
 
         {trail.completed.length > 0 && (
           <section className="space-y-3 mb-8">
-            <h2 className="text-sm font-semibold text-gray-700">완등기록</h2>
+            <h2 className="text-sm font-semibold text-gray-700">{문구.공개지도.완등기록}</h2>
             <WorldMap
               books={completed}
               mode="trophy"
@@ -121,51 +123,52 @@ export default function TrailClient({ slug, trail }: { slug: string; trail: Publ
             />
             {trail.completed.length > TARGET_TROPHY && (
               <p className="text-xs text-gray-400">
-                최근 완등한 {TARGET_TROPHY}권만 지도에 표시돼요.
+                {문구.공개지도.최근만표시(TARGET_TROPHY)}
               </p>
             )}
           </section>
         )}
 
         <div className="rounded-2xl bg-white border border-gray-200 p-6 text-center shadow-sm">
-          <p className="text-sm text-gray-700 font-medium">나도 내 산 만들기</p>
+          <p className="text-sm text-gray-700 font-medium">{문구.공개지도.시작하기_제목}</p>
           <p className="text-xs text-gray-500 mt-1">
-            읽는 책이 산이 되고, 다 읽으면 정상에 깃발이 꽂혀요.
+            {문구.공개지도.시작하기_설명}
           </p>
           <button
             type="button"
-            onClick={() => signInWithGoogle()}
+            // 내 산을 세우는 자리(책 추가 창)로 가되, 보던 지도로 돌아올 길을 남긴다
+            onClick={() => signInWithGoogle(`${ADD_BOOK_NEXT}&from=${slug}`)}
             className="mt-4 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 active:scale-95 transition-all"
           >
-            시작하기
+            {문구.공개지도.시작하기_버튼}
           </button>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-8">© 2026 산책또산책</p>
+        <p className="text-center text-xs text-gray-400 mt-8">{문구.앱.저작권}</p>
       </div>
 
       {helpOpen && (
         <Modal onClose={() => setHelpOpen(false)}>
-          <h2 className="text-lg font-bold text-gray-900">이 지도 읽는 법</h2>
+          <h2 className="text-lg font-bold text-gray-900">{문구.공개지도.읽는법_제목}</h2>
           <ul className="mt-3 space-y-2.5 text-sm text-gray-600 leading-relaxed">
-            <li>책 한 권이 산 하나예요. 두꺼운 책일수록 높은 산이 됩니다.</li>
-            <li>읽은 만큼 마루가 산을 오릅니다. 산중턱의 캐릭터가 지금 읽고 있는 자리예요.</li>
+            <li>{문구.공개지도.읽는법.산}</li>
+            <li>{문구.공개지도.읽는법.마루}</li>
             <li>
-              팻말에 이름이 적힌 산은 눌러서 제목을 볼 수 있고,{' '}
+              {문구.공개지도.읽는법.팻말_앞}{' '}
               <span className="inline-flex items-center rounded bg-violet-600 px-1.5 py-0.5 text-[11px] font-bold text-white align-middle">
                 ?
               </span>{' '}
-              팻말이 선 산은 무슨 책인지 맞혀보는 산이에요.
+              {문구.공개지도.읽는법.팻말_뒤}
             </li>
-            <li>산기슭의 텐트와 모닥불은 그 책을 소장하고 있다는 표시입니다.</li>
-            <li>다 오른 산은 아래 완등기록으로 옮겨가고, 그때 감춰뒀던 이름도 드러납니다.</li>
+            <li>{문구.공개지도.읽는법.텐트}</li>
+            <li>{문구.공개지도.읽는법.완등}</li>
           </ul>
           <button
             type="button"
             onClick={() => setHelpOpen(false)}
             className="mt-5 w-full rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
           >
-            닫기
+            {문구.공통.닫기}
           </button>
         </Modal>
       )}
@@ -196,7 +199,11 @@ function BookSheet({ book, onClose }: { book: PublicBook; onClose: () => void })
   const percent = total > 0 ? Math.round((read / total) * 100) : null
 
   const state =
-    book.status === 'completed' ? '다 오른 산' : book.status === 'paused' ? '잠시 멈춘 산' : '오르는 중'
+    book.status === 'completed'
+      ? 문구.공개지도.책_다오른산
+      : book.status === 'paused'
+        ? 문구.공개지도.책_잠시멈춘산
+        : 문구.공개지도.책_오르는중
 
   return (
     <>
@@ -204,7 +211,7 @@ function BookSheet({ book, onClose }: { book: PublicBook; onClose: () => void })
       <button
         type="button"
         onClick={onClose}
-        aria-label="닫기"
+        aria-label={문구.공통.닫기}
         className="fixed inset-0 z-40 cursor-default"
       />
       <div className="fixed inset-x-0 bottom-0 z-50 p-4 pointer-events-none">
@@ -216,7 +223,7 @@ function BookSheet({ book, onClose }: { book: PublicBook; onClose: () => void })
             <span className="rounded-full bg-gray-100 px-2 py-0.5">{state}</span>
             {percent !== null && (
               <span>
-                {read.toLocaleString()} / {total.toLocaleString()}쪽 · {percent}%
+                {문구.공개지도.책_진도(read.toLocaleString(), total.toLocaleString(), percent)}
               </span>
             )}
           </div>
@@ -232,7 +239,7 @@ function BookSheet({ book, onClose }: { book: PublicBook; onClose: () => void })
             onClick={onClose}
             className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-sm text-gray-600 hover:bg-gray-50"
           >
-            닫기
+            {문구.공통.닫기}
           </button>
         </div>
       </div>

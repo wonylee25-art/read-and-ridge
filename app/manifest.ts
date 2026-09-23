@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { 문구 } from '@/lib/copy'
 
 // 홈 화면에 추가했을 때의 앱 정보.
 //
@@ -10,9 +11,9 @@ import type { MetadataRoute } from 'next'
 // 리다이렉트하는 페이지라, 아이콘에서 띄울 때마다 한 번 더 돌아가게 둘 이유가 없다.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: '산책또산책',
-    short_name: '산책또산책',
-    description: '책과 산, 나만의 기록 공간',
+    name: 문구.앱.이름,
+    short_name: 문구.앱.이름,
+    description: 문구.앱.한줄소개,
     start_url: '/dashboard',
     display: 'standalone',
     orientation: 'portrait',

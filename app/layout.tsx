@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { 문구 } from '@/lib/copy'
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -14,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "산책또산책 - Read & Ridge",
-  description: "책과 산, 나만의 기록 공간",
+  title: 문구.앱.브라우저탭제목,
+  description: 문구.앱.한줄소개,
   // 홈 화면에 추가했을 때 — manifest(app/manifest.ts)는 Next가 자동으로 걸어주지만,
   // iOS 사파리는 manifest 대신 아래 apple 아이콘과 appleWebApp 설정을 본다.
   icons: {
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "산책또산책",
+    title: 문구.앱.이름,
     statusBarStyle: "default",
   },
 };

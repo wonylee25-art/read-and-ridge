@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { generateShareSlug } from '@/lib/trail/slug'
 import { getNicknameFromUser } from '@/lib/nickname'
+import { 문구 } from '@/lib/copy'
 
 // 닉네임 저장 — 원본은 계속 auth.users의 user_metadata에 둔다(앱 안의 모든 화면이
 // lib/nickname.ts의 getNicknameFromUser로 거기서 읽는다).
@@ -138,7 +139,7 @@ export async function deleteAccount() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error('로그인 상태가 아닙니다.')
+    throw new Error(문구.회원탈퇴.오류_로그인안됨)
   }
 
   const userId = user.id
@@ -156,6 +157,6 @@ export async function deleteAccount() {
   const { error } = await admin.auth.admin.deleteUser(userId)
   if (error) {
     console.error('deleteAccount: auth.admin.deleteUser failed:', error.message)
-    throw new Error('계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.')
+    throw new Error(문구.회원탈퇴.오류_삭제실패)
   }
 }

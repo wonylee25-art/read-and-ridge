@@ -3,6 +3,7 @@
 // 값 자체는 전부 기존 WorldMap.tsx에서 그대로 옮겨온 것이라 동작 변화는 없다.
 
 import type { WorldMapBook } from './worldmap-utils'
+import { 문구 } from '@/lib/copy'
 
 // ─── 기본 치수 ─────────────────────────────────────────────────────────────────
 
@@ -110,11 +111,7 @@ export const INDEX_THEME_KEYS: KdcThemeKey[] = ['fantasy', 'earth', 'nature', 'm
 
 export const KDC_BADGE_ORDER: KdcThemeKey[] = ['mystery', 'earth', 'nature', 'fantasy']
 
-export const STATUS_LABEL: Record<WorldMapBook['status'], string> = {
-  completed: '완독',
-  reading: '독서중',
-  paused: '미시작',
-}
+export const STATUS_LABEL: Record<WorldMapBook['status'], string> = 문구.지도.산위_상태
 
 // ─── 산 실루엣 다양화 ─────────────────────────────────────────────────────────
 export const LONG_TITLE_THRESHOLD = 12 // 이 글자 수 이상이면 쌍봉(twin) 배정

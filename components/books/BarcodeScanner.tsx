@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, Keyboard } from 'lucide-react'
 import type { IScannerControls } from '@zxing/browser'
+import { 문구 } from '@/lib/copy'
 
 type Props = {
   onDetected: (isbn: string) => void
@@ -27,7 +28,7 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
     e.preventDefault()
     const digits = manualValue.replace(/[^0-9]/g, '')
     if (!/^97[89]\d{10}$/.test(digits)) {
-      setManualError('ISBN은 978 또는 979로 시작하는 13자리 숫자예요.')
+      setManualError(문구.바코드.형식오류)
       return
     }
     onDetectedRef.current(digits)
@@ -93,7 +94,7 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
         }
         controlsRef.current = controls
       } catch {
-        setError('카메라 접근 권한이 필요해요.')
+        setError(문구.바코드.카메라권한)
         setScanning(false)
       }
     }
@@ -150,7 +151,7 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
             {scanning && <div className="scan-line" />}
           </div>
           <p style={{ marginTop: 16, color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: 500 }}>
-            책 뒤 바코드를 박스 안에 맞춰주세요
+            {문구.바코드.안내}
           </p>
         </div>
 
@@ -170,7 +171,7 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 13, cursor: 'pointer', padding: 4 }}
               >
                 <Keyboard size={14} />
-                바코드가 안 잡히면 직접 입력하기
+                {문구.바코드.직접입력}
               </button>
             ) : (
               <form onSubmit={submitManual} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -180,14 +181,14 @@ export default function BarcodeScanner({ onDetected, onClose }: Props) {
                     inputMode="numeric"
                     value={manualValue}
                     onChange={(e) => { setManualValue(e.target.value); setManualError(null) }}
-                    placeholder="ISBN 13자리 (예: 9791160943030)"
+                    placeholder={문구.바코드.직접입력_예시}
                     style={{ flex: 1, minWidth: 0, borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '8px 10px', fontSize: 14 }}
                   />
                   <button
                     type="submit"
                     style={{ flexShrink: 0, borderRadius: 8, border: 'none', background: '#fff', color: '#111', fontSize: 14, fontWeight: 600, padding: '8px 14px', cursor: 'pointer' }}
                   >
-                    확인
+                    {문구.바코드.확인}
                   </button>
                 </div>
                 {manualError && (

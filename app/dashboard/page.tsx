@@ -1,7 +1,8 @@
 export const runtime = 'nodejs'
 
 import { createClient } from '@/lib/supabase/server'
-import { BookOpen, Footprints } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, BookOpen, Footprints, User } from 'lucide-react'
 import WorldMapClient from '@/components/worldmap/WorldMapClient'
 import BookCard from '@/components/books/BookCard'
 import StatCard from '@/components/dashboard/StatCard'
@@ -12,8 +13,17 @@ import { getNicknameFromUser } from '@/lib/nickname'
 import GuestLog from '@/components/dashboard/GuestLog'
 import HintBubble from '@/components/dashboard/HintBubble'
 import { getGuestLog } from '@/lib/trail/guest-log'
+import { isValidShareSlug } from '@/lib/trail/slug'
+import { 문구 } from '@/lib/copy'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  // add=1  — 책을 추가하려다(또는 남의 지도에서 "시작하기"를 눌러) 로그인하고 돌아온 길.
+  //          책 추가 창을 연 채로 시작한다. (lib/auth/next.ts)
+  // from   — 남의 등반지도에서 넘어왔다면 그 지도의 slug. 돌아갈 링크를 남긴다.
+  searchParams: { add?: string; from?: string }
+}) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -30,19 +40,19 @@ export default async function DashboardPage() {
     const stepsWalked = DEMO_HOME_BOOKS.reduce((sum, b) => sum + (b.current_page ?? 0), 0)
 
     const demoStats = [
-      { label: '내가 산 책', value: DEMO_HOME_BOOKS.length, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
-      { label: '발걸음 수', value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
+      { label: 문구.산책기록.통계.내가산책, value: DEMO_HOME_BOOKS.length, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
+      { label: 문구.산책기록.통계.발걸음수, value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
     ]
 
     return (
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">산책기록</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{문구.산책기록.제목}</h2>
         </div>
 
         <div className="space-y-3 mb-10">
           <HintBubble id="demo-map">
-            지금 보이는 산들은 예시예요. 아무 산이나 눌러서 만져봐도 괜찮아요.
+            {문구.산책기록.팻말.예시지도}
           </HintBubble>
 
           <WorldMapClient books={DEMO_HOME_BOOKS} authenticated={false} />
@@ -91,43 +101,64 @@ export default async function DashboardPage() {
     .concat(pausedBooks)
     .reduce((sum, b) => sum + (b.current_page ?? 0), 0)
 
-  // 막히는 자리에 한 줄씩 뜨는 안내(HintBubble)의 조건.
+  // 필요한 자리에 한 장씩 세우는 팻말(HintBubble)의 조건.
   // ① 책은 등록했는데 아무 산도 오르지 않은 상태 — 진도 입력 방법을 아직 모르는 것
-  // ② 첫 완등이 나온 뒤 — 완독한 책이 목록에서 사라진 것처럼 보이는 자리이기도 하고,
-  //    남에게 보여줄 수 있다는 걸 처음 알려주기 좋은 자리이기도 하다
+  // ② 내 산책 지도를 아직 공개하지 않은 상태 — 공유 기능이 있다는 걸 알리는 팻말.
+  //    ①과 겹치면 팻말이 두 장 서므로, 산을 하나라도 오른 뒤에 세운다.
   const nothingClimbed = (books?.length ?? 0) > 0 && !books?.some((b) => (b.current_page ?? 0) > 0)
-  const hasCompleted = books?.some((b) => b.status === 'completed') ?? false
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('share_enabled')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const showShareSign = (books?.length ?? 0) > 0 && !nothingClimbed && !profile?.share_enabled
 
   const worldMapBooks = toWorldMapBooks(books)
+  // 형태가 맞는 slug일 때만 — 주소창 값을 그대로 링크로 만들지 않는다
+  const fromSlug = searchParams.from && isValidShareSlug(searchParams.from) ? searchParams.from : null
   const nickname = getNicknameFromUser(user) // WorldMap PNG 캡처(정상 인증샷/완독 맵) 워터마크용
 
   const stats = [
-    { label: '내가 산 책', value: myBooksCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
-    { label: '발걸음 수', value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
+    { label: 문구.산책기록.통계.내가산책, value: myBooksCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-950/40' },
+    { label: 문구.산책기록.통계.발걸음수, value: stepsWalked.toLocaleString(), icon: Footprints, color: 'text-purple-400', bg: 'bg-purple-950/40' },
   ]
 
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">산책기록</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{문구.산책기록.제목}</h2>
       </div>
 
       {/* 상단 — 예전 홈: WorldMap + 통계 */}
       <div className="space-y-6 mb-10">
+        {fromSlug && (
+          <Link
+            href={`/trail/${fromSlug}`}
+            className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <ArrowLeft size={12} />
+            {문구.산책기록.보던지도로돌아가기}
+          </Link>
+        )}
+
         {nothingClimbed && (
           <HintBubble id="first-progress">
-            산을 누르면 어디까지 읽었는지 적을 수 있어요. 읽은 만큼 마루가 올라갑니다.
+            {문구.산책기록.팻말.진도적기}
           </HintBubble>
         )}
 
-        {hasCompleted && (
-          <HintBubble id="first-summit">
-            다 오른 산은 완등기록에 쌓여요. 산책자 증표에서 공개 링크를 켜면 다른
-            사람에게 지도를 보여줄 수도 있어요.
+        {/* id를 새로 둔 이유 — 예전 first-summit(완등 + 공개를 섞은 문구)을 닫은 사람에게도
+            공유 기능 팻말은 한 번은 보여야 한다 */}
+        {showShareSign && (
+          <HintBubble id="share-map">
+            {문구.산책기록.팻말.지도공유_앞} (
+            <User size={12} className="inline -mt-0.5" aria-label={문구.산책자증표.제목} />
+            ){문구.산책기록.팻말.지도공유_뒤}
           </HintBubble>
         )}
 
-        <WorldMapClient books={worldMapBooks} nickname={nickname} />
+        <WorldMapClient books={worldMapBooks} nickname={nickname} initialAddOpen={searchParams.add === '1'} />
 
         <div className="grid grid-cols-2 gap-3">
           {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
@@ -139,16 +170,16 @@ export default async function DashboardPage() {
 
       {/* 하단 — 예전 산책기록: 읽는 중 / 잠시 멈춤 목록 (완독은 완등기록으로 이동) */}
       {(!books || books.length === 0) && (
-        <EmptyState title="아직 책이 없어요" subtitle="첫 번째 책을 추가해보세요 📚" />
+        <EmptyState title={문구.산책기록.빈화면_책없음.제목} subtitle={문구.산책기록.빈화면_책없음.부제} />
       )}
 
       {books && books.length > 0 && readingBooks.length === 0 && pausedBooks.length === 0 && (
-        <EmptyState title="읽는 중이거나 잠시 멈춘 책이 없어요" subtitle="완독한 책은 완등기록에서 볼 수 있어요 🚩" />
+        <EmptyState title={문구.산책기록.빈화면_읽는책없음.제목} subtitle={문구.산책기록.빈화면_읽는책없음.부제} />
       )}
 
       {readingBooks.length > 0 && (
         <section className="mb-8">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">읽는 중</h3>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{문구.산책기록.목록_읽는중}</h3>
           <div className="columns-1 sm:columns-2 gap-4">
             {readingBooks.map((book) => <BookCard key={book.id} book={book} />)}
           </div>
@@ -157,7 +188,7 @@ export default async function DashboardPage() {
 
       {pausedBooks.length > 0 && (
         <section className="mb-8">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">잠시 멈춤</h3>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{문구.산책기록.목록_잠시멈춤}</h3>
           <div className="columns-1 sm:columns-2 gap-4">
             {pausedBooks.map((book) => <BookCard key={book.id} book={book} />)}
           </div>

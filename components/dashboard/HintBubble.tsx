@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { 문구 } from '@/lib/copy'
 
-// 막히는 자리에 한 줄씩 뜨는 안내.
+// 필요한 자리에 한 장씩 세우는 팻말.
 //
 // 처음 들어온 사람에게 화면을 흐리게 덮고 3~4장을 순서대로 넘기는 방식은 쓰지 않는다.
 // ① 이 앱은 "설명 대신 예시 지형도를 먼저 보여준다"는 선택을 이미 했고, 그 위에
@@ -45,7 +46,7 @@ export default function HintBubble({ id, children }: { id: string; children: Rea
       <button
         type="button"
         onClick={dismiss}
-        aria-label="안내 닫기"
+        aria-label={문구.산책기록.팻말.닫기}
         className="shrink-0 -mr-1 rounded-md p-1 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
       >
         <X size={14} />

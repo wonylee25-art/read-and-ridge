@@ -5,6 +5,8 @@ import { addBook } from '@/app/dashboard/books/actions'
 import { Plus, X, Search, BookOpen, Camera, AlertCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
+import { ADD_BOOK_NEXT } from '@/lib/auth/next'
+import { 문구 } from '@/lib/copy'
 
 const BarcodeScanner = dynamic(() => import('./BarcodeScanner'), { ssr: false })
 
@@ -74,7 +76,7 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
     try {
       const res = await fetch(`/api/books/search?isbn=${isbn}`)
       if (!res.ok) {
-        setScanError('책 정보를 찾지 못했어요. 제목으로 직접 검색해보세요.')
+        setScanError(문구.책추가.스캔실패)
         return
       }
       const data = await res.json()
@@ -83,7 +85,7 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
       setQuery(book.title)
       setAuthorInput(truncateAuthors(book.authors ?? ''))
     } catch {
-      setScanError('오류가 발생했어요. 다시 시도해주세요.')
+      setScanError(문구.책추가.오류)
     } finally {
       setSearching(false)
     }
@@ -121,7 +123,7 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
     if (result?.error === 'duplicate') {
       triggerShake()
       setDuplicateError(
-        `"${result.title}", 또 산 책이 됩니다!`
+        문구.책추가.중복(result.title)
       )
       return
     }
@@ -133,12 +135,12 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
     return (
       <button
         onClick={() => {
-          if (!authenticated) { signInWithGoogle(); return }
+          if (!authenticated) { signInWithGoogle(ADD_BOOK_NEXT); return }
           setOpen(true)
         }}
         className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 transition-colors"
       >
-        <Plus size={16} /> 책 추가
+        <Plus size={16} /> {문구.책추가.버튼}
       </button>
     )
   }
@@ -170,7 +172,7 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
         `}</style>
 
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">새 책 추가</h3>
+          <h3 className="font-semibold text-gray-900">{문구.책추가.창제목}</h3>
           <button onClick={reset} className="text-gray-400 hover:text-gray-700">
             <X size={18} />
           </button>
@@ -180,14 +182,14 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
 
           {/* 검색 입력 + 카메라 버튼 */}
           <div className="col-span-2 relative">
-            <label className="block text-xs text-gray-500 mb-1">책 검색 또는 바코드 스캔</label>
+            <label className="block text-xs text-gray-500 mb-1">{문구.책추가.검색_라벨}</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setSelected(null); setDuplicateError(null) }}
-                  placeholder="제목으로 검색..."
+                  placeholder={문구.책추가.검색_예시}
                   className="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
                 {searching && (
@@ -200,7 +202,7 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
                 className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
               >
                 <Camera size={15} />
-                스캔
+                {문구.책추가.스캔}
               </button>
             </div>
 
@@ -270,25 +272,25 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
               직접 입력해서 남길 수 있게 항상 편집 가능한 입력창으로 둠.
               (예전엔 숨김 필드라 검색 결과를 안 고르면 저자가 영영 비어 저장됐음) */}
           <div className="col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">저자</label>
+            <label className="block text-xs text-gray-500 mb-1">{문구.책추가.저자_라벨}</label>
             <input
               name="author"
               value={authorInput}
               onChange={(e) => setAuthorInput(e.target.value)}
-              placeholder="저자 이름 (검색 결과를 고르면 자동 입력돼요)"
+              placeholder={문구.책추가.저자_예시}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
 
           {/* 총 페이지 수 */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">총 페이지 수</label>
+            <label className="block text-xs text-gray-500 mb-1">{문구.책추가.쪽수_라벨}</label>
             <input
               name="total_pages"
               type="number"
               min="1"
               defaultValue={selected?.total_pages ?? ''}
-              placeholder="비워두면 150쪽으로 등록돼요"
+              placeholder={문구.책추가.쪽수_예시}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
@@ -302,27 +304,27 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
                 defaultChecked
                 className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-900"
               />
-              소장 중이에요
+              {문구.책추가.소장}
             </label>
           </div>
 
           {/* 상태 */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">상태</label>
+            <label className="block text-xs text-gray-500 mb-1">{문구.책추가.상태_라벨}</label>
             <select
               name="status"
               defaultValue="reading"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
             >
-              <option value="reading">읽는 중</option>
-              <option value="completed">완독</option>
-              <option value="paused">잠시 멈춤</option>
+              <option value="reading">{문구.책상태.reading}</option>
+              <option value="completed">{문구.책상태.completed}</option>
+              <option value="paused">{문구.책상태.paused}</option>
             </select>
           </div>
 
           {/* 시작일 */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">시작일</label>
+            <label className="block text-xs text-gray-500 mb-1">{문구.책추가.시작일_라벨}</label>
             <input
               name="started_at"
               type="date"
@@ -332,14 +334,14 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
 
           <div className="col-span-2 flex justify-end gap-2 mt-1">
             <button type="button" onClick={reset} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
-              취소
+              {문구.공통.취소}
             </button>
             <button
               type="submit"
               disabled={!selected && !query.trim()}
               className="px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors"
             >
-              추가
+              {문구.책추가.추가}
             </button>
           </div>
         </form>

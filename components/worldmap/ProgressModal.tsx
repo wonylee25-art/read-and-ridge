@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { updateProgress } from '@/app/dashboard/books/actions'
 import type { WorldMapBook } from './WorldMap'
 import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
+import { ADD_BOOK_NEXT } from '@/lib/auth/next'
+import { 문구 } from '@/lib/copy'
 
 // ─── 모달 ────────────────────────────────────────────────────────────────────
 
@@ -90,7 +92,9 @@ export default function ProgressModal({ book, onClose, onSaved, authenticated = 
 
   async function handleSave() {
     if (!authenticated) {
-      signInWithGoogle()
+      // 지금 만진 건 예시 산이라 로그인하고 나면 없다. 저장하려던 마음을 이어받을
+      // 자리는 "내 첫 산 세우기"라서 책 추가 창이 열린 채로 돌아오게 한다.
+      signInWithGoogle(ADD_BOOK_NEXT)
       return
     }
     setSaving(true)
@@ -231,7 +235,7 @@ export default function ProgressModal({ book, onClose, onSaved, authenticated = 
             transition: 'background 0.2s',
           }}
         >
-          {saving ? '저장 중…' : saved ? '저장됨 ✓' : displayPct >= 100 ? '🏔 완독!' : '저장'}
+          {saving ? 문구.공통.저장중 : saved ? 문구.공통.저장됨 : displayPct >= 100 ? 문구.진도창.완독버튼 : 문구.공통.저장}
         </button>
       </div>
     </div>

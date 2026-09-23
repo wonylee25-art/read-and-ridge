@@ -4,22 +4,15 @@ import { useState } from 'react'
 import { Shuffle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { submitGuess, type GuessResult } from './guess-actions'
+import { 문구 } from '@/lib/copy'
 
 // 맞히기 창 제목 — "이 산"이라고만 하면 누구의 산인지가 빠져서, 놀러 온 사람 입장의
 // 주인공(= 지형도 주인)이 문장에 안 들어온다. 닉네임을 넣어 그 사람 이야기로 만든다.
 // 산마다 다른 문구가 뜨되 책 id로 고정 — 같은 산은 언제 눌러도 같은 질문이다.
 // '산 책'은 이 앱이 이미 쓰는 말장난(샀다/산[山]).
 const TITLES: Record<'reading' | 'paused', ((n: string) => string)[]> = {
-  reading: [
-    (n) => `${n}님이 지금 오르고 있는 산은?`,
-    (n) => `${n}님은 어떤 산을 오르고 있을까요?`,
-    (n) => `${n}님이 산 책은 무엇일까요?`,
-  ],
-  paused: [
-    (n) => `${n}님이 잠깐 멈춰 선 산은?`,
-    (n) => `${n}님이 산 책은 무엇일까요?`,
-    (n) => `${n}님이 오르다 만 산, 무엇일까요?`,
-  ],
+  reading: 문구.맞히기.제목_읽는중,
+  paused: 문구.맞히기.제목_잠시멈춤,
 }
 
 // 책 id로 문구를 고정 배정 (worldmap의 hashString과 같은 방식)
@@ -76,7 +69,7 @@ export default function GuessModal({
       <h2 className="text-lg font-bold text-gray-900">{pickTitle(nickname, status, bookId)}</h2>
       {!correct && (
         <p className="text-sm text-gray-500 mt-1">
-          이름표를 살짝 떼어뒀어요. 다 오르고 나면 저절로 드러납니다.
+          {문구.맞히기.부제}
         </p>
       )}
 
@@ -91,7 +84,7 @@ export default function GuessModal({
               className="mt-1.5 flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900 transition-colors"
             >
               <Shuffle size={11} />
-              쪽지 한 장 더 ({hintIndex + 1}/{hints.length})
+              {문구.맞히기.쪽지더(hintIndex + 1, hints.length)}
             </button>
           )}
         </div>
@@ -99,10 +92,10 @@ export default function GuessModal({
 
       {correct ? (
         <div className="mt-5 text-center">
-          <p className="text-base font-bold text-gray-900">이름표를 달았어요</p>
+          <p className="text-base font-bold text-gray-900">{문구.맞히기.정답_제목}</p>
           {/* 창 제목이 이미 "◯◯님이 산 책은 무엇일까요?"인 경우가 있어 닉네임을
               한 번 더 넣으면 같은 말이 두 줄 반복된다. */}
-          <p className="mt-3 text-sm text-gray-500">이 산의 이름은</p>
+          <p className="mt-3 text-sm text-gray-500">{문구.맞히기.정답_이산의이름은}</p>
           <p className="mt-1 text-base font-bold text-gray-900">{result?.ok && result.title}</p>
         </div>
       ) : (
@@ -114,7 +107,7 @@ export default function GuessModal({
               if (e.key === 'Enter') handleSubmit()
             }}
             maxLength={100}
-            placeholder="무슨 책일까요?"
+            placeholder={문구.맞히기.답_예시}
             autoFocus
             className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
           />
@@ -122,17 +115,17 @@ export default function GuessModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={20}
-            placeholder="이름도 남겨볼까요? (안 남겨도 괜찮아요)"
+            placeholder={문구.맞히기.이름_예시}
             className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
           />
 
           {result && !correct && (
             <p className="text-sm text-gray-500">
               {result.ok
-                ? '음— 그 산은 아니에요. 한 번 더!'
+                ? 문구.맞히기.틀림
                 : result.reason === 'rate_limited'
-                  ? '잠깐 숨 좀 돌리고 다시 올라볼까요.'
-                  : '지금은 오를 수 없는 산이에요.'}
+                  ? 문구.맞히기.너무빠름
+                  : 문구.맞히기.맞힐수없음}
             </p>
           )}
 
@@ -142,7 +135,7 @@ export default function GuessModal({
               onClick={onClose}
               className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
             >
-              닫기
+              {문구.공통.닫기}
             </button>
             <button
               type="button"
@@ -150,7 +143,7 @@ export default function GuessModal({
               disabled={!guess.trim() || sending}
               className="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40"
             >
-              {sending ? '오르는 중…' : '이 책인 것 같아요'}
+              {sending ? 문구.맞히기.보내는중 : 문구.맞히기.보내기}
             </button>
           </div>
         </div>
@@ -165,7 +158,7 @@ export default function GuessModal({
           }}
           className="mt-5 w-full rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
         >
-          지도에서 보기
+          {문구.맞히기.지도에서보기}
         </button>
       )}
     </Modal>

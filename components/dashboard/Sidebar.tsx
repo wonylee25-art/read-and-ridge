@@ -10,11 +10,12 @@ import DeleteAccountModal from '@/components/dashboard/DeleteAccountModal'
 import { deleteAccount } from '@/app/dashboard/account-actions'
 import { APP_VERSION, LAST_UPDATED } from '@/lib/version'
 import { signInWithGoogle } from '@/lib/auth/signInWithGoogle'
+import { 문구 } from '@/lib/copy'
 
 // 홈과 산책기록(구 독서 페이지)을 하나로 합쳐서, 메뉴는 산책기록/완등기록 2개만 남김
 const nav = [
-  { href: '/dashboard', label: '산책기록', icon: BookOpen },
-  { href: '/dashboard/hikes', label: '완등기록', icon: Mountain },
+  { href: '/dashboard', label: 문구.메뉴.산책기록, icon: BookOpen },
+  { href: '/dashboard/hikes', label: 문구.메뉴.완등기록, icon: Mountain },
 ]
 
 export default function Sidebar({ authenticated = true }: { authenticated?: boolean }) {
@@ -46,14 +47,14 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
           좁은 화면에서 본문이 눌리므로, 모바일에서는 이 바 + 아래 드로어로 대체 */}
       <header className="flex items-center justify-between w-full px-4 py-3 bg-white border-b border-gray-100 md:hidden">
         <h1 className="flex items-center gap-1.5 text-lg font-bold text-gray-900 tracking-tight">
-          산책또산책
+          {문구.앱.이름}
           <span className="px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 bg-amber-100 rounded">
             BETA
           </span>
         </h1>
         <button
           onClick={() => setMobileOpen(true)}
-          aria-label="메뉴 열기"
+          aria-label={문구.메뉴.메뉴열기}
           className="p-2 -mr-2 text-gray-600"
         >
           <Menu size={22} />
@@ -77,7 +78,7 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              산책또산책
+              {문구.앱.이름}
             </h1>
             <p className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
               Read &amp; Ridge
@@ -88,7 +89,7 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
           </div>
           <button
             onClick={() => setMobileOpen(false)}
-            aria-label="메뉴 닫기"
+            aria-label={문구.메뉴.메뉴닫기}
             className="p-1 -mr-1 text-gray-400 md:hidden"
           >
             <X size={20} />
@@ -121,7 +122,7 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
           onClick={() => setAboutOpen(true)}
           className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          산책또산책에 대하여
+          {문구.메뉴.소개}
         </button>
         {authenticated ? (
           <LogoutButton />
@@ -130,7 +131,7 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
             onClick={() => signInWithGoogle()}
             className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            로그인
+            {문구.메뉴.로그인}
           </button>
         )}
         <a
@@ -138,29 +139,29 @@ export default function Sidebar({ authenticated = true }: { authenticated?: bool
           onClick={handleCsvClick}
           className="block text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
-          CSV 내려받기
+          {문구.메뉴.CSV}
         </a>
         <div className="flex items-center gap-2 text-sm">
           <Link href="/privacy" className="text-gray-500 hover:text-gray-700 transition-colors">
-            개인정보처리방침
+            {문구.메뉴.개인정보처리방침}
           </Link>
           <span className="text-gray-200">·</span>
           <Link href="/terms" className="text-gray-500 hover:text-gray-700 transition-colors">
-            이용약관
+            {문구.메뉴.이용약관}
           </Link>
         </div>
         <button
           onClick={handleDeleteAccountClick}
           className="block text-sm text-gray-300 hover:text-red-400 transition-colors"
         >
-          회원 탈퇴
+          {문구.메뉴.회원탈퇴}
         </button>
       </div>
 
       {/* 버전/업데이트 정보 — 메뉴 하단에 늘 고정되도록 별도 블록으로 분리 (mt-auto) */}
       <div className="mt-auto pt-3">
-        <p className="text-xs text-gray-300">© 2026 산책또산책</p>
-        <p className="text-[11px] text-gray-300">v{APP_VERSION} · {LAST_UPDATED} 업데이트</p>
+        <p className="text-xs text-gray-300">{문구.앱.저작권}</p>
+        <p className="text-[11px] text-gray-300">{문구.메뉴.버전(APP_VERSION, LAST_UPDATED)}</p>
       </div>
       </aside>
 

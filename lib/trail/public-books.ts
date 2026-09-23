@@ -9,6 +9,7 @@ import { isAuroraBook } from '@/lib/aurora-books'
 import { formatAuthor } from '@/lib/formatAuthor'
 import { LONG_TITLE_THRESHOLD, PAGES_PER_STEP } from '@/components/worldmap/constants'
 import { DISTANCE_PER_PAGE_M, type WorldMapBook } from '@/components/worldmap/worldmap-utils'
+import { 문구 } from '@/lib/copy'
 
 export type BookVisibility = 'public' | 'quiz' | 'private'
 
@@ -203,5 +204,5 @@ export async function getPublicTrail(slug: string): Promise<PublicTrail | null> 
     if (list.length) quizHints[row.id] = list
   }
 
-  return { nickname: profile.nickname || '산책자', books, completed, quizHints, stats }
+  return { nickname: profile.nickname || 문구.앱.기본닉네임, books, completed, quizHints, stats }
 }

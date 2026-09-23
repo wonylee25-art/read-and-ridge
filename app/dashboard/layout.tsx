@@ -49,7 +49,7 @@ export default async function DashboardLayout({
 
     const { data: books } = await supabase
       .from('books')
-      .select('id, title, status, current_page, total_pages, status_changed_at, visibility')
+      .select('id, title, status, current_page, total_pages, status_changed_at, visibility, quiz_hints')
       .eq('user_id', user.id)
 
     const all = books ?? []
@@ -67,6 +67,7 @@ export default async function DashboardLayout({
       id: b.id as string,
       title: b.title as string,
       visibility: ((b.visibility as string) ?? 'public') as VisibilityBook['visibility'],
+      hasHints: ((b.quiz_hints as string[] | null) ?? []).some((h) => h.trim()),
     }))
 
     stats = {

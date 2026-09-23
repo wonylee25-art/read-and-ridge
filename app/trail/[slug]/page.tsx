@@ -14,16 +14,17 @@ import type { Metadata } from 'next'
 import { getPublicTrail } from '@/lib/trail/public-books'
 import { isValidShareSlug } from '@/lib/trail/slug'
 import TrailClient from './TrailClient'
+import { 문구 } from '@/lib/copy'
 
 type Props = { params: { slug: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  if (!isValidShareSlug(params.slug)) return { title: '산책또산책' }
+  if (!isValidShareSlug(params.slug)) return { title: 문구.앱.이름 }
   const trail = await getPublicTrail(params.slug)
-  if (!trail) return { title: '산책또산책' }
+  if (!trail) return { title: 문구.앱.이름 }
   return {
-    title: `${trail.nickname}님의 등반지도 · 산책또산책`,
-    description: `${trail.nickname}님이 오른 산 ${trail.stats.completedCount}개를 구경해보세요.`,
+    title: 문구.공개지도.브라우저탭제목(trail.nickname),
+    description: 문구.공개지도.링크미리보기설명(trail.nickname, trail.stats.completedCount),
     // 공개 링크이긴 하지만 검색엔진에 올라갈 성격은 아니다 — 링크를 받은 사람만 본다.
     robots: { index: false, follow: false },
   }

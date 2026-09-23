@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { 문구 } from '@/lib/copy'
 
 export default function LogoutButton() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function LogoutButton() {
       onClick={handleLogout}
       className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
     >
-      로그아웃
+      {문구.메뉴.로그아웃}
     </button>
   )
 }

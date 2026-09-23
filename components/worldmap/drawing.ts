@@ -28,6 +28,7 @@ import {
   TENT_PALETTES,
   TENT_LIT_DOOR,
 } from './constants'
+import { 문구 } from '@/lib/copy'
 
 // ─── Draw helpers ─────────────────────────────────────────────────────────────
 
@@ -532,7 +533,7 @@ export function drawSideMountain(
 // PNG 우측 하단 워터마크 — drawMountainTitle과 같은 크림색 텍스트(외곽선 없음).
 // 닉네임이 있으면 "산책또산책 | 닉네임" 형식으로 붙여서 "누구의 기록인지" 남긴다.
 export function drawWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number, nickname?: string) {
-  const text = nickname ? `산책또산책 | ${nickname}` : '산책또산책'
+  const text = nickname ? 문구.지도.워터마크(nickname) : 문구.앱.이름
   ctx.font = '12px monospace'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'

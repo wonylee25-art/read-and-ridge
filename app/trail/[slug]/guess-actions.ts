@@ -12,6 +12,7 @@
 // 그리고 반환값에는 **정답일 때만** 제목을 싣는다.
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { isValidShareSlug } from '@/lib/trail/slug'
 
 const MAX_GUESS_LEN = 100
@@ -104,14 +105,23 @@ export async function submitGuess(
 
   const correct = isMatch(trimmedGuess, book.title as string)
 
-  const { error } = await admin.from('guesses').insert({
-    book_id: book.id,
-    owner_id: book.user_id,
-    guesser_name: trimmedName || null,
-    guess: trimmedGuess,
-    is_correct: correct,
-  })
-  if (error) console.error('submitGuess: 기록 실패:', error.message)
+  // 주인이 "산책자 증표 → 열어보기"로 자기 지도를 미리 보다가 눌러본 답은 방명록에
+  // 남기지 않는다 — "다녀간 사람들"에 내 이름 없는 '누군가'가 섞이면 안 된다.
+  // (정답 확인 자체는 똑같이 해준다. 미리보기가 방문자 화면과 달라지면 미리보기가 아니다.)
+  const {
+    data: { user: viewer },
+  } = await (await createClient()).auth.getUser()
+
+  if (viewer?.id !== book.user_id) {
+    const { error } = await admin.from('guesses').insert({
+      book_id: book.id,
+      owner_id: book.user_id,
+      guesser_name: trimmedName || null,
+      guess: trimmedGuess,
+      is_correct: correct,
+    })
+    if (error) console.error('submitGuess: 기록 실패:', error.message)
+  }
 
   // 제목은 맞혔을 때만 돌려준다.
   return { ok: true, correct, title: correct ? (book.title as string) : null }

@@ -9,6 +9,7 @@ import WorldMap from '@/components/worldmap/WorldMap'
 import { TARGET_TROPHY, DISTANCE_PER_PAGE_M, toWorldMapBooks } from '@/components/worldmap/worldmap-utils'
 import { getNicknameFromUser } from '@/lib/nickname'
 import { Mountain, TrendingUp } from 'lucide-react'
+import { 문구 } from '@/lib/copy'
 
 export default async function HikesPage() {
   const supabase = await createClient()
@@ -23,19 +24,19 @@ export default async function HikesPage() {
     return (
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">완등기록</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{문구.완등기록.제목}</h2>
         </div>
 
         <div className="space-y-6 mb-10">
           <WorldMap books={[]} mode="trophy" />
 
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="완등 기록" value={0} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
-            <StatCard label="완등 거리 km" value="0.0" icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
+            <StatCard label={문구.완등기록.통계.완등기록} value={0} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
+            <StatCard label={문구.완등기록.통계.완등거리} value="0.0" icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
           </div>
         </div>
 
-        <EmptyState title="아직 완등기록이 없어요" subtitle="완등한 산이 이곳으로 옮겨옵니다 🚩" />
+        <EmptyState title={문구.완등기록.빈화면.제목} subtitle={문구.완등기록.빈화면.부제} />
       </div>
     )
   }
@@ -60,7 +61,7 @@ export default async function HikesPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">완등기록</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{문구.완등기록.제목}</h2>
       </div>
 
       <div className="space-y-6 mb-10">
@@ -68,18 +69,18 @@ export default async function HikesPage() {
         <WorldMap books={worldMapBooks} mode="trophy" nickname={nickname} />
         {books && books.length > TARGET_TROPHY && (
           <p className="text-xs text-gray-400 -mt-4">
-            최근 완등한 {TARGET_TROPHY}권만 지도에 표시돼요. 전체 기록은 아래 목록에서 확인하세요.
+            {문구.완등기록.최근만표시(TARGET_TROPHY)}
           </p>
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="완등 기록" value={books?.length ?? 0} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
-          <StatCard label="완등 거리 km" value={totalKm.toFixed(1)} icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
+          <StatCard label={문구.완등기록.통계.완등기록} value={books?.length ?? 0} icon={Mountain} color="text-green-400" bg="bg-green-950/40" />
+          <StatCard label={문구.완등기록.통계.완등거리} value={totalKm.toFixed(1)} icon={TrendingUp} color="text-purple-400" bg="bg-purple-950/40" />
         </div>
       </div>
 
       {(!books || books.length === 0) ? (
-        <EmptyState title="아직 완등기록이 없어요" subtitle="완등한 산이 이곳으로 옮겨옵니다 🚩" />
+        <EmptyState title={문구.완등기록.빈화면.제목} subtitle={문구.완등기록.빈화면.부제} />
       ) : (
         <div className="columns-1 sm:columns-2 gap-4">
           {books.map((book) => (

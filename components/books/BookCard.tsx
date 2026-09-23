@@ -6,6 +6,7 @@ import { Trash2, CheckCircle, StickyNote, Home, Pencil, Globe, HelpCircle, Lock,
 import { formatAuthor } from '@/lib/formatAuthor'
 import { MAX_QUIZ_HINTS } from '@/lib/trail/constants'
 import DeleteConfirmModal from '@/components/books/DeleteConfirmModal'
+import { 문구 } from '@/lib/copy'
 
 type Book = {
   id: string
@@ -30,25 +31,27 @@ const VISIBILITY_ORDER: Visibility[] = ['public', 'quiz', 'private']
 const VISIBILITY_META: Record<Visibility, { Icon: typeof Globe; className: string; title: string }> = {
   public: {
     Icon: Globe,
-    className: 'text-gray-300 hover:text-gray-500',
-    title: '공개 — 산에 이름표가 달려 있어요 (누르면 맞춰보세요)',
+    // 공개도 켜진 상태라 색을 준다 — 연회색이면 소장 안 한 집 아이콘처럼 "꺼짐"으로 읽힌다.
+    // 청록: 소장·메모(주황), 맞춰보세요(보라), 읽는 중(파랑), 완독(초록)과 겹치지 않는 색
+    className: 'text-teal-500 hover:text-teal-600',
+    title: 문구.책카드.공개상태.public,
   },
   quiz: {
     Icon: HelpCircle,
     className: 'text-violet-500 hover:text-violet-600',
-    title: '맞춰보세요 — 이름표를 떼고 수수께끼로 냈어요. 다 오르면 저절로 공개 (누르면 비공개)',
+    title: 문구.책카드.공개상태.quiz,
   },
   private: {
     Icon: Lock,
     className: 'text-gray-600 hover:text-gray-800',
-    title: '비공개 — 이 산은 안개에 가려둬요 (누르면 공개)',
+    title: 문구.책카드.공개상태.private,
   },
 }
 
 const STATUS_OPTIONS = [
-  { value: 'reading',   label: '읽는 중' },
-  { value: 'paused',    label: '잠시 멈춤' },
-  { value: 'completed', label: '완독' },
+  { value: 'reading',   label: 문구.책상태.reading },
+  { value: 'paused',    label: 문구.책상태.paused },
+  { value: 'completed', label: 문구.책상태.completed },
 ]
 
 const statusColor: Record<string, string> = {
@@ -267,7 +270,7 @@ export default function BookCard({ book }: { book: Book }) {
       {justCompleted && (
         <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium mb-3 bg-green-50 rounded-lg px-3 py-2">
           <CheckCircle size={13} />
-          완독 완료! 🎉
+          {문구.책카드.완독축하}
         </div>
       )}
 
@@ -284,7 +287,7 @@ export default function BookCard({ book }: { book: Book }) {
                   if (e.key === 'Enter') handleInfoSave()
                   if (e.key === 'Escape') cancelInfoEdit()
                 }}
-                placeholder="제목"
+                placeholder={문구.책카드.제목_예시}
                 className="w-full font-semibold text-gray-900 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
               <input
@@ -294,11 +297,11 @@ export default function BookCard({ book }: { book: Book }) {
                   if (e.key === 'Enter') handleInfoSave()
                   if (e.key === 'Escape') cancelInfoEdit()
                 }}
-                placeholder="저자 이름"
+                placeholder={문구.책카드.저자_예시}
                 className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                <span>전체</span>
+                <span>{문구.책카드.전체}</span>
                 <input
                   type="number"
                   min={1}
@@ -311,7 +314,7 @@ export default function BookCard({ book }: { book: Book }) {
                   }}
                   className="w-16 border border-gray-200 rounded-lg px-1.5 py-0.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
-                <span>페이지</span>
+                <span>{문구.책카드.페이지}</span>
               </div>
               <div className="flex items-center gap-1.5 pt-0.5">
                 <button
@@ -319,14 +322,14 @@ export default function BookCard({ book }: { book: Book }) {
                   disabled={infoSaving}
                   className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40"
                 >
-                  {infoSaving ? '저장 중' : '저장'}
+                  {infoSaving ? 문구.공통.저장중 : 문구.공통.저장}
                 </button>
                 <button
                   onClick={cancelInfoEdit}
                   disabled={infoSaving}
                   className="text-xs px-2 py-1 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40"
                 >
-                  취소
+                  {문구.공통.취소}
                 </button>
               </div>
             </div>
@@ -337,14 +340,14 @@ export default function BookCard({ book }: { book: Book }) {
                 <button
                   onClick={openInfoEdit}
                   className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
-                  title="책 정보 수정 (제목·저자·전체 쪽수)"
-                  aria-label="책 정보 수정"
+                  title={문구.책카드.정보수정}
+                  aria-label={문구.책카드.정보수정}
                 >
                   <Pencil size={11} />
                 </button>
               </div>
               <p className={`text-xs mt-0.5 truncate ${formatAuthor(authorValue) ? 'text-gray-400' : 'text-gray-300 italic'}`}>
-                {formatAuthor(authorValue) ?? '저자 정보 없음'}
+                {formatAuthor(authorValue) ?? 문구.책카드.저자없음}
               </p>
             </>
           )}
@@ -368,7 +371,7 @@ export default function BookCard({ book }: { book: Book }) {
           <button
             onClick={handleToggleOwned}
             className={`transition-colors ${owned ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
-            title={owned ? '소장 중이에요 (클릭하면 해제)' : '소장 중이 아니에요 (클릭하면 소장으로)'}
+            title={owned ? 문구.책카드.소장중 : 문구.책카드.소장아님}
           >
             <Home size={14} />
           </button>
@@ -390,7 +393,7 @@ export default function BookCard({ book }: { book: Book }) {
           <button
             onClick={() => setMemoOpen((v) => !v)}
             className={`transition-colors ${memo ? 'text-amber-400' : 'text-gray-300 hover:text-amber-400'}`}
-            title="메모"
+            title={문구.책카드.메모}
           >
             <StickyNote size={14} />
           </button>
@@ -399,8 +402,8 @@ export default function BookCard({ book }: { book: Book }) {
           <button
             onClick={() => setConfirmingDelete(true)}
             className="text-gray-300 hover:text-red-400 transition-colors"
-            title="삭제"
-            aria-label="삭제"
+            title={문구.책카드.삭제}
+            aria-label={문구.책카드.삭제}
           >
             <Trash2 size={14} />
           </button>
@@ -410,7 +413,7 @@ export default function BookCard({ book }: { book: Book }) {
       {/* 진행률 바 — 전체 쪽수 수정은 위쪽 책 정보 수정(연필)으로 통합됨 */}
       <div className="mb-3">
         <div className="flex justify-between items-center text-xs text-gray-400 mb-1 gap-2">
-          <span>{page} / {totalPagesValue ?? '미입력'}{totalPagesValue ? ' 페이지' : ''}</span>
+          <span>{page} / {totalPagesValue ?? 문구.책카드.쪽수미입력}{totalPagesValue ? 문구.책카드.쪽수단위 : ''}</span>
           {totalPagesValue ? <span>{progress}%</span> : null}
         </div>
         {totalPagesValue ? (
@@ -425,7 +428,7 @@ export default function BookCard({ book }: { book: Book }) {
             />
           </div>
         ) : (
-          <p className="text-xs text-gray-300 italic">전체 쪽수를 입력하면 진행률이 표시돼요</p>
+          <p className="text-xs text-gray-300 italic">{문구.책카드.쪽수입력안내}</p>
         )}
       </div>
 
@@ -447,13 +450,13 @@ export default function BookCard({ book }: { book: Book }) {
             disabled={isUpdating}
             className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40"
           >
-            {isUpdating ? '저장 중...' : '업데이트'}
+            {isUpdating ? 문구.공통.저장중 : 문구.책카드.진도저장}
           </button>
         </div>
       )}
 
       {book.started_at && (
-        <p className="text-xs text-gray-300 mt-3">시작: {book.started_at}</p>
+        <p className="text-xs text-gray-300 mt-3">{문구.책카드.시작일(book.started_at)}</p>
       )}
 
       {/* 메모 미리보기 — 편집 중이 아닐 땐 항상 하단에 보여줌.
@@ -464,7 +467,7 @@ export default function BookCard({ book }: { book: Book }) {
       {visibility === 'quiz' && (
         <div className="mt-3 border-t border-gray-100 pt-3 space-y-1.5">
           <p className="text-[11px] text-gray-400">
-            힌트 쪽지 (최대 {MAX_QUIZ_HINTS}장) — 놀러 온 사람이 한 장씩 꺼내 봐요
+            {문구.책카드.쪽지_라벨(MAX_QUIZ_HINTS)}
           </p>
           {hints.map((h, i) => (
             <div key={i} className="flex items-center gap-1.5">
@@ -474,15 +477,15 @@ export default function BookCard({ book }: { book: Book }) {
                 onChange={(e) => setHintAt(i, e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleHintSave() }}
                 maxLength={100}
-                placeholder={i === 0 ? '예: 작년에 네가 나한테 추천했던 그 작가' : '쪽지 한 장 더 (선택)'}
+                placeholder={i === 0 ? 문구.책카드.쪽지_첫예시 : 문구.책카드.쪽지_추가예시}
                 className="flex-1 min-w-0 text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-200 placeholder-gray-300"
               />
               {hints.length > 1 && (
                 <button
                   onClick={() => removeHintAt(i)}
                   className="shrink-0 text-gray-300 hover:text-red-400 transition-colors"
-                  title="이 쪽지 버리기"
-                  aria-label={`${i + 1}번 쪽지 버리기`}
+                  title={문구.책카드.쪽지_버리기}
+                  aria-label={문구.책카드.쪽지_버리기_몇번(i + 1)}
                 >
                   <X size={13} />
                 </button>
@@ -495,19 +498,19 @@ export default function BookCard({ book }: { book: Book }) {
                 onClick={() => setHints((prev) => [...prev, ''])}
                 className="flex items-center gap-1 text-[11px] text-violet-600 hover:text-violet-700 transition-colors"
               >
-                <Plus size={12} /> 쪽지 추가
+                <Plus size={12} /> {문구.책카드.쪽지_추가}
               </button>
             ) : (
               <span />
             )}
             <div className="flex items-center gap-2">
-              {hintSaved && <span className="text-xs text-green-500">저장됨 ✓</span>}
+              {hintSaved && <span className="text-xs text-green-500">{문구.공통.저장됨}</span>}
               <button
                 onClick={handleHintSave}
                 disabled={hintSaving}
                 className="text-xs px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-lg transition-colors disabled:opacity-40"
               >
-                {hintSaving ? '저장 중…' : '저장'}
+                {hintSaving ? 문구.공통.저장중 : 문구.공통.저장}
               </button>
             </div>
           </div>
@@ -532,20 +535,20 @@ export default function BookCard({ book }: { book: Book }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleMemoSave()
             }}
-            placeholder="메모를 입력하세요… (⌘+Enter로 저장)"
+            placeholder={문구.책카드.메모_예시}
             rows={3}
             className="w-full text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-200 placeholder-gray-300"
           />
           <div className="flex items-center justify-end gap-2 mt-1.5">
             {memoSaved && (
-              <span className="text-xs text-green-500">저장됨 ✓</span>
+              <span className="text-xs text-green-500">{문구.공통.저장됨}</span>
             )}
             <button
               onClick={handleMemoSave}
               disabled={memoSaving}
               className="text-xs px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors disabled:opacity-40"
             >
-              {memoSaving ? '저장 중…' : '저장'}
+              {memoSaving ? 문구.공통.저장중 : 문구.공통.저장}
             </button>
           </div>
         </div>

@@ -96,6 +96,7 @@ import {
   drawBurstParticles,
 } from './drawing'
 import { renderCompletedPanorama, renderCompletionCapture, todayFileDateKey } from './capture'
+import { 문구 } from '@/lib/copy'
 
 export type { WorldMapBook }
 export { toWorldMapBooks, TARGET_TROPHY }
@@ -201,7 +202,7 @@ export default function WorldMap({
     const panorama = renderCompletedPanorama(completedBooks, fixedHour ?? new Date().getHours(), nickname)
     const link = document.createElement('a')
     link.href = panorama.toDataURL('image/png')
-    link.download = `산책또산책_완독맵_${todayFileDateKey()}.png`
+    link.download = 문구.지도.파일명_완독맵(todayFileDateKey())
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -285,7 +286,7 @@ export default function WorldMap({
 
     const link = document.createElement('a')
     link.href = canvas.toDataURL('image/png')
-    link.download = `산책또산책_산책기록월드맵_${todayFileDateKey()}.png`
+    link.download = 문구.지도.파일명_산책기록(todayFileDateKey())
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -378,10 +379,10 @@ export default function WorldMap({
 
   const handleCaptureCompletionShot = useCallback(
     (book: WorldMapBook) => {
-      const shot = renderCompletionCapture(book, books, nickname ?? '산책자', fixedHour ?? new Date().getHours())
+      const shot = renderCompletionCapture(book, books, nickname ?? 문구.앱.기본닉네임, fixedHour ?? new Date().getHours())
       const link = document.createElement('a')
       link.href = shot.toDataURL('image/png')
-      link.download = `산책또산책_정상인증샷_${todayFileDateKey()}.png`
+      link.download = 문구.지도.파일명_인증샷(todayFileDateKey())
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -685,7 +686,7 @@ export default function WorldMap({
         ctx.font = '13px monospace'
         ctx.textAlign = 'center'
         ctx.fillText(
-          mode === 'trophy' ? '완등한 산이 이곳으로 옮겨옵니다 🚩' : '책을 추가하면 여기에 산이 생겨요 ⛰',
+          mode === 'trophy' ? 문구.지도.빈지도_완등기록 : 문구.지도.빈지도_산책기록,
           W / 2,
           H - 80
         )
@@ -965,7 +966,7 @@ export default function WorldMap({
               className="absolute z-10 pointer-events-none whitespace-nowrap rounded-lg bg-white px-2.5 py-1.5 text-center shadow-md"
               style={{ left: addHint.x, top: addHint.y, transform: 'translate(-50%, calc(-100% - 14px))' }}
             >
-              <div className="text-xs font-semibold text-gray-900">책 추가하기</div>
+              <div className="text-xs font-semibold text-gray-900">{문구.지도.해별_책추가}</div>
               <div
                 className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-white"
               />
@@ -1034,7 +1035,7 @@ export default function WorldMap({
             <button
               type="button"
               onClick={() => scrollByPage(-1)}
-              aria-label="왼쪽 산 보기"
+              aria-label={문구.지도.왼쪽산보기}
               className="pointer-events-auto rounded-full p-1.5 hover:bg-black/20 active:scale-90 transition-all"
             >
               <ChevronLeft size={18} className="text-white/80 drop-shadow" />
@@ -1046,7 +1047,7 @@ export default function WorldMap({
             <button
               type="button"
               onClick={() => scrollByPage(1)}
-              aria-label="오른쪽 산 보기"
+              aria-label={문구.지도.오른쪽산보기}
               className="pointer-events-auto rounded-full p-1.5 hover:bg-black/20 active:scale-90 transition-all"
             >
               <ChevronRight size={18} className="text-white/80 drop-shadow" />
@@ -1074,7 +1075,7 @@ export default function WorldMap({
               className="mt-3 font-mono text-xs sm:text-sm md:text-[15px] tracking-wide text-center"
               style={{ color: '#fff6df', textShadow: '1px 1px 0 #3a2a0a', animation: 'tutorial-flicker 2.83s ease-in-out infinite' }}
             >
-              로그인 후 책을 추가해보세요
+              {문구.지도.로그인후책추가}
             </span>
           </div>
         )}
@@ -1102,15 +1103,15 @@ export default function WorldMap({
           <div className="absolute left-3 bottom-3 z-20">
             {captureButtonTarget ? (
               <SlideToCapture
-                label="인증샷 찍기"
+                label={문구.지도.인증샷찍기}
                 onConfirm={() => handleCaptureCompletionShot(captureButtonTarget)}
               />
             ) : (
               <button
                 type="button"
                 onClick={mode === 'trophy' ? handleCaptureCompletedMap : handleCaptureHomeWorldMap}
-                title={mode === 'trophy' ? '완독 맵 PNG로 저장' : '산책기록 월드맵 PNG로 저장'}
-                aria-label={mode === 'trophy' ? '완독 맵 PNG로 저장' : '산책기록 월드맵 PNG로 저장'}
+                title={mode === 'trophy' ? 문구.지도.그림저장_완등기록 : 문구.지도.그림저장_산책기록}
+                aria-label={mode === 'trophy' ? 문구.지도.그림저장_완등기록 : 문구.지도.그림저장_산책기록}
                 className="flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow-md hover:bg-white active:scale-95 transition-all"
               >
                 <Camera size={18} className="text-gray-700" />
