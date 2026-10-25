@@ -118,6 +118,8 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setDuplicateError(null)
+    // 엔터로도 제출되므로, 책 정보를 불러오지 않았으면 추가하지 않음
+    if (!selected) return
     const result = await addBook(new FormData(e.currentTarget))
 
     if (result?.error === 'duplicate') {
@@ -209,6 +211,11 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
             {/* 스캔 에러 */}
             {scanError && (
               <p className="mt-1.5 text-xs text-red-500">{scanError}</p>
+            )}
+
+            {/* 책 정보를 고르기 전 */}
+            {!selected && query.trim() && results.length === 0 && !searching && (
+              <p className="mt-1.5 text-xs text-gray-400">{문구.책추가.검색결과_고르기}</p>
             )}
 
             {/* 중복 에러 */}
@@ -338,7 +345,7 @@ export default function AddBookForm({ open: openProp, onOpenChange, authenticate
             </button>
             <button
               type="submit"
-              disabled={!selected && !query.trim()}
+              disabled={!selected}
               className="px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors"
             >
               {문구.책추가.추가}
